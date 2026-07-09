@@ -677,5 +677,8 @@
     "alert_delete_confirm": "Sì, eliminalo!",
     "alert_deleted_title": "Eliminato!",
     "alert_deleted_text": "Il piano di servizio è stato rimosso."
+  },
+  "common": {
+    "is_loading": "in caricamento..."
   }
 }

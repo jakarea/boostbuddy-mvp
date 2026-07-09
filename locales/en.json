@@ -677,5 +677,8 @@
     "alert_delete_confirm": "Yes, delete it!",
     "alert_deleted_title": "Deleted!",
     "alert_deleted_text": "Service plan has been removed."
+  },
+  "common": {
+    "is_loading": "is loading..."
   }
 }
