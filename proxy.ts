@@ -2,7 +2,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function proxy(request: NextRequest) {
-  const { supabaseResponse, user, supabase } = await updateSession(request);
   const { pathname } = request.nextUrl;
 
   // Static assets/internal routes bypass
@@ -12,8 +11,10 @@ export async function proxy(request: NextRequest) {
     pathname === "/favicon.ico" ||
     pathname.includes(".")
   ) {
-    return supabaseResponse;
+    return NextResponse.next();
   }
+
+  const { supabaseResponse, user, supabase } = await updateSession(request);
 
   // Fetch role and status if user exists
   let userRole = "CLIENT";
