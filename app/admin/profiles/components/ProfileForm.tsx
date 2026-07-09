@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft } from "lucide-react";
+import { useToast } from "@/context/ToastContext";
 
 interface ProfileFormProps {
   initialProfile?: ProfileAccountRecord | null;
@@ -20,6 +21,7 @@ interface ProfileFormProps {
 
 export default function ProfileForm({ initialProfile, onCancel, isEdit }: ProfileFormProps) {
   const { t } = useTranslation("admin_profiles");
+  const { success, error } = useToast();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -50,9 +52,13 @@ export default function ProfileForm({ initialProfile, onCancel, isEdit }: Profil
     if (clientNotes) formData.append("clientNotes", clientNotes);
 
     startTransition(async () => {
-      await upsertProfileAction(formData, initialProfile?.id || undefined);
-      router.refresh();
-      router.push("/admin/profiles");
+      const res = await upsertProfileAction(formData, initialProfile?.id || undefined);
+      if (res && !res.success) {
+        error(res.error || "Failed to save profile");
+      } else {
+        success(isEdit ? "Profile updated successfully" : "Profile created successfully");
+        window.location.href = "/admin/profiles";
+      }
     });
   };
 

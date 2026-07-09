@@ -54,8 +54,7 @@ export default function AssignForm({ profile, activeClients, onCancel }: AssignF
         error(res.error || "Failed to assign profile");
       } else {
         success("Profile assigned successfully");
-        router.refresh();
-        router.push("/admin/profiles");
+        window.location.href = "/admin/profiles";
       }
     });
   };

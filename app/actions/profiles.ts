@@ -116,7 +116,7 @@ export async function assignProfileAction(profileId: string, clientId: string, e
       assigned_client_id: clientId,
       expiration_date: expirationDate,
       assignment_date: assignmentDate || new Date().toISOString().split("T")[0],
-      status: "ASSIGNED",
+      status: "ACTIVE",
       service_id: serviceId || null,
     };
 
