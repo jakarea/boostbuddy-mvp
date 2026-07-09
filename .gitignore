@@ -123,3 +123,4 @@ out/
 .env.*
 !.env.example
 !.env.*.example
+.vercel

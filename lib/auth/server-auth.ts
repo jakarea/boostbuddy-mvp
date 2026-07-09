@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { getCachedUser } from '@/lib/auth/cached-auth';
 
 export type AuthenticatedUser = {
   id: string;
@@ -26,38 +26,24 @@ export type AuthResult<T> =
 export async function requireAuth(options?: {
   role?: 'ADMIN' | 'CLIENT'
 }): Promise<AuthResult<never>> {
-  const supabase = await createClient();
-
-  // Step 1: Get authenticated user
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
+  const cachedUser = await getCachedUser();
+  if (!cachedUser) {
     return { success: false, error: "Unauthorized" };
   }
 
-  // Step 2: Get user profile
-  const { data: profile, error: profileError } = await supabase
-    .from("users")
-    .select("id, email, name, role, status")
-    .eq("id", user.id)
-    .single();
-
-  if (profileError || !profile) {
-    return { success: false, error: "Profile not found" };
-  }
-
-  // Step 3: Check role if required
-  if (options?.role && profile.role !== options.role) {
+  // Check role if required
+  if (options?.role && cachedUser.role !== options.role) {
     return { success: false, error: "Forbidden" };
   }
 
   return {
     success: true,
     user: {
-      id: profile.id,
-      email: profile.email,
-      name: profile.name,
-      role: profile.role,
-      status: profile.status,
+      id: cachedUser.id,
+      email: cachedUser.email,
+      name: cachedUser.name,
+      role: cachedUser.role,
+      status: cachedUser.status,
     }
   };
 }

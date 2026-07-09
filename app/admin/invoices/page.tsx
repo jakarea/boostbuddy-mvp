@@ -11,16 +11,11 @@ export const metadata = {
 };
 
 export default async function InvoicesPage() {
-  const response = await getAdminInvoicesAction();
-  const initialInvoices = (response.success ? response.data : []) as any[];
-  const allClients = await getClientsAction();
-  const activeClients = allClients.filter(c => c.status === "ACTIVE");
-  const services = await getServicesAction();
-
-  // We also need orders to populate the dropdown for the specific client.
-  // Fetching recent paid orders for admin (limited to 100 for performance).
   const supabase = await createClient();
-  const [ordersRes, billingRes] = await Promise.all([
+  const [response, allClients, services, ordersRes, billingRes] = await Promise.all([
+    getAdminInvoicesAction(),
+    getClientsAction(),
+    getServicesAction(),
     supabase
       .from("orders")
       .select("*")
@@ -32,6 +27,8 @@ export default async function InvoicesPage() {
       .select("*")
   ]);
 
+  const initialInvoices = (response.success ? response.data : []) as any[];
+  const activeClients = allClients.filter(c => c.status === "ACTIVE");
   const allOrders = ordersRes.data || [];
   const allBilling = billingRes.data || [];
 

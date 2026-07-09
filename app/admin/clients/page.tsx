@@ -4,8 +4,10 @@ import ClientsContent from "./client-page";
 import { getClientsAction, getProfileCountsAction } from "@/app/actions/clients";
 
 export default async function AdminClientsPage() {
-  const clients = await getClientsAction();
-  const profileCounts = await getProfileCountsAction();
+  const [clients, profileCounts] = await Promise.all([
+    getClientsAction(),
+    getProfileCountsAction(),
+  ]);
 
   return (
     <Suspense fallback={<LoadingScreen />}>

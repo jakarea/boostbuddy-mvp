@@ -62,8 +62,7 @@ const getClientNameFromProfile = (profile: ExpiringProfileDTO): string => {
 
 export default function DashboardClient({ initialStats }: DashboardClientProps) {
   const { t } = useTranslation("admin_dashboard");
-  const { success, error } = useToast();
-  const [showWarningToast, setShowWarningToast] = useState(false);
+  const { success, error, warning } = useToast();
   const [isPending, startTransition] = useTransition();
 
   const {
@@ -77,9 +76,9 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
 
   useEffect(() => {
     if (expiringProfilesCount > 0) {
-      setShowWarningToast(true);
+      warning(`${t("alert_required")} ${t("alert_desc", { count: expiringProfilesCount })}`, 8000);
     }
-  }, [expiringProfilesCount]);
+  }, [expiringProfilesCount, t, warning]);
 
   const handleApproveClient = (clientId: string) => {
     startTransition(async () => {
@@ -122,28 +121,6 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
         </p>
       </div>
 
-      {/* Alert Banner */}
-      {showWarningToast && (
-        <div className="p-3 sm:p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-red-800 dark:text-red-300">
-          <div className="flex items-start sm:items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-500 animate-bounce shrink-0 mt-0.5 sm:mt-0" />
-            <div>
-              <span className="font-bold text-red-800 dark:text-red-300">{t("alert_required")}</span>
-              <p className="text-[10px] text-red-600 dark:text-red-400 mt-0.5">
-                {t("alert_desc", { count: expiringProfilesCount })}
-              </p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 text-xs text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 font-bold shrink-0"
-            onClick={() => setShowWarningToast(false)}
-          >
-            {t("btn_dismiss")}
-          </Button>
-        </div>
-      )}
 
       {/* Stats Counter Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

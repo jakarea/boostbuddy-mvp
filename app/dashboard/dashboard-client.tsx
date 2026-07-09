@@ -6,7 +6,6 @@ import { requestProfileChangeAction } from "@/app/actions/dashboard";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Pagination } from "@/components/ui/pagination";
 import {
   Key, Copy, RefreshCw, AlertTriangle, ExternalLink,
@@ -95,7 +94,7 @@ export type ProfileAccountRecord = {
 export default function DashboardClient({ initialProfiles }: { initialProfiles: ProfileAccountRecord[] }) {
   const { t } = useTranslation("client_dashboard");
   const { t: tStatus } = useTranslation("status");
-  const { success, info, error } = useToast();
+  const { success, info, error, warning } = useToast();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -209,6 +208,13 @@ export default function DashboardClient({ initialProfiles }: { initialProfiles: 
     return p.status === "ACTIVE" && days !== null && days >= 0 && days <= 7;
   });
 
+  // Trigger warning toast for expiring soon profiles
+  useEffect(() => {
+    if (expiringSoonProfiles.length > 0) {
+      warning(`${t("exp_warning_title")} ${t("exp_warning_desc", { count: expiringSoonProfiles.length })}`, 8000);
+    }
+  }, [expiringSoonProfiles.length, t, warning]);
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
@@ -226,19 +232,6 @@ export default function DashboardClient({ initialProfiles }: { initialProfiles: 
           {t("buy_new_service")}
         </Button>
       </div>
-
-      {/* Expiring Alert Banner */}
-      {expiringSoonProfiles.length > 0 && (
-        <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-900 dark:text-red-300">
-          <AlertTriangle className="h-4 w-4 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <AlertTitle className="font-bold text-sm sm:text-base">{t("exp_warning_title")}</AlertTitle>
-            <AlertDescription className="text-xs sm:text-sm mt-1 leading-relaxed">
-              {t("exp_warning_desc", { count: expiringSoonProfiles.length })}
-            </AlertDescription>
-          </div>
-        </Alert>
-      )}
 
       {/* Instructions callout */}
       <Card className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800/80">

@@ -4,8 +4,10 @@ import ProfilesContent from "./profiles-client";
 import { getProfilesAction, getActiveClientsAction } from "@/app/actions/profiles";
 
 export default async function AdminProfilesPage() {
-  const initialProfiles = await getProfilesAction();
-  const activeClients = await getActiveClientsAction();
+  const [initialProfiles, activeClients] = await Promise.all([
+    getProfilesAction(),
+    getActiveClientsAction(),
+  ]);
 
   return (
     <Suspense fallback={<LoadingScreen />}>

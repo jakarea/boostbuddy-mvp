@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Calendar } from "lucide-react";
+import { useToast } from "@/context/ToastContext";
 
 interface AssignFormProps {
   profile: ProfileAccountRecord | null;
@@ -20,6 +21,7 @@ interface AssignFormProps {
 
 export default function AssignForm({ profile, activeClients, onCancel }: AssignFormProps) {
   const { t } = useTranslation("admin_profiles");
+  const { success, error } = useToast();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -41,9 +43,20 @@ export default function AssignForm({ profile, activeClients, onCancel }: AssignF
     if (!profile || !selectedClientId || !expirationDate) return;
 
     startTransition(async () => {
-      await assignProfileAction(profile.id, selectedClientId, expirationDate, assignmentDate || undefined);
-      router.refresh();
-      router.push("/admin/profiles");
+      const res = await assignProfileAction(
+        profile.id,
+        selectedClientId,
+        expirationDate,
+        undefined,
+        assignmentDate || undefined
+      );
+      if (res && !res.success) {
+        error(res.error || "Failed to assign profile");
+      } else {
+        success("Profile assigned successfully");
+        router.refresh();
+        router.push("/admin/profiles");
+      }
     });
   };
 
