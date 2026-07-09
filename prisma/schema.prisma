@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String           @id @default(uuid())
+  email        String           @unique
+  passwordHash String
+  name         String
+  role         String           // "ADMIN" or "CLIENT"
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  isActive     Boolean          @default(true)
+  billingInfo  BillingInfo?
+  profiles     ProfileAccount[]
+  orders       Order[]
+  invoices     Invoice[]
+}
+
+model BillingInfo {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  billingType String   // "INDIVIDUAL" or "COMPANY"
+  country     String
+  name        String   // Individual name or company name
+  address     String
+  city        String
+  postalCode  String
+  vatNumber   String?
+  fiscalCode  String?
+  sdiCode     String?  // SDI code for Italy, if applicable
+  updatedAt   DateTime @updatedAt
+}
+
+model Service {
+  id                       String   @id @default(uuid())
+  name                     String
+  description              String
+  price                    Float
+  durationDays             Int
+  isActive                 Boolean  @default(true)
+  requiresManualAssignment Boolean  @default(true)
+  instructions             String   // Client-visible instructions on how to use/assign
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  orders                   Order[]
+  profiles                 ProfileAccount[]
+}
+
+model ProfileAccount {
+  id                 String    @id @default(uuid())
+  profileName        String    // e.g. "IX-Profile-001"
+  accountEmail       String
+  accountPassword    String
+  emailPassword      String?
+  twoFactorSecret    String?   // 2FA code / secret key
+  iXBrowserProfileId String?   // IXBrowser profile ID or reference code
+  iXBrowserGroup     String?   // IXBrowser profile group
+  status             String    // "AVAILABLE", "ASSIGNED", "ACTIVE", "EXPIRED", "BANNED", "CANCELLED", "REQUEST_CHANGE"
+  adminNotes         String?
+  clientNotes        String?   // Client-visible notes/instructions
+  assignedClientId   String?
+  assignedClient     User?            @relation(fields: [assignedClientId], references: [id], onDelete: SetNull)
+  assignmentDate     DateTime?
+  expirationDate     DateTime?
+  renewalCount       Int              @default(0)
+  currentRenewalMonth Int?
+  serviceId          String?
+  service            Service?         @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  renewals           Order[]          @relation("ProfileRenewals")
+}
+
+model Order {
+  id               String          @id @default(uuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serviceId        String?
+  service          Service?        @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  stripeSessionId  String?         @unique
+  amount           Float
+  status           String          // "PENDING", "PAID", "FAILED"
+  type             String          // "PURCHASE" or "RENEWAL"
+  profileAccountId String?
+  profileAccount   ProfileAccount? @relation("ProfileRenewals", fields: [profileAccountId], references: [id], onDelete: SetNull)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  invoices         Invoice[]
+}
+
+model Invoice {
+  id                String    @id @default(uuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId           String?
+  order             Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  paymentPeriodStart DateTime?
+  paymentPeriodEnd   DateTime?
+  pdfPath           String    // Path to the uploaded PDF invoice
+  uploadedAt        DateTime  @default(now())
+}

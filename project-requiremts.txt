@@ -1,0 +1,174 @@
+BOOSTBUDDY MWP — CLIENT ACCOUNT MANAGEMENT PLATFORM
+General Goal
+Build a simplified BoostBuddy MWP focused on client account/profile management, direct service payments, billing data, invoice history, and manual IXBrowser account/profile management.
+BoostBuddy will not open browser profiles directly in this version.
+Browser profiles will be managed and opened manually through IXBrowser.
+BoostBuddy must work as the client portal and admin management system.
+
+1. Admin Area
+The admin must be able to:
+edit clients
+deactivate clients
+view client details
+manage client billing information
+manage available services/products
+assign browser profiles/accounts to clients
+remove profiles/accounts from clients
+set assignment date
+set expiration date
+set profile/account status
+add internal notes
+view active, expired, and banned profiles/accounts
+view client payment status
+view Stripe payment records
+upload invoice PDFs
+associate invoices with clients and payment periods
+allow clients to download invoices
+receive reminders when an assigned account/profile is close to expiration
+The admin panel can remain simple, but it must clearly show which clients/accounts are active, expiring, expired, or banned.
+
+2. Client Area
+The client must be able to:
+log in
+view assigned profiles/accounts
+see profile/account expiration dates
+see active, expired, or banned status
+view service/payment status
+buy a service/product directly through Stripe
+renew an assigned account/profile through a “Renew” button
+manage billing details
+view payment history
+view invoice history
+download invoice PDFs
+The client should receive clear instructions that profiles must be opened directly from IXBrowser.
+
+3. Service / Product Purchase Flow
+The client must be able to purchase a service/product directly from BoostBuddy.
+Required flow
+client selects a service/product
+client clicks “Buy Now”
+client pays through Stripe Checkout
+after successful payment, BoostBuddy creates a paid order/request
+admin sees the paid order/request
+admin manually assigns an available account/profile to the client
+the assigned account/profile becomes visible in the client dashboard
+Service/Product records should include:
+service/product name
+description
+price
+duration
+status: active/inactive
+whether manual assignment is required
+client-visible instructions
+
+4. Renewal Flow
+Each assigned account/profile must have a visible “Renew” button on the client side.
+Required renewal flow
+client clicks “Renew” near the assigned account/profile
+client pays the renewal through Stripe
+after successful payment, BoostBuddy creates a renewal payment record
+admin receives/see the renewal confirmation
+the account/profile expiration date is extended manually or automatically, depending on the configuration
+For the MWP, renewal can be handled with Stripe payment confirmation and manual admin approval/update.
+
+5. Expiration Reminder System
+The platform must show expiration reminders to both client and admin.
+Client reminder
+When an assigned account/profile is close to expiration, the client must see a popup or alert such as:
+“Your account is about to expire. Renew now to avoid service interruption.”
+The popup/alert should include a “Renew” button.
+Admin reminder
+The admin must also see a reminder when a client account/profile is close to expiration.
+This can be shown in the admin dashboard as:
+expiring soon list
+popup/alert
+dashboard notification
+account/profile status highlight
+The goal is to remind the admin to follow up and manage renewals.
+
+6. Profile / Account Management
+Each profile/account record in BoostBuddy must include:
+internal ID
+profile/account name
+account email
+account password
+email password
+2FA code / 2FA secret
+IXBrowser profile ID or reference code
+IXBrowser profile group
+assigned client
+assignment date
+expiration date
+status
+admin notes
+client-visible notes/instructions
+Suggested statuses:
+Available
+Assigned
+Active
+Expired
+Banned
+Cancelled
+
+7. Billing Module
+Clients must be able to enter and update billing data:
+billing type: individual / company
+country
+name or company name
+address
+city
+postal code
+VAT number
+fiscal code
+SDI code, if applicable
+Admin must be able to view and edit billing data.
+
+8. Stripe Payments Module
+The platform must use Stripe for payments.
+Required payment features
+Stripe Checkout integration
+direct service/product payment
+renewal payment
+payment success/failure tracking
+payment history visible to the client
+payment records visible to the admin
+payment status linked to the related service/order/account
+Stripe webhook handling for successful and failed payments
+Wallet/balance system is not required in this version.
+Clients pay directly for the selected service/product or renewal.
+
+9. Invoice Module
+The platform must support invoice history and PDF download.
+For the MWP:
+admin uploads invoice PDFs manually
+admin assigns invoices to a client
+admin can associate invoice with payment/service period
+client can view invoice history
+client can download invoice PDFs
+Automatic invoice generation is not required in the first version.
+
+10. IXBrowser Workflow
+IXBrowser will be managed manually outside BoostBuddy in the first version.
+Admin will manually:
+create/manage profiles in IXBrowser
+assign/share profiles in IXBrowser
+remove access when needed
+copy the IXBrowser profile ID/reference into BoostBuddy
+copy the IXBrowser profile group into BoostBuddy
+BoostBuddy will only store and display the management data.
+No local app, browser opening system, or IXBrowser API integration is required in the MWP.
+
+11. Main Objective
+The goal is to build a clean and simple management platform for:
+clients
+services/products
+assigned accounts/profiles
+expiration dates
+renewals
+Stripe payments
+billing data
+invoice history
+admin reminders
+client expiration reminders
+This MWP should be fast to develop, easy to manage, and ready to be expanded later.
+
