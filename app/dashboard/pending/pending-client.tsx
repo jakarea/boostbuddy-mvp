@@ -3,6 +3,7 @@
 import React, { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, ShieldAlert, LogOut, RefreshCw, Loader2 } from "lucide-react";
@@ -67,7 +68,12 @@ export default function PendingClient({ email }: PendingClientProps) {
           <Button
             variant="outline"
             className="flex-1 border-zinc-800 hover:bg-zinc-900 text-zinc-300 hover:text-white h-10"
-            onClick={() => router.push("/api/logout")}
+            onClick={() => {
+              router.push("/");
+              const supabase = createClient();
+              supabase.auth.signOut();
+              fetch("/api/logout", { method: "POST" }).catch(() => {});
+            }}
             disabled={isPending}
           >
             <LogOut className="h-4 w-4 mr-2" />

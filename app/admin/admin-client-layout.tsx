@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import {
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { TopHeader } from "@/components/TopHeader";
 import { signOutAction } from "@/app/actions/auth";
+import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "react-i18next";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
@@ -21,6 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { t } = useTranslation("admin_layout");
   const { user, isLoading } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   console.log(`${LOG_PREFIX} Rendering | User:`, user?.email, "| Role:", user?.role, "| Loading:", isLoading);
@@ -113,9 +115,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Button
             variant="outline"
             className="w-full h-9 sm:h-10 text-xs sm:text-sm text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/30 hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300 font-semibold gap-2 flex items-center justify-center md:justify-start px-2 md:px-3 bg-transparent"
-            onClick={async () => {
+            onClick={() => {
               console.log(`${LOG_PREFIX} Sign out button clicked`);
-              await signOutAction();
+              router.push("/");
+              const supabase = createClient();
+              supabase.auth.signOut();
+              signOutAction().catch(() => {});
             }}
           >
             <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
@@ -177,10 +182,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Button
             variant="outline"
             className="w-full h-10 text-sm text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/30 hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300 font-semibold gap-2 flex items-center justify-start px-3 bg-transparent"
-            onClick={async () => {
+            onClick={() => {
               console.log(`${LOG_PREFIX} Sign out button clicked (mobile)`);
-              await signOutAction();
               setSidebarOpen(false);
+              router.push("/");
+              const supabase = createClient();
+              supabase.auth.signOut();
+              signOutAction().catch(() => {});
             }}
           >
             <LogOut className="h-4 w-4 shrink-0" />
