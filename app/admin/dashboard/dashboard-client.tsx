@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { updateClientStatusAction } from "@/app/actions/clients";
 import { useTranslation } from "react-i18next";
+import Swal from "sweetalert2";
 import { useToast } from "@/context/ToastContext";
 
 // --- DTOs (Data Transfer Objects) ---
@@ -91,8 +92,18 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
     });
   };
 
-  const handleRejectClient = (clientId: string) => {
-    if (confirm(t('alert_reject_text'))) {
+  const handleRejectClient = async (clientId: string) => {
+    const result = await Swal.fire({
+      title: t("are_you_sure", { defaultValue: "Are you sure?" }),
+      text: t('alert_reject_text'),
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#168BB0",
+      cancelButtonColor: "#d33",
+      confirmButtonText: t("yes", { defaultValue: "Yes" })
+    });
+
+    if (result.isConfirmed) {
       startTransition(async () => {
         const res = await updateClientStatusAction(clientId, "DEACTIVATED");
         if (res.success) {

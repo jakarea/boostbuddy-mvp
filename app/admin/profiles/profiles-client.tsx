@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import Swal from "sweetalert2";
 import { unassignProfileAction, deleteProfileAction } from "@/app/actions/profiles";
 import { ProfileAccountRecord, ActiveClient } from "./components/types";
 import ProfilesList from "./components/ProfilesList";
@@ -76,8 +77,18 @@ export default function ProfilesContent({
     return filteredProfiles.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredProfiles, currentPage, itemsPerPage]);
 
-  const handleUnassignProfile = (pid: string) => {
-    if (confirm(t("alert_release_text"))) {
+  const handleUnassignProfile = async (pid: string) => {
+    const result = await Swal.fire({
+      title: t("are_you_sure", { defaultValue: "Are you sure?" }),
+      text: t("alert_release_text"),
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#168BB0",
+      cancelButtonColor: "#d33",
+      confirmButtonText: t("yes", { defaultValue: "Yes" })
+    });
+    
+    if (result.isConfirmed) {
       startTransition(async () => {
         await unassignProfileAction(pid);
         router.refresh();
@@ -85,8 +96,18 @@ export default function ProfilesContent({
     }
   };
 
-  const handleDeleteProfile = (pid: string) => {
-    if (confirm(t("alert_delete_text"))) {
+  const handleDeleteProfile = async (pid: string) => {
+    const result = await Swal.fire({
+      title: t("are_you_sure", { defaultValue: "Are you sure?" }),
+      text: t("alert_delete_text"),
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#168BB0",
+      cancelButtonColor: "#d33",
+      confirmButtonText: t("yes", { defaultValue: "Yes" })
+    });
+
+    if (result.isConfirmed) {
       startTransition(async () => {
         await deleteProfileAction(pid);
         router.refresh();

@@ -12,6 +12,7 @@ import {
   ShieldCheck, Mail, Server, MessageCircle, AlertCircle
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import Swal from "sweetalert2";
 import { useToast } from "@/context/ToastContext";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -172,8 +173,18 @@ export default function DashboardClient({ initialProfiles }: { initialProfiles: 
     navigator.clipboard.writeText(text);
   };
 
-  const handleRequestChange = (profileId: string) => {
-    if (confirm(t("alert_req_change_text"))) {
+  const handleRequestChange = async (profileId: string) => {
+    const result = await Swal.fire({
+      title: t("are_you_sure", { defaultValue: "Are you sure?" }),
+      text: t("alert_req_change_text"),
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#168BB0",
+      cancelButtonColor: "#d33",
+      confirmButtonText: t("yes", { defaultValue: "Yes" })
+    });
+
+    if (result.isConfirmed) {
       startTransition(async () => {
         await requestProfileChangeAction(profileId);
         success(t("alert_requested_text"));

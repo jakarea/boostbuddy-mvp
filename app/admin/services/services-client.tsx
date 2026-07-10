@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import Swal from "sweetalert2";
 import { useToast } from "@/context/ToastContext";
 import { upsertServiceAction, deleteServiceAction } from "@/app/actions/services";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -96,8 +97,18 @@ export default function ServicesClient({ initialServices }: { initialServices: S
     });
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm(t('alert_delete_text'))) {
+  const handleDelete = async (id: string) => {
+    const result = await Swal.fire({
+      title: t("are_you_sure", { defaultValue: "Are you sure?" }),
+      text: t('alert_delete_text'),
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#168BB0",
+      cancelButtonColor: "#d33",
+      confirmButtonText: t("yes", { defaultValue: "Yes" })
+    });
+
+    if (result.isConfirmed) {
       startTransition(async () => {
         await deleteServiceAction(id);
         success(t('alert_deleted_text'));

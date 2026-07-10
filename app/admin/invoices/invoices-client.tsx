@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import Swal from "sweetalert2";
 import { useToast } from "@/context/ToastContext";
 import { uploadInvoiceAction, deleteInvoiceAction, getInvoiceDownloadUrlAction } from "@/app/actions/invoices";
 import { ServiceRecord } from "@/app/admin/services/services-client";
@@ -554,8 +555,18 @@ export default function InvoicesClient({
     );
   }
 
-  const handleDeleteInvoice = (inv: InvoiceRecord) => {
-    if (confirm(t("alert_delete_text"))) {
+  const handleDeleteInvoice = async (inv: InvoiceRecord) => {
+    const result = await Swal.fire({
+      title: t("are_you_sure", { defaultValue: "Are you sure?" }),
+      text: t("alert_delete_text"),
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#168BB0",
+      cancelButtonColor: "#d33",
+      confirmButtonText: t("yes", { defaultValue: "Yes" })
+    });
+
+    if (result.isConfirmed) {
       startTransition(async () => {
         await deleteInvoiceAction(inv.id, inv.pdf_path);
         success(t("alert_deleted_text"));
