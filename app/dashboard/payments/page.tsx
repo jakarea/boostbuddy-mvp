@@ -1,23 +1,27 @@
 import { Suspense } from "react";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import PaymentsClient from "./payments-client";
-import { getClientOrdersAction } from "@/app/actions/orders";
-import { getServicesAction } from "@/app/actions/services";
-import { getClientBillingAction } from "@/app/actions/billing";
-import { getClientInvoicesAction } from "@/app/actions/invoices";
-import { getClientProfilesAction } from "@/app/actions/dashboard";
+import { getClientOrdersData } from "@/lib/data/orders";
+import { getServicesData } from "@/lib/data/services";
+import { getClientBillingData } from "@/lib/data/billing";
+import { getClientInvoicesData } from "@/lib/data/invoices";
+import { getClientProfilesData } from "@/lib/data/dashboard";
+import { requireAuth } from "@/lib/auth/server-auth";
 
 export const metadata = {
   title: "Payments & Services - Client Portal",
 };
 
 export default async function ClientPaymentsPage() {
+  const auth = await requireAuth();
+  if (!auth.success) return null;
+
   const [ordersRes, services, billingRes, invoicesRes, profilesRes] = await Promise.all([
-    getClientOrdersAction(),
-    getServicesAction(),
-    getClientBillingAction(),
-    getClientInvoicesAction(),
-    getClientProfilesAction()
+    getClientOrdersData(auth.user.id),
+    getServicesData(),
+    getClientBillingData(auth.user.id),
+    getClientInvoicesData(auth.user.id),
+    getClientProfilesData(auth.user.id)
   ]);
 
   const orders = (ordersRes.success ? ordersRes.data : []) as any[];

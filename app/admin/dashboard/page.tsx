@@ -1,14 +1,18 @@
 import { Suspense } from "react";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import DashboardClient from "./dashboard-client";
-import { getAdminDashboardStatsAction } from "@/app/actions/dashboard";
+import { getAdminDashboardStatsData } from "@/lib/data/dashboard";
+import { requireAuth } from "@/lib/auth/server-auth";
 
 export const metadata = {
   title: "Dashboard - Admin",
 };
 
 export default async function AdminDashboardPage() {
-  const response = await getAdminDashboardStatsAction();
+  const auth = await requireAuth({ role: "ADMIN" });
+  if (!auth.success) return null;
+
+  const response = await getAdminDashboardStatsData();
   const stats = (response.success ? response.data : {
     activeClientsCount: 0,
     pendingClientsCount: 0,
