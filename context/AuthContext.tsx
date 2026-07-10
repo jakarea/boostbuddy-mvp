@@ -48,7 +48,6 @@ export function AuthProvider({ children, initialUser = null }: { children: React
       async (event, session) => {
         console.group(`${LOG_PREFIX} Auth state changed`);
         console.log("Event:", event);
-        console.log("Session user:", session?.user?.email || "none");
 
         if (!isMounted) {
           console.log("Component unmounted, skipping update");
@@ -64,8 +63,11 @@ export function AuthProvider({ children, initialUser = null }: { children: React
         }
 
         try {
-          if (session?.user) {
-            console.log(`${LOG_PREFIX} User authenticated via event:`, session.user.email);
+          // Instead of reading session.user (which triggers the warning), we use getUser() directly
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          if (user) {
+            console.log(`${LOG_PREFIX} User authenticated via event:`, user.email);
             // Only fetch fresh profile on SIGNED_IN or other active events
             const authUser = await getFullAuthUser();
 
