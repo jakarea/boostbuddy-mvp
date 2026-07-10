@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import type { AuthUser } from '@/lib/auth/types';
+import { headers } from 'next/headers';
 
 export type CachedUser = AuthUser;
 
@@ -18,6 +19,23 @@ export const getCachedUser = cache(async (): Promise<CachedUser | null> => {
     return null;
   }
 
+  // Check if middleware passed role/status headers to save a DB query
+  const headersList = await headers();
+  const roleHeader = headersList.get('x-user-role');
+  const statusHeader = headersList.get('x-user-status');
+
+  if (roleHeader && statusHeader) {
+    return {
+      id: user.id,
+      email: user.email || '',
+      name: user.user_metadata?.name || '',
+      role: roleHeader as 'ADMIN' | 'CLIENT',
+      status: statusHeader as 'PENDING' | 'ACTIVE' | 'DEACTIVATED',
+      createdAt: user.created_at,
+    };
+  }
+
+  // Fallback: fetch profile from DB if headers are missing
   const { data: profile, error: profileError } = await supabase
     .from("users")
     .select("id, email, name, role, status, created_at")

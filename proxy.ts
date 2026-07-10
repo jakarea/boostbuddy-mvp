@@ -33,6 +33,10 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Pass these to the server components to save a DB query
+  supabaseResponse.headers.set('x-user-role', userRole);
+  supabaseResponse.headers.set('x-user-status', userStatus);
+
   // Define route checkers
   const isAuthPage = pathname === "/" || pathname === "/forgot-password" || pathname.startsWith("/reset-password");
   const isAdminPage = pathname.startsWith("/admin");

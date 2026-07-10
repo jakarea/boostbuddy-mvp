@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
       'lucide-react',
       '@/components/ui',
     ],
+    optimizeFonts: false,
   },
 };
 

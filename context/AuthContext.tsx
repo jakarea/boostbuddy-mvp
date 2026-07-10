@@ -37,52 +37,13 @@ export function AuthProvider({ children, initialUser = null }: { children: React
     }
   }, [initialUser, user?.id]);
 
-  // Initialize auth on mount - restore session
+  // Setup Supabase auth listener on mount
   useEffect(() => {
-    console.group(`${LOG_PREFIX} Initializing auth system`);
-
+    console.group(`${LOG_PREFIX} Initializing auth listener`);
     let isMounted = true;
 
-    const initializeAuth = async () => {
-      try {
-        console.log(`${LOG_PREFIX} Step 1: Checking for existing session...`);
-        const authUser = await getFullAuthUser();
-
-        if (!isMounted) {
-          console.log(`${LOG_PREFIX} Component unmounted, skipping state update`);
-          console.groupEnd();
-          return;
-        }
-
-        if (authUser) {
-          console.log(`${LOG_PREFIX} Step 2: ✅ User found in session:`, authUser.email);
-          setUser(authUser);
-          setState("AUTHENTICATED");
-          setError(null);
-        } else {
-          console.log(`${LOG_PREFIX} Step 2: No user in session`);
-          setUser(null);
-          setState("UNAUTHENTICATED");
-          setError(null);
-        }
-      } catch (err) {
-        console.error(`${LOG_PREFIX} ❌ Auth initialization error:`, err);
-        if (isMounted) {
-          setUser(null);
-          setState("UNAUTHENTICATED");
-          setError(err instanceof Error ? err.message : "Unknown error");
-        }
-      } finally {
-        console.groupEnd();
-      }
-    };
-
-    initializeAuth();
-
-    // Listen to Supabase auth changes
     const supabase = createClient();
-    console.log(`${LOG_PREFIX} Setting up auth state change listener...`);
-
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.group(`${LOG_PREFIX} Auth state changed`);
@@ -95,20 +56,24 @@ export function AuthProvider({ children, initialUser = null }: { children: React
           return;
         }
 
+        // Ignore INITIAL_SESSION because the server already gave us the initialUser
+        if (event === 'INITIAL_SESSION') {
+          console.log(`${LOG_PREFIX} Skipping INITIAL_SESSION fetch, relying on server state`);
+          console.groupEnd();
+          return;
+        }
+
         try {
           if (session?.user) {
-            console.log(`${LOG_PREFIX} Step 1: User authenticated:`, session.user.email);
-
-            // Fetch fresh profile
+            console.log(`${LOG_PREFIX} User authenticated via event:`, session.user.email);
+            // Only fetch fresh profile on SIGNED_IN or other active events
             const authUser = await getFullAuthUser();
 
             if (authUser) {
-              console.log(`${LOG_PREFIX} Step 2: ✅ Profile loaded, role:`, authUser.role);
               setUser(authUser);
               setState("AUTHENTICATED");
               setError(null);
             } else {
-              console.warn(`${LOG_PREFIX} ⚠️ Session exists but profile not found`);
               setUser(null);
               setState("UNAUTHENTICATED");
             }
@@ -128,6 +93,8 @@ export function AuthProvider({ children, initialUser = null }: { children: React
         }
       }
     );
+
+    console.groupEnd();
 
     return () => {
       isMounted = false;
