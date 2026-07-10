@@ -135,11 +135,13 @@ export async function createCheckoutSessionAction(
               description: checkoutItemDescription,
             },
             unit_amount: Math.round(checkoutAmount * 100), // Stripe expects cents
+            tax_behavior: 'exclusive', // Required for automatic_tax: calculates tax ON TOP of this amount
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
+      automatic_tax: { enabled: true },
       success_url: `${siteUrl}/dashboard/payments/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/dashboard/payments`,
       metadata: {
