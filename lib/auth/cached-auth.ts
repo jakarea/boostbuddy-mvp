@@ -11,8 +11,7 @@ export type CachedUser = AuthUser;
  */
 export const getCachedUser = cache(async (): Promise<CachedUser | null> => {
   const supabase = await createClient();
-  const { data: { session }, error: authError } = await supabase.auth.getSession();
-  const user = session?.user;
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
 
   if (authError || !user) {
     return null;

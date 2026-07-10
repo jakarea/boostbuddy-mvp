@@ -14,20 +14,20 @@ const LOG_PREFIX = "[AUTH-PURE]";
 export async function getCurrentSession() {
   console.log(`${LOG_PREFIX} Getting current session...`);
   const supabase = createClient();
-  const { data: { session }, error } = await supabase.auth.getSession();
+  const { data: { user }, error } = await supabase.auth.getUser();
 
   if (error) {
-    console.error(`${LOG_PREFIX} ❌ Session fetch error:`, error.message);
+    console.error(`${LOG_PREFIX} ❌ User fetch error:`, error.message);
     return null;
   }
 
-  if (!session?.user) {
-    console.log(`${LOG_PREFIX} No active session found`);
+  if (!user) {
+    console.log(`${LOG_PREFIX} No active user found`);
     return null;
   }
 
-  console.log(`${LOG_PREFIX} ✅ Session found for:`, session.user.email);
-  return session;
+  console.log(`${LOG_PREFIX} ✅ User found:`, user.email);
+  return { user };
 }
 
 /**

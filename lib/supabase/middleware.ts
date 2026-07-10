@@ -32,10 +32,8 @@ export async function updateSession(request: NextRequest) {
 
   // refreshing the session by retrieving user details locally without network request
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  
-  const user = session?.user || null;
+    data: { user },
+  } = await supabase.auth.getUser();
 
   return { supabaseResponse, user, supabase };
 }
