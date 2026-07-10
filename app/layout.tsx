@@ -5,6 +5,7 @@ import { ToastContainer } from "@/components/ToastContainer";
 import { AppProvider } from "@/components/providers/AppProvider";
 import { getCachedUser } from "@/lib/auth/cached-auth";
 import NextTopLoader from "nextjs-toploader";
+import { ClientPerformanceLogger } from "@/components/ClientPerformanceLogger";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -40,6 +41,7 @@ export default async function RootLayout({
           shadow="0 0 10px #168BB0,0 0 5px #168BB0"
         />
         <AppProvider initialUser={initialUser}>
+          <ClientPerformanceLogger />
           <div className="flex-1 flex flex-col overflow-x-hidden min-h-0">
             {children}
           </div>
