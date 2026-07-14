@@ -26,29 +26,54 @@ const TwoFactorTimer: React.FC<{ secret: string }> = ({ secret }) => {
   const [secondsLeft, setSecondsLeft] = useState(30);
 
   useEffect(() => {
-    const generateCode = () => {
-      // Simulate TOTP generation based on secret string hash
-      let sum = 0;
-      for (let i = 0; i < secret.length; i++) {
-        sum += secret.charCodeAt(i) * (i + 1);
-      }
-      // Mix with current epoch block (30 sec interval)
-      const epochBlock = Math.floor(Date.now() / 30000);
-      const codeNum = (sum * epochBlock) % 900000 + 100000;
-      setCode(codeNum.toString());
-    };
+    let generateCode: () => void;
+    
+    try {
+      // Clean up the secret (remove spaces, etc. common in Meta BM secrets)
+      const cleanSecret = secret.replace(/\s+/g, '').toUpperCase();
+      
+      // Dynamic import to avoid SSR issues if otpauth relies on browser APIs
+      import('otpauth').then((OTPAuth) => {
+        const totp = new OTPAuth.TOTP({
+          issuer: "BoostBuddy",
+          label: "Profile",
+          algorithm: "SHA1",
+          digits: 6,
+          period: 30,
+          secret: OTPAuth.Secret.fromBase32(cleanSecret),
+        });
 
-    generateCode();
+        generateCode = () => {
+          try {
+            setCode(totp.generate());
+          } catch (e) {
+            console.error("Failed to generate TOTP", e);
+            setCode("ERROR");
+          }
+        };
 
-    const interval = setInterval(() => {
-      const sec = 30 - (Math.floor(Date.now() / 1000) % 30);
-      setSecondsLeft(sec);
-      if (sec === 30) {
         generateCode();
-      }
-    }, 1000);
 
-    return () => clearInterval(interval);
+        const interval = setInterval(() => {
+          const sec = 30 - (Math.floor(Date.now() / 1000) % 30);
+          setSecondsLeft(sec);
+          if (sec === 30 || sec === 0) {
+            generateCode();
+          }
+        }, 1000);
+        
+        // Clean up internal interval when component unmounts
+        // or secret changes
+        return () => clearInterval(interval);
+      }).catch(err => {
+        console.error("Failed to load OTPAuth", err);
+        setCode("ERROR");
+      });
+    } catch (e) {
+      console.error("Invalid TOTP secret", e);
+      setCode("INVALID");
+    }
+
   }, [secret]);
 
   const copyToClipboard = () => {
