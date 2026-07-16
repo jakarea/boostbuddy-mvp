@@ -34,7 +34,7 @@ const TwoFactorTimer: React.FC<{ secret: string }> = ({ secret }) => {
       
       // Dynamic import to avoid SSR issues if otpauth relies on browser APIs
       import('otpauth').then((module) => {
-        const OTPAuth = module.default || module;
+        const OTPAuth = (module as any).default || module;
         const totp = new OTPAuth.TOTP({
           issuer: "BoostBuddy",
           label: "Profile",
