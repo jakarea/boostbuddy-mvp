@@ -59,7 +59,7 @@ export default function Home() {
         const key = signUpState.error;
         setErrorMsg(t(`auth.${key}`, { defaultValue: t(key, { defaultValue: key }) }));
       } else if (signUpState.success === true) {
-        const key = signUpState.successMessage || "register_pending_success";
+        const key = signUpState.successMessage || "register_success_verify_email";
         setSuccessMsg(t(`auth.${key}`, { defaultValue: t(key, { defaultValue: key }) }));
         setMode("login");
       }

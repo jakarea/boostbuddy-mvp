@@ -37,6 +37,10 @@ export async function signInAction(prevState: AuthState | undefined, formData: F
   if (error) {
     console.error("❌ Sign in failed:", error.message);
     console.groupEnd();
+    const msg = error.message.toLowerCase();
+    if (msg.includes("email not confirmed") || msg.includes("confirm your email") || msg.includes("email not verified")) {
+      return { success: false, error: "email_not_verified_login_error" };
+    }
     return { success: false, error: error.message };
   }
 
@@ -50,33 +54,37 @@ export async function signInAction(prevState: AuthState | undefined, formData: F
     return { success: false, error: "No user found" };
   }
 
+  // Priority 1: Check Email Verification
+  if (!user.email_confirmed_at) {
+    console.log("❌ Sign in blocked: Priority 1 - Email not verified");
+    await supabase.auth.signOut();
+    console.groupEnd();
+    return {
+      success: false,
+      error: "email_not_verified_login_error",
+    };
+  }
+
   const { data: profile, error: profileError } = await supabase
     .from("users")
     .select("role, status")
     .eq("id", user.id)
     .single();
 
-  if (profileError) {
-    console.error("❌ Profile fetch failed:", profileError.message);
+  if (profileError || !profile) {
+    console.error("❌ Profile fetch failed:", profileError?.message);
     console.groupEnd();
     return { success: false, error: "Failed to fetch user profile" };
   }
 
-  if (!profile) {
-    console.error("❌ Profile not found");
-    console.groupEnd();
-    return { success: false, error: "User profile not found" };
-  }
+  console.log("Step 3: ✅ Sign in authenticated | Role:", profile.role, "| Status:", profile.status);
 
-  console.log("Step 3: ✅ Sign in successful | Role:", profile.role);
-  console.groupEnd();
-
-  // Redirect based on role and status
+  // Priority 2: Check Admin Approval
   if (profile.role === "ADMIN") {
     console.log("Redirecting to: /admin/dashboard");
     redirect("/admin/dashboard");
   } else if (profile.status === "PENDING") {
-    console.log("❌ Sign in blocked: account is PENDING approval");
+    console.log("❌ Sign in blocked: Priority 2 - Account is PENDING admin approval");
     await supabase.auth.signOut();
     console.groupEnd();
     return {
@@ -84,7 +92,7 @@ export async function signInAction(prevState: AuthState | undefined, formData: F
       error: "pending_approval_login_error",
     };
   } else if (profile.status === "DEACTIVATED") {
-    console.log("❌ Sign in blocked: account is DEACTIVATED");
+    console.log("❌ Sign in blocked: Account is DEACTIVATED");
     await supabase.auth.signOut();
     console.groupEnd();
     return {
@@ -175,7 +183,7 @@ export async function signUpAction(prevState: AuthState | undefined, formData: F
 
   console.log("Step 6: ✅ Profile verified, role:", profile.role, "status:", profile.status);
 
-  // Sign out user immediately so they cannot log in as PENDING
+  // Sign out user immediately so they must verify email and get admin approval
   await supabase.auth.signOut();
 
   // Send Telegram notification to Admin
@@ -196,7 +204,7 @@ export async function signUpAction(prevState: AuthState | undefined, formData: F
 
   return {
     success: true,
-    successMessage: "register_pending_success",
+    successMessage: "register_success_verify_email",
   };
 }
 
