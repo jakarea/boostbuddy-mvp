@@ -2,6 +2,7 @@
   "notifications": {
     "title": "Notifications",
     "subtitle": "Email and system notification logs including expiration warnings and alerts.",
+    "btn_refresh": "Refresh Logs",
     "history_title": "Reminders Dispatch History",
     "history_subtitle": "Log of automatically dispatched HTML alert emails and system notifications.",
     "empty_title": "No logs found",

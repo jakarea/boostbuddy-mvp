@@ -1,14 +1,17 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
-import { Mail, CheckCircle, ShieldAlert } from "lucide-react";
+import { Mail, CheckCircle, ShieldAlert, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import TelegramBotConfig from "@/components/admin/TelegramBotConfig";
 import type { TelegramConfig } from "@/app/actions/telegram";
+import { getNotificationsAction } from "@/app/actions/notifications";
+import { createClient } from "@/lib/supabase/client";
 
 export interface NotificationLogDTO {
   id: string;
@@ -28,15 +31,67 @@ interface NotificationsClientProps {
 
 export default function NotificationsClient({ initialLogs, telegramConfig }: NotificationsClientProps) {
   const { t } = useTranslation("notifications");
+  const [logs, setLogs] = useState<NotificationLogDTO[]>(initialLogs);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Refresh function to pull fresh notification logs from database
+  const fetchLatestLogs = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const res = await getNotificationsAction();
+      if (res.success && Array.isArray(res.data)) {
+        setLogs(res.data as NotificationLogDTO[]);
+      }
+    } catch (err) {
+      console.error("Failed to refresh notification logs:", err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  // Fetch on window focus (so returning to tab or reloading catches any missed real-time events)
+  useEffect(() => {
+    fetchLatestLogs();
+
+    const handleFocus = () => {
+      fetchLatestLogs();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [fetchLatestLogs]);
+
+  // Subscribe to Supabase Realtime for notification_logs table
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel("realtime-notification-logs")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notification_logs" },
+        (payload) => {
+          if (payload.new) {
+            setLogs((prev) => [payload.new as NotificationLogDTO, ...prev]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const paginatedLogs = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return initialLogs.slice(startIndex, startIndex + itemsPerPage);
-  }, [initialLogs, currentPage, itemsPerPage]);
+    return logs.slice(startIndex, startIndex + itemsPerPage);
+  }, [logs, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(initialLogs.length / itemsPerPage);
+  const totalPages = Math.ceil(logs.length / itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -44,19 +99,31 @@ export default function NotificationsClient({ initialLogs, telegramConfig }: Not
       <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-zinc-100 dark:divide-zinc-800">
 
-          {/* Left: Page info */}
-          <div className="flex items-start gap-3 p-4">
-            <div className="p-1.5 rounded-lg bg-[#168BB0]/10 text-[#168BB0] shrink-0 mt-0.5">
-              <Mail className="h-4 w-4" />
+          {/* Left: Page info + Refresh button */}
+          <div className="flex items-start justify-between p-4 gap-3">
+            <div className="flex items-start gap-3">
+              <div className="p-1.5 rounded-lg bg-[#168BB0]/10 text-[#168BB0] shrink-0 mt-0.5">
+                <Mail className="h-4 w-4" />
+              </div>
+              <div>
+                <h1 className="text-sm font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
+                  {t("title")}
+                </h1>
+                <p className="text-[10px] text-zinc-400 mt-0.5 leading-relaxed">
+                  {t("subtitle")}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-sm font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
-                {t("title")}
-              </h1>
-              <p className="text-[10px] text-zinc-400 mt-0.5 leading-relaxed">
-                {t("subtitle")}
-              </p>
-            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={fetchLatestLogs}
+              disabled={isRefreshing}
+              className="h-8 text-xs font-semibold px-2.5 border-zinc-200 dark:border-zinc-800 shrink-0 cursor-pointer flex items-center gap-1.5"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+              <span>{t("btn_refresh", { defaultValue: "Refresh Logs" })}</span>
+            </Button>
           </div>
 
           {/* Right: Telegram bot config (flat — no inner card wrapper) */}
@@ -66,14 +133,16 @@ export default function NotificationsClient({ initialLogs, telegramConfig }: Not
 
       {/* Notification Log Table */}
       <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-extrabold">{t("history_title")}</CardTitle>
-          <CardDescription className="text-xs">
-            {t("history_subtitle")}
-          </CardDescription>
+        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-base font-extrabold">{t("history_title")}</CardTitle>
+            <CardDescription className="text-xs">
+              {t("history_subtitle")}
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
-          {initialLogs.length === 0 ? (
+          {logs.length === 0 ? (
             <div className="p-10 flex flex-col items-center justify-center text-center">
               <ShieldAlert className="h-10 w-10 text-zinc-300 dark:text-zinc-700 mb-3" />
               <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400">{t("empty_title")}</p>
@@ -137,12 +206,12 @@ export default function NotificationsClient({ initialLogs, telegramConfig }: Not
       </Card>
 
       {/* Pagination */}
-      {initialLogs.length > 0 && (
+      {logs.length > 0 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
-          totalItems={initialLogs.length}
+          totalItems={logs.length}
           itemsPerPage={itemsPerPage}
         />
       )}

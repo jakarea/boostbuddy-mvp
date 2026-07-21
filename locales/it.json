@@ -2,6 +2,7 @@
   "notifications": {
     "title": "Notifiche",
     "subtitle": "Registri delle notifiche di sistema e via email, inclusi avvisi di scadenza e allarmi.",
+    "btn_refresh": "Aggiorna Log",
     "history_title": "Cronologia degli Avvisi Inviati",
     "history_subtitle": "Registro delle email di avviso in formato HTML e delle notifiche di sistema inviate automaticamente.",
     "empty_title": "Nessun registro trovato",
