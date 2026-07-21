@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, UserCheck, Loader2, ShieldCheck } from "lucide-react";
 
 interface ClientDetailsModalProps {
   client: ClientUser;
@@ -48,6 +48,23 @@ export default function ClientDetailsModal({
   const [adminNotes, setAdminNotes] = useState("");
   const [adminNotesSaving, setAdminNotesSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [approving, setApproving] = useState(false);
+
+  // Dedicated quick approval handler (without modifying or requiring billing data)
+  const handleApproveRegistration = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setApproving(true);
+    startTransition(async () => {
+      const result = await updateClientStatusAction(client.id, "ACTIVE");
+      if (result.success) {
+        success(t("alert_approved_success", { defaultValue: "Registration approved successfully!" }));
+      } else {
+        error(result.error || t("alert_approved_failed", { defaultValue: "Failed to approve registration." }));
+      }
+      setApproving(false);
+      router.refresh();
+    });
+  };
 
   // Load billing info
   useEffect(() => {
@@ -332,10 +349,56 @@ export default function ClientDetailsModal({
 
         {/* Status & notes (Col span 4) */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Status Card */}
+
+          {/* Dedicated Registration Approval Form (Independent 1-Click Form) */}
+          {client.status === "PENDING" && (
+            <Card className="bg-amber-500/10 dark:bg-amber-950/20 border-2 border-amber-500/40 shadow-sm overflow-hidden">
+              <CardHeader className="pb-2 pt-4 px-4">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                    <UserCheck className="h-4 w-4 shrink-0 text-amber-600" />
+                    {t("card_approval_title")}
+                  </CardTitle>
+                  <Badge className="bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[9px] font-bold uppercase tracking-wider shrink-0">
+                    Awaiting Approval
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 pt-1 space-y-3">
+                <p className="text-xs text-amber-900/90 dark:text-amber-200/90 leading-relaxed">
+                  {t("card_approval_desc")}
+                </p>
+                <form onSubmit={handleApproveRegistration}>
+                  <Button
+                    type="submit"
+                    disabled={approving}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    {approving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-4 w-4" />}
+                    {t("btn_approve_registration")}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Status & Security Card */}
           <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-extrabold uppercase tracking-wider text-zinc-400">{t("edit_card_security")}</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-extrabold uppercase tracking-wider text-zinc-400">{t("edit_card_security")}</CardTitle>
+                <Badge
+                  className={
+                    client.status === "ACTIVE"
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[9px] font-bold"
+                      : client.status === "PENDING"
+                      ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-[9px] font-bold"
+                      : "bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20 text-[9px] font-bold"
+                  }
+                >
+                  {client.status}
+                </Badge>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">

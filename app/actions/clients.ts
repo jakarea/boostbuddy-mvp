@@ -210,6 +210,14 @@ export async function updateClientStatusAction(userId: string, status: string) {
     if (!auth.success) return auth;
 
     const supabaseAdmin = createAdminClient();
+
+    // Fetch user details for notification
+    const { data: clientUser } = await supabaseAdmin
+      .from("users")
+      .select("email, name")
+      .eq("id", userId)
+      .maybeSingle();
+
     const { error } = await supabaseAdmin
       .from("users")
       .update({ status })
@@ -218,6 +226,22 @@ export async function updateClientStatusAction(userId: string, status: string) {
     if (error) {
       console.error("Failed to update client status:", error);
       return { success: false, error: `Database error: ${error.message}` };
+    }
+
+    // Send Telegram approval notification if approved
+    if (status === "ACTIVE" && clientUser?.email) {
+      try {
+        const { sendNotificationAction } = await import("@/app/actions/notifications");
+        await sendNotificationAction(
+          clientUser.email,
+          "🎉 Account Approved!",
+          `Hello ${clientUser.name || "Client"},\n\nYour BoostBuddy account registration has been approved by the administrator!\n\nYou can now log into your account at https://boostbuddy.it`,
+          "TELEGRAM",
+          "SYSTEM"
+        );
+      } catch (err) {
+        console.error("Failed to send approval telegram notification:", err);
+      }
     }
 
     revalidatePath("/admin/clients");

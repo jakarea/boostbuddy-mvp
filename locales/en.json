@@ -447,7 +447,12 @@
     "btn_save_notes": "Save Notes",
     "btn_saving_notes": "Saving...",
     "alert_notes_success": "Internal notes saved successfully.",
-    "alert_notes_failed": "Failed to save notes. Does the users table have the admin_notes column?"
+    "alert_notes_failed": "Failed to save notes. Does the users table have the admin_notes column?",
+    "card_approval_title": "Registration Approval",
+    "card_approval_desc": "This user has registered and is waiting for administrator approval to access the portal.",
+    "btn_approve_registration": "Approve Registration Now",
+    "alert_approved_success": "Client registration approved successfully!",
+    "alert_approved_failed": "Failed to approve registration."
   },
   "admin_invoices": {
     "upload_title": "Upload Client Invoice",

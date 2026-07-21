@@ -447,7 +447,12 @@
     "btn_save_notes": "Salva Note",
     "btn_saving_notes": "Salvataggio...",
     "alert_notes_success": "Note interne salvate con successo.",
-    "alert_notes_failed": "Impossibile salvare le note. La tabella degli utenti ha la colonna admin_notes?"
+    "alert_notes_failed": "Impossibile salvare le note. La tabella degli utenti ha la colonna admin_notes?",
+    "card_approval_title": "Approvazione Registrazione",
+    "card_approval_desc": "Questo utente si è registrato ed è in attesa dell'approvazione dell'amministratore per accedere al portale.",
+    "btn_approve_registration": "Approva Registrazione Ora",
+    "alert_approved_success": "Registrazione del cliente approvata con successo!",
+    "alert_approved_failed": "Impossibile approvare la registrazione."
   },
   "admin_invoices": {
     "upload_title": "Carica Fattura Cliente",
