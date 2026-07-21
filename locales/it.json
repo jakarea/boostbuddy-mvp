@@ -42,7 +42,9 @@
     "reset_success": "Password reimpostata con successo! Accedi con la tua nuova password.",
     "register_success_verify_email": "Congratulazioni! Il tuo account è stato creato. Controlla la tua casella di posta elettronica per verificare il tuo indirizzo email prima di accedere.",
     "email_not_verified_login_error": "Verifica il tuo indirizzo email prima di accedere. Controlla la tua casella di posta per il link di verifica.",
-    "pending_approval_login_error": "Il tuo account è in attesa di approvazione da parte dell'amministratore. Non puoi accedere finché l'amministratore non approva il tuo account.",
+    "pending_approval_login_error": "La tua email è verificata, ma il tuo account è in attesa di approvazione dall'amministratore. Puoi contattare l'Admin direttamente su Telegram @StefanoBernardiML.",
+    "email_not_verified_login_error": "Verifica il tuo indirizzo email prima di accedere. Controlla la tua casella di posta per il link di verifica.",
+    "btn_contact_admin_telegram": "Contatta l'Admin su Telegram (@StefanoBernardiML)",
     "deactivated_login_error": "Il tuo account è stato disattivato. Contatta l'assistenza.",
     "register_pending_success": "Registrazione effettuata con successo! Verifica la tua email e attendi l'approvazione dell'amministratore.",
     "login_failed": "Accesso non riuscito",
@@ -451,7 +453,9 @@
     "card_approval_title": "Approvazione Registrazione",
     "card_approval_desc": "Questo utente si è registrato ed è in attesa dell'approvazione dell'amministratore per accedere al portale.",
     "btn_approve_registration": "Approva Registrazione Ora",
+    "btn_approve_and_verify_email": "Approva Account e Segna Email Come Verificata",
     "alert_approved_success": "Registrazione del cliente approvata con successo!",
+    "alert_approve_verify_success": "Account approvato ed email segnata come verificata con successo!",
     "alert_approved_failed": "Impossibile approvare la registrazione."
   },
   "admin_invoices": {

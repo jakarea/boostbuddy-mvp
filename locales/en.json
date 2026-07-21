@@ -42,7 +42,9 @@
     "reset_success": "Password successfully reset! Please sign in with your new password.",
     "register_success_verify_email": "Congratulations! Your account has been created. Please check your email inbox to verify your email address before logging in.",
     "email_not_verified_login_error": "Please verify your email address before logging in. Check your inbox for the verification link.",
-    "pending_approval_login_error": "Your account is pending administrator approval. You cannot log in until an admin approves your account.",
+    "pending_approval_login_error": "Your email is verified, but your account is pending administrator approval. You can contact Admin directly on Telegram @StefanoBernardiML.",
+    "email_not_verified_login_error": "Please verify your email address before logging in. Check your inbox for the verification link.",
+    "btn_contact_admin_telegram": "Contact Admin on Telegram (@StefanoBernardiML)",
     "deactivated_login_error": "Your account has been deactivated. Please contact support.",
     "register_pending_success": "Registration successful! Please verify your email and await administrator approval.",
     "login_failed": "Login failed",
@@ -451,7 +453,9 @@
     "card_approval_title": "Registration Approval",
     "card_approval_desc": "This user has registered and is waiting for administrator approval to access the portal.",
     "btn_approve_registration": "Approve Registration Now",
+    "btn_approve_and_verify_email": "Approve Account & Mark Email Verified",
     "alert_approved_success": "Client registration approved successfully!",
+    "alert_approve_verify_success": "Account approved and email marked as verified successfully!",
     "alert_approved_failed": "Failed to approve registration."
   },
   "admin_invoices": {

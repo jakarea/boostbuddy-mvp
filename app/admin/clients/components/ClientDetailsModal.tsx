@@ -4,7 +4,7 @@ import React, { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/context/ToastContext";
-import { updateBillingInfoAction, updateClientStatusAction, updateClientNotesAction } from "@/app/actions/clients";
+import { updateBillingInfoAction, updateClientStatusAction, updateClientNotesAction, approveClientAndVerifyEmailAction } from "@/app/actions/clients";
 import { ClientUser, BillingInfo } from "./types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Check, UserCheck, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Check, UserCheck, Loader2, ShieldCheck, Zap } from "lucide-react";
 
 interface ClientDetailsModalProps {
   client: ClientUser;
@@ -49,6 +49,7 @@ export default function ClientDetailsModal({
   const [adminNotesSaving, setAdminNotesSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [approvingAndVerifying, setApprovingAndVerifying] = useState(false);
 
   // Dedicated quick approval handler (without modifying or requiring billing data)
   const handleApproveRegistration = (e?: React.FormEvent) => {
@@ -62,6 +63,22 @@ export default function ClientDetailsModal({
         error(result.error || t("alert_approved_failed", { defaultValue: "Failed to approve registration." }));
       }
       setApproving(false);
+      router.refresh();
+    });
+  };
+
+  // Dedicated 1-click handler to approve account AND mark email as verified
+  const handleApproveAndVerifyEmail = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setApprovingAndVerifying(true);
+    startTransition(async () => {
+      const result = await approveClientAndVerifyEmailAction(client.id);
+      if (result.success) {
+        success(t("alert_approve_verify_success", { defaultValue: "Account approved and email marked as verified successfully!" }));
+      } else {
+        error(result.error || t("alert_approved_failed", { defaultValue: "Failed to approve registration." }));
+      }
+      setApprovingAndVerifying(false);
       router.refresh();
     });
   };
@@ -368,16 +385,26 @@ export default function ClientDetailsModal({
                 <p className="text-xs text-amber-900/90 dark:text-amber-200/90 leading-relaxed">
                   {t("card_approval_desc")}
                 </p>
-                <form onSubmit={handleApproveRegistration}>
+                <div className="space-y-2 pt-1">
                   <Button
-                    type="submit"
-                    disabled={approving}
+                    type="button"
+                    onClick={handleApproveRegistration}
+                    disabled={approving || approvingAndVerifying}
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     {approving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-4 w-4" />}
                     {t("btn_approve_registration")}
                   </Button>
-                </form>
+                  <Button
+                    type="button"
+                    onClick={handleApproveAndVerifyEmail}
+                    disabled={approving || approvingAndVerifying}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs h-9 shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    {approvingAndVerifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-4 w-4" />}
+                    {t("btn_approve_and_verify_email")}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Globe, Shield, User, ArrowRight, Lock, CheckCircle2, AlertCircle } from "lucide-react";
+import { Globe, Shield, User, ArrowRight, Lock, CheckCircle2, AlertCircle, Send } from "lucide-react";
 import Link from "next/link";
 import { signInAction, signUpAction } from "@/app/actions/auth";
 import { createClient } from "@/lib/supabase/client";
@@ -30,8 +30,8 @@ export default function Home() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   // Error/Success messages
-  const [errorMsg, setErrorMsg] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const [signInState, signInFormAction, isSignInPending] = useActionState(
     signInAction,
@@ -156,9 +156,22 @@ export default function Home() {
 
               {/* Messages */}
               {errorMsg && (
-                <div className="p-3 text-xs bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 rounded-md flex items-start gap-1.5">
-                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                  <span>{errorMsg}</span>
+                <div className="p-3 text-xs bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 rounded-md flex flex-col gap-2">
+                  <div className="flex items-start gap-1.5">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{errorMsg}</span>
+                  </div>
+                  {(errorMsg.includes("@StefanoBernardiML") || errorMsg.includes("StefanoBernardiML")) && (
+                    <a
+                      href="https://t.me/StefanoBernardiML"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-flex items-center justify-center gap-1.5 w-full bg-[#168BB0] hover:bg-[#0F7493] text-white font-bold text-xs py-2 px-3 rounded-md transition-colors shadow-sm cursor-pointer"
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                      {t("btn_contact_admin_telegram", { defaultValue: "Contact Admin on Telegram (@StefanoBernardiML)" })}
+                    </a>
+                  )}
                 </div>
               )}
               {successMsg && (

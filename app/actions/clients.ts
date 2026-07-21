@@ -253,6 +253,70 @@ export async function updateClientStatusAction(userId: string, status: string) {
   }
 }
 
+/**
+ * Approve client registration AND mark email as verified in Supabase Auth in 1-Click
+ */
+export async function approveClientAndVerifyEmailAction(userId: string) {
+  try {
+    const auth = await requireAuth({ role: 'ADMIN' });
+    if (!auth.success) return auth;
+
+    const supabaseAdmin = createAdminClient();
+
+    // 1. Mark email as confirmed in Supabase Auth
+    try {
+      const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        email_confirm: true,
+      });
+      if (authErr) {
+        console.error("Warning: Failed to auto-confirm email in Supabase Auth:", authErr.message);
+      }
+    } catch (authEx) {
+      console.error("Exception marking email as confirmed:", authEx);
+    }
+
+    // 2. Fetch user details and update status to ACTIVE
+    const { data: clientUser } = await supabaseAdmin
+      .from("users")
+      .select("email, name")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const { error } = await supabaseAdmin
+      .from("users")
+      .update({ status: "ACTIVE" })
+      .eq("id", userId);
+
+    if (error) {
+      console.error("Failed to approve client status:", error);
+      return { success: false, error: `Database error: ${error.message}` };
+    }
+
+    // 3. Dispatch Telegram approval notification to client
+    if (clientUser?.email) {
+      try {
+        const { sendNotificationAction } = await import("@/app/actions/notifications");
+        await sendNotificationAction(
+          clientUser.email,
+          "🎉 Account Approved & Email Verified!",
+          `Hello ${clientUser.name || "Client"},\n\nYour BoostBuddy account registration has been approved by the administrator and your email is verified!\n\nYou can now log into your account at https://boostbuddy.it`,
+          "TELEGRAM",
+          "SYSTEM"
+        );
+      } catch (err) {
+        console.error("Failed to send approval telegram notification:", err);
+      }
+    }
+
+    revalidatePath("/admin/clients");
+    revalidatePath("/admin/dashboard");
+    return { success: true };
+  } catch (e: any) {
+    console.error("Exception in approveClientAndVerifyEmailAction:", e);
+    return { success: false, error: `Server error: ${e.message}` };
+  }
+}
+
 export async function updateClientNotesAction(userId: string, notes: string) {
   try {
     const auth = await requireAuth({ role: 'ADMIN' });
