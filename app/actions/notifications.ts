@@ -1,5 +1,6 @@
 "use server";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from '@/lib/auth/server-auth';
 
@@ -17,7 +18,7 @@ interface TelegramCredentials {
  * Returns null when neither source is configured.
  */
 async function loadAdminTelegramCredentials(
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: ReturnType<typeof createAdminClient> | Awaited<ReturnType<typeof createClient>>
 ): Promise<TelegramCredentials | null> {
   let botToken = process.env.TELEGRAM_BOT_TOKEN ?? "";
   let chatId = process.env.TELEGRAM_CHAT_ID ?? "";
@@ -45,7 +46,7 @@ async function loadAdminTelegramCredentials(
  * Returns just the admin bot token (no chat ID) for per-user delivery.
  */
 async function loadAdminBotToken(
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: ReturnType<typeof createAdminClient> | Awaited<ReturnType<typeof createClient>>
 ): Promise<string | null> {
   let botToken = process.env.TELEGRAM_BOT_TOKEN ?? "";
 
@@ -71,7 +72,7 @@ async function loadAdminBotToken(
  * Returns null if the user has not configured Telegram or table is missing.
  */
 async function loadUserChatId(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient> | Awaited<ReturnType<typeof createClient>>,
   recipientEmail: string
 ): Promise<string | null> {
   try {
@@ -139,8 +140,8 @@ export async function getNotificationsAction() {
     const auth = await requireAuth({ role: 'ADMIN' });
     if (!auth.success) return auth;
 
-    const supabase = await createClient();
-    const { data, error } = await supabase
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin
       .from("notification_logs")
       .select("*")
       .order("created_at", { ascending: false });
@@ -171,23 +172,23 @@ export async function sendNotificationAction(
   type: string
 ) {
   try {
-    const supabase = await createClient();
+    const supabaseAdmin = createAdminClient();
 
     // 1. Admin-level Telegram delivery (global admin channel)
-    const adminCreds = await loadAdminTelegramCredentials(supabase);
+    const adminCreds = await loadAdminTelegramCredentials(supabaseAdmin);
     await dispatchToTelegram(adminCreds, subject, body);
 
     // 2. Per-user personal Telegram delivery (uses admin's bot, user's chat ID)
-    const botToken = await loadAdminBotToken(supabase);
+    const botToken = await loadAdminBotToken(supabaseAdmin);
     if (botToken) {
-      const userChatId = await loadUserChatId(supabase, recipient);
+      const userChatId = await loadUserChatId(supabaseAdmin, recipient);
       if (userChatId) {
         await dispatchToTelegram({ bot_token: botToken, chat_id: userChatId }, subject, body);
       }
     }
 
     // 3. Log the notification (primary channel record)
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("notification_logs")
       .insert({ recipient, subject, body, type, channel, status: "SENT" });
 
