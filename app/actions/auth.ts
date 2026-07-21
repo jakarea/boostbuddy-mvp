@@ -76,8 +76,21 @@ export async function signInAction(prevState: AuthState | undefined, formData: F
     console.log("Redirecting to: /admin/dashboard");
     redirect("/admin/dashboard");
   } else if (profile.status === "PENDING") {
-    console.log("Redirecting to: /dashboard/pending (awaiting approval)");
-    redirect("/dashboard/pending");
+    console.log("❌ Sign in blocked: account is PENDING approval");
+    await supabase.auth.signOut();
+    console.groupEnd();
+    return {
+      success: false,
+      error: "pending_approval_login_error",
+    };
+  } else if (profile.status === "DEACTIVATED") {
+    console.log("❌ Sign in blocked: account is DEACTIVATED");
+    await supabase.auth.signOut();
+    console.groupEnd();
+    return {
+      success: false,
+      error: "deactivated_login_error",
+    };
   } else {
     console.log("Redirecting to: /dashboard");
     redirect("/dashboard");
@@ -124,7 +137,7 @@ export async function signUpAction(prevState: AuthState | undefined, formData: F
     email,
     password,
     options: {
-      data: { name, role: "CLIENT", status: "ACTIVE" },
+      data: { name, role: "CLIENT", status: "PENDING" },
     },
   });
 
@@ -161,10 +174,30 @@ export async function signUpAction(prevState: AuthState | undefined, formData: F
   }
 
   console.log("Step 6: ✅ Profile verified, role:", profile.role, "status:", profile.status);
+
+  // Sign out user immediately so they cannot log in as PENDING
+  await supabase.auth.signOut();
+
+  // Send Telegram notification to Admin
+  try {
+    const { sendNotificationAction } = await import("@/app/actions/notifications");
+    await sendNotificationAction(
+      email,
+      "🆕 New User Registration Pending Approval",
+      `A new client has registered on BoostBuddy:\n\n👤 *Name:* ${name}\n📧 *Email:* ${email}\n\nPlease review and approve this client in the Admin Dashboard.`,
+      "TELEGRAM",
+      "SYSTEM"
+    );
+  } catch (err) {
+    console.error("Failed to dispatch admin telegram notification:", err);
+  }
+
   console.groupEnd();
 
-  // Redirect to dashboard
-  redirect("/dashboard");
+  return {
+    success: true,
+    successMessage: "register_pending_success",
+  };
 }
 
 /**

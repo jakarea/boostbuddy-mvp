@@ -46,16 +46,22 @@ export default function Home() {
   // Sync action states into local message states
   useEffect(() => {
     if (signInState) {
-      if (signInState.success === false) {
-        setErrorMsg(signInState.error || t("login_failed"));
+      if (signInState.success === false && signInState.error) {
+        const key = signInState.error;
+        setErrorMsg(t(`auth.${key}`, { defaultValue: t(key, { defaultValue: key }) }));
       }
     }
   }, [signInState, t]);
 
   useEffect(() => {
     if (signUpState) {
-      if (signUpState.success === false) {
-        setErrorMsg(signUpState.error || t("register_failed"));
+      if (signUpState.success === false && signUpState.error) {
+        const key = signUpState.error;
+        setErrorMsg(t(`auth.${key}`, { defaultValue: t(key, { defaultValue: key }) }));
+      } else if (signUpState.success === true) {
+        const key = signUpState.successMessage || "register_pending_success";
+        setSuccessMsg(t(`auth.${key}`, { defaultValue: t(key, { defaultValue: key }) }));
+        setMode("login");
       }
     }
   }, [signUpState, t]);

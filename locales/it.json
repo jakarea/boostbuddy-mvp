@@ -29,8 +29,8 @@
     "telegram_guide_step3": "3. Incolla il tuo ID Chat numerico nel campo e clicca su Salva Impostazioni."
   },
   "auth": {
-    "quote": "BoostBuddy è il ponte manuale definitivo per la gestione dei profili cliente, la mappatura dei proxy, la generazione delle fatture di abbonamento e i solleciti automatici all'interno di IXBrowser.",
-    "quote_footer": "Piattaforma BoostBuddy MWP",
+    "quote": "Un account viene sospeso. Gli altri continuano a spendere. Account dell’agenzia compartimentati: nessun budget condiviso, nessun effetto a catena.",
+    "quote_footer": "BOOSTBUDDY NETWORKS",
     "copyright": "© 2026 BoostBuddy Networks Inc. Portale di Accesso Clienti Manuale. Tutti i diritti riservati.",
     "create_account": "Registrati",
     "sign_in": "Accedi",
@@ -40,6 +40,9 @@
     "login_desc": "Inserisci la tua email cliente qui sotto per accedere ai tuoi profili browser attivi.",
     "register_desc": "Crea un account cliente per acquistare proxy e attivare i profili browser.",
     "reset_success": "Password reimpostata con successo! Accedi con la tua nuova password.",
+    "pending_approval_login_error": "Il tuo account è in attesa di approvazione da parte dell'amministratore. Non puoi accedere finché l'amministratore non approva il tuo account.",
+    "deactivated_login_error": "Il tuo account è stato disattivato. Contatta l'assistenza.",
+    "register_pending_success": "Registrazione effettuata con successo! Il tuo account è in attesa di approvazione da parte dell'amministratore prima di poter accedere.",
     "login_failed": "Accesso non riuscito",
     "register_failed": "Registrazione non riuscita",
     "email_address": "Indirizzo Email",

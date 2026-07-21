@@ -46,6 +46,24 @@ export async function saveUserTelegramConfigAction(chatId: string): Promise<{
     const trimmed = chatId.trim();
     if (!trimmed) return { success: false, error: "Chat ID is required." };
 
+    // Check if user accidentally entered the Bot's ID instead of their personal User Chat ID
+    const { data: setting } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "telegram_bot")
+      .maybeSingle();
+
+    const botToken = (setting?.value as any)?.bot_token ?? process.env.TELEGRAM_BOT_TOKEN;
+    if (botToken) {
+      const botId = botToken.split(":")[0]?.trim();
+      if (botId && trimmed === botId) {
+        return {
+          success: false,
+          error: "The entered ID is the Telegram Bot's ID, not your personal User Chat ID. Please get your personal Chat ID from @userinfobot or @GetMyChatID_Bot.",
+        };
+      }
+    }
+
     const { error } = await supabase
       .from("user_telegram_configs")
       .upsert({ user_id: auth.user.id, chat_id: trimmed }, { onConflict: "user_id" });
@@ -109,6 +127,14 @@ export async function sendUserTelegramTestAction(): Promise<{
     const botToken = (setting?.value as any)?.bot_token ?? process.env.TELEGRAM_BOT_TOKEN;
     if (!botToken) return { success: false, error: "Admin Telegram bot is not configured yet." };
 
+    const botId = botToken.split(":")[0]?.trim();
+    if (botId && userConfig.chat_id.trim() === botId) {
+      return {
+        success: false,
+        error: "Your configured Chat ID is the Bot's ID, not your personal Telegram Chat ID. Please update it using @userinfobot.",
+      };
+    }
+
     const res = await fetch(
       `https://api.telegram.org/bot${botToken}/sendMessage`,
       {
@@ -124,7 +150,20 @@ export async function sendUserTelegramTestAction(): Promise<{
 
     if (!res.ok) {
       const body = await res.json();
-      return { success: false, error: body?.description ?? "Telegram API error" };
+      const desc = body?.description ?? "";
+      if (desc.includes("bot can't send messages to the bot") || desc.includes("bot can't send messages to bots")) {
+        return {
+          success: false,
+          error: "The entered Chat ID belongs to a bot. Please enter your personal Telegram Chat ID (get it from @userinfobot).",
+        };
+      }
+      if (desc.includes("bot was blocked by the user") || desc.includes("chat not found")) {
+        return {
+          success: false,
+          error: "Telegram could not send message. Please open your Telegram bot and click 'Start' first.",
+        };
+      }
+      return { success: false, error: desc || "Telegram API error" };
     }
     return { success: true };
   } catch (err: any) {

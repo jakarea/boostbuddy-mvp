@@ -137,7 +137,7 @@ export async function signUpUser(email: string, password: string, name: string) 
     email,
     password,
     options: {
-      data: { name, role: "CLIENT", status: "ACTIVE" },
+      data: { name, role: "CLIENT", status: "PENDING" },
     },
   });
 
