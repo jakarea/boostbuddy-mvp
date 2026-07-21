@@ -439,6 +439,35 @@ export default function ClientDetailsModal({
                 />
               </div>
 
+              {/* Quick Actions Form (Approve & Mark Email Verified) */}
+              <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
+                <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                  {t("lbl_account_actions", { defaultValue: "Account Verification & Status Actions:" })}
+                </Label>
+
+                {client.status !== "ACTIVE" && (
+                  <Button
+                    type="button"
+                    onClick={handleApproveRegistration}
+                    disabled={approving || approvingAndVerifying}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    {approving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                    {t("btn_approve_registration")}
+                  </Button>
+                )}
+
+                <Button
+                  type="button"
+                  onClick={handleApproveAndVerifyEmail}
+                  disabled={approving || approvingAndVerifying}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs h-8 shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  {approvingAndVerifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                  {t("btn_approve_and_verify_email")}
+                </Button>
+              </div>
+
               <div className="flex justify-between items-center text-xs pt-3 border-t border-zinc-100 dark:border-zinc-800">
                 <span className="text-zinc-500">{t("edit_lbl_role")}</span>
                 <Badge className="bg-zinc-100 text-zinc-800 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 text-[9px] font-bold">
