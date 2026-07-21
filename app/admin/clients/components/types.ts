@@ -7,6 +7,7 @@ export type ClientUser = {
   created_at: string;
   createdAt?: string; // Add this if needed by frontend
   admin_notes?: string | null;
+  email_verified?: boolean;
 };
 
 export type BillingInfo = {

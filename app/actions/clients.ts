@@ -317,6 +317,32 @@ export async function approveClientAndVerifyEmailAction(userId: string) {
   }
 }
 
+/**
+ * Mark client email as verified in Supabase Auth without changing status
+ */
+export async function verifyClientEmailAction(userId: string) {
+  try {
+    const auth = await requireAuth({ role: 'ADMIN' });
+    if (!auth.success) return auth;
+
+    const supabaseAdmin = createAdminClient();
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      email_confirm: true,
+    });
+
+    if (error) {
+      console.error("Failed to verify client email:", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/admin/clients");
+    return { success: true };
+  } catch (e: any) {
+    console.error("Exception in verifyClientEmailAction:", e);
+    return { success: false, error: e.message };
+  }
+}
+
 export async function updateClientNotesAction(userId: string, notes: string) {
   try {
     const auth = await requireAuth({ role: 'ADMIN' });
