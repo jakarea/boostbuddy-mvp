@@ -47,7 +47,7 @@ export default function ResetPasswordPage() {
         <div className="relative z-10">
           <div className="flex items-center gap-2 font-bold text-base tracking-tight text-[#168BB0]">
             <Globe className="h-5 w-5 animate-spin-slow" />
-            <span>BOOSTBUDDY NETWORKS</span>
+            <span>BOOSTBUDDY</span>
           </div>
         </div>
 

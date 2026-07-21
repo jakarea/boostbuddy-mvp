@@ -87,7 +87,7 @@ export default function Home() {
           {/* Logo brand */}
           <div className="flex items-center gap-2 font-bold text-base tracking-tight text-[#168BB0]">
             <Globe className="h-5 w-5 animate-spin-slow" />
-            <span>BOOSTBUDDY NETWORKS</span>
+            <span>BOOSTBUDDY</span>
           </div>
         </div>
 
@@ -128,7 +128,7 @@ export default function Home() {
         </div>
 
         <div className="w-full max-w-xs sm:max-w-sm space-y-4 sm:space-y-6">
-          
+
           {/* Header Mobile Brand */}
           <div className="lg:hidden text-center space-y-2 mb-4">
             <div className="inline-flex items-center gap-1.5 text-[#168BB0] dark:text-[#45B0D2] font-bold text-xs sm:text-sm uppercase tracking-wider">
@@ -143,7 +143,7 @@ export default function Home() {
               {mode === "login" ? t("login_title") : t("register_title")}
             </h2>
             <p className="text-xs sm:text-sm text-zinc-500 leading-normal">
-              {mode === "login" 
+              {mode === "login"
                 ? t("login_desc")
                 : t("register_desc")
               }
@@ -153,7 +153,7 @@ export default function Home() {
           {/* Form Content */}
           <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-900 shadow-sm overflow-hidden">
             <CardContent className="p-4 sm:p-5 space-y-3 sm:space-y-4">
-              
+
               {/* Messages */}
               {errorMsg && (
                 <div className="p-3 text-xs bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 rounded-md flex items-start gap-1.5">
@@ -329,7 +329,7 @@ export default function Home() {
           </Card>
 
 
-          
+
         </div>
       </div>
 
