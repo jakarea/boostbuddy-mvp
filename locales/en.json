@@ -113,6 +113,7 @@
       "profiles": "Box Inventory",
       "services": "Service Settings",
       "orders": "Payment Records",
+      "reviews": "Reviews Management",
       "invoices": "Manual Invoices",
       "notifications": "Notifications"
     }
@@ -125,6 +126,7 @@
     "sign_out": "Sign Out",
     "nav": {
       "profiles": "Browser Profiles",
+      "reviews": "Reviews",
       "payments": "Payments & Services",
       "invoices": "Invoices",
       "billing": "Billing Details",
@@ -695,5 +697,264 @@
   },
   "common": {
     "is_loading": "is loading..."
+  },
+  "reviews": {
+    "title": "Reviews Service",
+    "createOrder": "Create New Order",
+    "availableCredits": "Available Credits",
+    "credits": "credits",
+    "recentOrders": "Recent Orders",
+    "noOrders": "No orders yet",
+    "viewAllOrders": "View All Orders",
+    "newOrder": "+ New Order",
+    "myOrders": "My Review Orders",
+    "allStatuses": "All Statuses",
+    "noOrdersFound": "No orders found",
+    "createFirst": "Create your first order →",
+    "businessName": "Business Name",
+    "businessUrl": "Business URL (optional)",
+    "platform": "Platform",
+    "targetRating": "Target Rating",
+    "reviewContent": "Review Content",
+    "instructions": "Additional Instructions (optional)",
+    "reviewPlaceholder": "Write the review you want...",
+    "instructionsPlaceholder": "Any specific instructions for the employee...",
+    "creditsRequired": "Required: {required} | Your Balance: {balance}",
+    "insufficientCredits": "Insufficient credits",
+    "buyCredits": "Buy more credits →",
+    "creating": "Creating...",
+    "cancel": "Cancel",
+    "creditsConsumed": "Credits Consumed",
+    "created": "Created",
+    "lastUpdated": "Last Updated",
+    "completed": "Completed",
+    "yourFeedback": "Your Feedback",
+    "feedbackPrompt": "How satisfied are you with this review?",
+    "feedbackUnavailable": "Feedback available after completion",
+    "pendingInfo": "Your order is pending assignment to an employee. You'll be notified when work begins.",
+    "inProgressInfo": "An employee is working on your order. You'll be notified when it's completed.",
+    "orderCreated": "Order created successfully! {credits} credits deducted.",
+    "feedbackSubmitted": "Feedback submitted",
+    "submitting": "Submitting...",
+    "status": {
+      "PENDING": "Pending",
+      "IN_PROGRESS": "In Progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    },
+    "feedback": {
+      "HAPPY": "Happy",
+      "UNHAPPY": "Unhappy",
+      "ANGRY": "Angry"
+    }
+  },
+  "credits": {
+    "title": "Credits",
+    "balance": "Credit Balance",
+    "purchase": "Buy Credits",
+    "packages": "Credit Packages",
+    "transactions": "Transaction History",
+    "noTransactions": "No transactions yet",
+    "noPackages": "No packages available",
+    "backToWallet": "Back to Wallet",
+    "filter": "Filter",
+    "all": "All",
+    "purchases": "Purchases",
+    "spent": "Spent",
+    "adjustments": "Adjustments",
+    "loadingTransactions": "Loading transactions...",
+    "noTransactionsFound": "No Transactions Found",
+    "noTransactionsMessage": "You haven't made any credit transactions yet.",
+    "noFilterTransactionsMessage": "No {type} transactions found.",
+    "purchaseCredits": "Purchase Credits",
+    "purchaseDescription": "Top up your balance with credit packages",
+    "loadingPackages": "Loading packages...",
+    "noPackagesAvailable": "No Packages Available",
+    "noPackagesMessage": "There are currently no credit packages available for purchase.",
+    "purchaseSuccess": "Credits purchased successfully! Your balance has been updated.",
+    "type": {
+      "PURCHASE": "Purchase",
+      "SPEND": "Spend",
+      "ADMIN_ADJUST": "Admin Adjustment"
+    }
+  },
+  "employee": {
+    "title": "Employee Dashboard",
+    "dashboard": "Dashboard",
+    "history": "Order History",
+    "notifications": "Notifications",
+    "available": "Available",
+    "unavailable": "Unavailable",
+    "completed": "Completed",
+    "skipped": "Skipped",
+    "currentAssignments": "Current Assignments",
+    "availableOrders": "Available Orders",
+    "inProgress": "In Progress",
+    "assigned": "Assigned",
+    "reviewContent": "Review Content",
+    "instructions": "Instructions",
+    "submitReview": "Submit Review",
+    "skip": "Skip",
+    "skipReason": "Skip Reason",
+    "skipReasonRequired": "Please provide a reason",
+    "skipReasonPlaceholder": "Why are you skipping this order?",
+    "confirmSkip": "Confirm Skip",
+    "platform": "Platform",
+    "targetRating": "Target Rating",
+    "credits": "Credits",
+    "created": "Created",
+    "proof": "Proof",
+    "submitProof": "Submit Proof of Completion",
+    "proofDescription": "Please provide evidence that you've completed this review. Include a screenshot URL or detailed description.",
+    "proofPlaceholder": "Paste screenshot URL or describe how you completed the review...",
+    "proofRequired": "Proof is required",
+    "important": "Important",
+    "submitWarning": "Once submitted, this order cannot be modified. Make sure your proof is accurate.",
+    "orderAccepted": "Order accepted successfully",
+    "orderSkipped": "Order skipped successfully",
+    "nowAvailable": "You are now available",
+    "nowUnavailable": "You are now unavailable",
+    "orderHistory": "Order History",
+    "allStatuses": "All Statuses",
+    "noOrdersFound": "No orders found",
+    "noOrdersYet": "No orders yet",
+    "noAvailableOrders": "No orders available",
+    "acceptOrder": "Accept Order",
+    "orderNotFound": "Order not found",
+    "reviewSubmitted": "Review submitted successfully",
+    "noNotifications": "No notifications yet",
+    "notificationsComingSoon": "Notifications will appear here when orders are assigned to you.",
+    "accountPending": "Account Pending",
+    "accountPendingMessage": "Your account is currently inactive. Please contact support."
+  },
+  "admin_reviews": {
+    "title": "Reviews Management",
+    "subtitle": "Overview and management of review orders workflow",
+    "refresh": "Refresh",
+    "stats": {
+      "totalOrders": "Total Orders",
+      "pendingOrders": "Pending Orders",
+      "inProgressOrders": "In Progress",
+      "completedOrders": "Completed",
+      "totalRevenue": "Total Revenue",
+      "totalEmployees": "Active Employees"
+    },
+    "employeePerformance": {
+      "title": "Employee Performance",
+      "summary": "{{completed}} completed, {{skipped}} skipped",
+      "total": "total"
+    },
+    "actions": {
+      "title": "Quick Actions",
+      "manage": "Manage",
+      "queue": {
+        "title": "Orders Queue",
+        "description": "View and assign pending review orders to employees"
+      },
+      "employees": {
+        "title": "Employee Performance",
+        "description": "Monitor employee performance, availability, and completion rates"
+      },
+      "verification": {
+        "title": "Verification Queue",
+        "description": "Review and verify completed submissions before client delivery"
+      }
+    },
+    "queue": {
+      "title": "Orders Queue",
+      "subtitle": "Assign pending review orders to available employees",
+      "refresh": "Refresh",
+      "pendingCount": "{{count}} pending",
+      "availableCount": "{{count}} available employees",
+      "noOrders": "No Pending Orders",
+      "noOrdersMessage": "All review orders have been assigned or processed.",
+      "instructions": "Instructions",
+      "assignTo": "Assign to Employee",
+      "selectEmployee": "Select employee...",
+      "assigning": "Assigning...",
+      "assignOrder": "Assign Order",
+      "cancelOrder": "Cancel Order",
+      "cancelDialog": {
+        "title": "Cancel Order?",
+        "message": "This will refund the credits to the client. Please provide a reason.",
+        "confirm": "Cancel & Refund",
+        "back": "Back",
+        "reasonLabel": "Reason for cancellation",
+        "reasonPlaceholder": "Enter the reason...",
+        "reasonRequired": "Please provide a reason for cancellation"
+      }
+    },
+    "employees": {
+      "title": "Employee Performance",
+      "subtitle": "Monitor employee performance, availability, and completion rates",
+      "refresh": "Refresh",
+      "sortBy": "Sort by",
+      "sort": {
+        "completed": "Most Completed",
+        "skipped": "Most Skipped",
+        "recent": "Recently Active"
+      },
+      "noEmployees": "No Employees Found",
+      "noEmployeesMessage": "No employee performance data available yet.",
+      "available": "Available",
+      "unavailable": "Unavailable",
+      "activeRecently": "Active recently",
+      "completed": "Completed",
+      "skipped": "Skipped",
+      "rate": "Rate",
+      "lastActive": "Last active: {{date}}",
+      "neverActive": "Never active",
+      "memberSince": "Member since {{date}}",
+      "summary": {
+        "total": "Total Employees",
+        "available": "Currently Available",
+        "totalCompleted": "Total Completed",
+        "avgRate": "Avg. Completion Rate"
+      }
+    },
+    "verification": {
+      "title": "Verification Queue",
+      "subtitle": "Review and verify completed submissions before client delivery",
+      "refresh": "Refresh",
+      "pendingCount": "{{count}} pending verification",
+      "verifiedCount": "{{count}} already verified",
+      "noPending": "All Reviews Verified",
+      "noPendingMessage": "All completed reviews have been verified.",
+      "requiredContent": "Required Review Content",
+      "instructions": "Special Instructions",
+      "submission": "Employee Submission",
+      "submittedBy": "Submitted by",
+      "submittedAt": "Submitted at",
+      "reviewUrl": "Review URL",
+      "notes": "Submission Notes",
+      "forClient": "Client: {{name}} ({{email}})",
+      "verifying": "Verifying...",
+      "approve": "Approve & Send to Client",
+      "reject": "Reject & Request Revision",
+      "approveDialog": {
+        "title": "Approve Review?",
+        "message": "This will notify the client that their review is complete. The employee will be credited with a completed order.",
+        "confirm": "Approve"
+      },
+      "rejectDialog": {
+        "title": "Reject Review?",
+        "message": "This will notify the employee to revise and resubmit. The client will not be notified.",
+        "confirm": "Reject"
+      },
+      "cancelDialog": {
+        "back": "Back"
+      }
+    }
+  },
+  "employee_layout": {
+    "loading": "Loading...",
+    "auth_error": "Authentication error. Please refresh the page.",
+    "title": "Employee Portal",
+    "sign_out": "Sign Out",
+    "nav": {
+      "dashboard": "Dashboard",
+      "history": "Order History",
+      "notifications": "Notifications"
+    }
   }
 }

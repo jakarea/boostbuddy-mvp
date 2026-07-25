@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   ShieldAlert, Users, FolderKanban, ShoppingBag,
-  Receipt, LogOut, Shield, Globe, User, Bell, CreditCard, Mail, Menu, X
+  Receipt, LogOut, Shield, Globe, User, Bell, CreditCard, Mail, Menu, X, Star
 } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { TopHeader } from "@/components/TopHeader";
@@ -51,6 +51,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin/profiles", label: t("nav.profiles"), icon: FolderKanban },
     { href: "/admin/services", label: t("nav.services"), icon: ShoppingBag },
     { href: "/admin/orders", label: t("nav.orders"), icon: CreditCard },
+    { href: "/admin/reviews", label: t("nav.reviews"), icon: Star },
     { href: "/admin/invoices", label: t("nav.invoices"), icon: Receipt },
     { href: "/admin/notifications", label: t("nav.notifications"), icon: Mail },
   ];

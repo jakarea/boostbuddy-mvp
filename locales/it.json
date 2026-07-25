@@ -113,6 +113,7 @@
       "profiles": "Inventario Box",
       "services": "Impostazioni Servizi",
       "orders": "Cronologia Pagamenti",
+      "reviews": "Gestione Recensioni",
       "invoices": "Fatturazione Manuale",
       "notifications": "Notifiche"
     }
@@ -125,6 +126,7 @@
     "sign_out": "Disconnetti",
     "nav": {
       "profiles": "Profili Browser",
+      "reviews": "Recensioni",
       "payments": "Pagamenti & Servizi",
       "invoices": "Fatture",
       "billing": "Dettagli di Fatturazione",
@@ -695,5 +697,264 @@
   },
   "common": {
     "is_loading": "in caricamento..."
+  },
+  "reviews": {
+    "title": "Servizio Recensioni",
+    "createOrder": "Crea Nuovo Ordine",
+    "availableCredits": "Crediti Disponibili",
+    "credits": "crediti",
+    "recentOrders": "Ordini Recenti",
+    "noOrders": "Nessun ordine ancora",
+    "viewAllOrders": "Vedi Tutti gli Ordini",
+    "newOrder": "+ Nuovo Ordine",
+    "myOrders": "I Miei Ordini di Recensione",
+    "allStatuses": "Tutti gli Stati",
+    "noOrdersFound": "Nessun ordine trovato",
+    "createFirst": "Crea il tuo primo ordine →",
+    "businessName": "Nome Azienda",
+    "businessUrl": "URL Azienda (opzionale)",
+    "platform": "Piattaforma",
+    "targetRating": "Valutazione Obiettivo",
+    "reviewContent": "Contenuto Recensione",
+    "instructions": "Istruzioni Aggiuntive (opzionale)",
+    "reviewPlaceholder": "Scrivi la recensione che desideri...",
+    "instructionsPlaceholder": "Eventuali istruzioni specifiche per il dipendente...",
+    "creditsRequired": "Richiesti: {required} | Il Tuo Saldo: {balance}",
+    "insufficientCredits": "Crediti insufficienti",
+    "buyCredits": "Acquista più crediti →",
+    "creating": "Creazione...",
+    "cancel": "Annulla",
+    "creditsConsumed": "Crediti Consumati",
+    "created": "Creato",
+    "lastUpdated": "Ultimo Aggiornamento",
+    "completed": "Completato",
+    "yourFeedback": "Il Tuo Feedback",
+    "feedbackPrompt": "Quanto sei soddisfatto di questa recensione?",
+    "feedbackUnavailable": "Feedback disponibile dopo il completamento",
+    "pendingInfo": "Il tuo ordine è in attesa di assegnazione a un dipendente. Sarai notificato quando il lavoro inizierà.",
+    "inProgressInfo": "Un dipendente sta lavorando al tuo ordine. Sarai notificato quando sarà completato.",
+    "orderCreated": "Ordine creato con successo! {credits} crediti dedotti.",
+    "feedbackSubmitted": "Feedback inviato",
+    "submitting": "Invio in corso...",
+    "status": {
+      "PENDING": "In Attesa",
+      "IN_PROGRESS": "In Corso",
+      "COMPLETED": "Completato",
+      "CANCELLED": "Cancellato"
+    },
+    "feedback": {
+      "HAPPY": "Soddisfatto",
+      "UNHAPPY": "Insoddisfatto",
+      "ANGRY": "Arrabbiato"
+    }
+  },
+  "credits": {
+    "title": "Crediti",
+    "balance": "Saldo Crediti",
+    "purchase": "Acquista Crediti",
+    "packages": "Pacchetti Crediti",
+    "transactions": "Cronologia Transazioni",
+    "noTransactions": "Nessuna transazione ancora",
+    "noPackages": "Nessun pacchetto disponibile",
+    "backToWallet": "Torna al Portafoglio",
+    "filter": "Filtra",
+    "all": "Tutti",
+    "purchases": "Acquisti",
+    "spent": "Spesi",
+    "adjustments": "Regolazioni",
+    "loadingTransactions": "Caricamento transazioni...",
+    "noTransactionsFound": "Nessuna Transazione Trovata",
+    "noTransactionsMessage": "Non hai ancora effettuato transazioni di crediti.",
+    "noFilterTransactionsMessage": "Nessuna transazione {type} trovata.",
+    "purchaseCredits": "Acquista Crediti",
+    "purchaseDescription": "Ricarica il tuo saldo con pacchetti crediti",
+    "loadingPackages": "Caricamento pacchetti...",
+    "noPackagesAvailable": "Nessun Pacchetto Disponibile",
+    "noPackagesMessage": "Non ci sono attualmente pacchetti di crediti disponibili per l'acquisto.",
+    "purchaseSuccess": "Crediti acquistati con successo! Il tuo saldo è stato aggiornato.",
+    "type": {
+      "PURCHASE": "Acquisto",
+      "SPEND": "Spesa",
+      "ADMIN_ADJUST": "Regolazione Admin"
+    }
+  },
+  "employee": {
+    "title": "Dashboard Dipendente",
+    "dashboard": "Dashboard",
+    "history": "Cronologia Ordini",
+    "notifications": "Notifiche",
+    "available": "Disponibile",
+    "unavailable": "Non Disponibile",
+    "completed": "Completati",
+    "skipped": "Saltati",
+    "currentAssignments": "Assegnazioni Correnti",
+    "availableOrders": "Ordini Disponibili",
+    "inProgress": "In Corso",
+    "assigned": "Assegnato",
+    "reviewContent": "Contenuto Recensione",
+    "instructions": "Istruzioni",
+    "submitReview": "Invia Recensione",
+    "skip": "Salta",
+    "skipReason": "Motivo Salto",
+    "skipReasonRequired": "Si prega di fornire un motivo",
+    "skipReasonPlaceholder": "Perché stai saltando questo ordine?",
+    "confirmSkip": "Conferma Salto",
+    "platform": "Piattaforma",
+    "targetRating": "Valutazione Obiettivo",
+    "credits": "Crediti",
+    "created": "Creato",
+    "proof": "Prova",
+    "submitProof": "Invia Prova di Completamento",
+    "proofDescription": "Si prega di fornire evidenza di aver completato questa recensione. Includi un URL di screenshot o una descrizione dettagliata.",
+    "proofPlaceholder": "Incolla l'URL dello screenshot o descrivi come hai completato la recensione...",
+    "proofRequired": "La prova è richiesta",
+    "important": "Importante",
+    "submitWarning": "Una volta inviato, questo ordine non può essere modificato. Assicurati che la tua prova sia accurata.",
+    "orderAccepted": "Ordine accettato con successo",
+    "orderSkipped": "Ordine saltato con successo",
+    "nowAvailable": "Ora sei disponibile",
+    "nowUnavailable": "Ora sei non disponibile",
+    "orderHistory": "Cronologia Ordini",
+    "allStatuses": "Tutti gli Stati",
+    "noOrdersFound": "Nessun ordine trovato",
+    "noOrdersYet": "Nessun ordine ancora",
+    "noAvailableOrders": "Nessun ordine disponibile",
+    "acceptOrder": "Accetta Ordine",
+    "orderNotFound": "Ordine non trovato",
+    "reviewSubmitted": "Recensione inviata con successo",
+    "noNotifications": "Nessuna notifica ancora",
+    "notificationsComingSoon": "Le notifiche appariranno qui quando gli ordini ti verranno assegnati.",
+    "accountPending": "Account In Attesa",
+    "accountPendingMessage": "Il tuo account è attualmente inattivo. Si prega di contattare il supporto."
+  },
+  "admin_reviews": {
+    "title": "Gestione Recensioni",
+    "subtitle": "Panoramica e gestione del flusso di ordini di recensioni",
+    "refresh": "Aggiorna",
+    "stats": {
+      "totalOrders": "Totale Ordini",
+      "pendingOrders": "Ordini in Attesa",
+      "inProgressOrders": "In Corso",
+      "completedOrders": "Completati",
+      "totalRevenue": "Fatturato Totale",
+      "totalEmployees": "Dipendenti Attivi"
+    },
+    "employeePerformance": {
+      "title": "Performance Dipendenti",
+      "summary": "{{completed}} completati, {{skipped}} saltati",
+      "total": "totale"
+    },
+    "actions": {
+      "title": "Azioni Rapide",
+      "manage": "Gestisci",
+      "queue": {
+        "title": "Coda Ordini",
+        "description": "Visualizza e assegna ordini di recensioni in attesa ai dipendenti"
+      },
+      "employees": {
+        "title": "Performance Dipendenti",
+        "description": "Monitora la performance dei dipendenti, disponibilità e tassi di completamento"
+      },
+      "verification": {
+        "title": "Coda Verifica",
+        "description": "Verifica le recensioni completate prima della consegna al cliente"
+      }
+    },
+    "queue": {
+      "title": "Coda Ordini",
+      "subtitle": "Assegna ordini di recensioni in attesa ai dipendenti disponibili",
+      "refresh": "Aggiorna",
+      "pendingCount": "{{count}} in attesa",
+      "availableCount": "{{count}} dipendenti disponibili",
+      "noOrders": "Nessun Ordine in Attesa",
+      "noOrdersMessage": "Tutti gli ordini di recensione sono stati assegnati o elaborati.",
+      "instructions": "Istruzioni",
+      "assignTo": "Assegna a Dipendente",
+      "selectEmployee": "Seleziona dipendente...",
+      "assigning": "Assegnazione...",
+      "assignOrder": "Assegna Ordine",
+      "cancelOrder": "Cancella Ordine",
+      "cancelDialog": {
+        "title": "Cancellare Ordine?",
+        "message": "Questo rimborserà i crediti al cliente. Si prega di fornire un motivo.",
+        "confirm": "Cancella e Rimborsa",
+        "back": "Indietro",
+        "reasonLabel": "Motivo della cancellazione",
+        "reasonPlaceholder": "Inserisci il motivo...",
+        "reasonRequired": "Si prega di fornire un motivo per la cancellazione"
+      }
+    },
+    "employees": {
+      "title": "Performance Dipendenti",
+      "subtitle": "Monitora la performance dei dipendenti, disponibilità e tassi di completamento",
+      "refresh": "Aggiorna",
+      "sortBy": "Ordina per",
+      "sort": {
+        "completed": "Più Completati",
+        "skipped": "Più Saltati",
+        "recent": "Attivi Di Recente"
+      },
+      "noEmployees": "Nessun Dipendente Trovato",
+      "noEmployeesMessage": "Nessun dato di performance dipendente disponibile ancora.",
+      "available": "Disponibile",
+      "unavailable": "Non Disponibile",
+      "activeRecently": "Attivo di recente",
+      "completed": "Completati",
+      "skipped": "Saltati",
+      "rate": "Tasso",
+      "lastActive": "Ultimo attivo: {{date}}",
+      "neverActive": "Mai attivo",
+      "memberSince": "Membro dal {{date}}",
+      "summary": {
+        "total": "Totale Dipendenti",
+        "available": "Attualmente Disponibili",
+        "totalCompleted": "Totale Completati",
+        "avgRate": "Tasso Medio Completamento"
+      }
+    },
+    "verification": {
+      "title": "Coda Verifica",
+      "subtitle": "Verifica le recensioni completate prima della consegna al cliente",
+      "refresh": "Aggiorna",
+      "pendingCount": "{{count}} in attesa di verifica",
+      "verifiedCount": "{{count}} già verificati",
+      "noPending": "Tutte le Recensioni Verificate",
+      "noPendingMessage": "Tutte le recensioni completate sono state verificate.",
+      "requiredContent": "Contenuto Recensione Richiesto",
+      "instructions": "Istruzioni Speciali",
+      "submission": "Invio Dipendente",
+      "submittedBy": "Inviato da",
+      "submittedAt": "Inviato alle",
+      "reviewUrl": "URL Recensione",
+      "notes": "Note Invio",
+      "forClient": "Cliente: {{name}} ({{email}})",
+      "verifying": "Verifica...",
+      "approve": "Approva e Invia al Cliente",
+      "reject": "Rifiuta e Richiedi Revisione",
+      "approveDialog": {
+        "title": "Approvare Recensione?",
+        "message": "Questo notificherà il cliente che la loro recensione è completa. Il dipendente verrà accreditato con un ordine completato.",
+        "confirm": "Approva"
+      },
+      "rejectDialog": {
+        "title": "Rifiutare Recensione?",
+        "message": "Questo notificherà il dipendente di revisionare e reinviare. Il cliente non verrà notificato.",
+        "confirm": "Rifiuta"
+      },
+      "cancelDialog": {
+        "back": "Indietro"
+      }
+    }
+  },
+  "employee_layout": {
+    "loading": "Caricamento...",
+    "auth_error": "Errore di autenticazione. Ricarica la pagina.",
+    "title": "Portale Dipendenti",
+    "sign_out": "Disconnetti",
+    "nav": {
+      "dashboard": "Dashboard",
+      "history": "Cronologia Ordini",
+      "notifications": "Notifiche"
+    }
   }
 }
