@@ -12,14 +12,29 @@ model User {
   email        String           @unique
   passwordHash String
   name         String
-  role         String           // "ADMIN" or "CLIENT"
+  role         String           // "ADMIN", "CLIENT", or "EMPLOYEE"
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   isActive     Boolean          @default(true)
-  billingInfo  BillingInfo?
-  profiles     ProfileAccount[]
-  orders       Order[]
-  invoices     Invoice[]
+
+  // Credits & Employee System
+  creditsBalance     Int       @default(0)  // Cached credits balance
+  acceptingOrders    Boolean   @default(true)  // Employee availability toggle
+  telegramChatId     String?   // Telegram Chat ID for notifications
+
+  // Existing Relations
+  billingInfo         BillingInfo?
+  profiles            ProfileAccount[]
+  orders              Order[]
+  invoices            Invoice[]
+
+  // New Relations - Credits & Reviews
+  creditTransactions  CreditTransaction[]
+  reviewOrdersAsClient      ReviewOrder[]       @relation("ReviewOrderClient")
+  reviewOrdersAsEmployee   ReviewOrder[]       @relation("ReviewOrderEmployee")
+  skippedReviews            SkippedReview[]
+  employeeStats             EmployeeStats?
+  notifications             Notification[]
 }
 
 model BillingInfo {
@@ -90,6 +105,7 @@ model Order {
   type             String          // "PURCHASE" or "RENEWAL"
   profileAccountId String?
   profileAccount   ProfileAccount? @relation("ProfileRenewals", fields: [profileAccountId], references: [id], onDelete: SetNull)
+  creditPackageId  String?         // Optional link to CreditPackage for credits purchases
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   invoices         Invoice[]
@@ -105,4 +121,129 @@ model Invoice {
   paymentPeriodEnd   DateTime?
   pdfPath           String    // Path to the uploaded PDF invoice
   uploadedAt        DateTime  @default(now())
+}
+
+// ============================================
+// CREDITS SYSTEM
+// ============================================
+
+model CreditPackage {
+  id              String   @id @default(uuid())
+  name            String
+  description     String?
+  creditsAmount   Int      // Number of credits in this package
+  price           Float    // EUR price for the package
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model CreditTransaction {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  amount          Int      // Positive for purchases, negative for spending
+  balanceAfter    Int      // Running balance after this transaction
+  type            String   // "PURCHASE", "SPEND", "REFUND", "ADMIN_ADJUST"
+  description     String   // Human-readable description
+  referenceId     String?  // Optional link to order/review
+  metadata        String?  // JSON for additional context
+
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ============================================
+// REVIEWS SYSTEM
+// ============================================
+
+model ReviewOrder {
+  id                    String   @id @default(uuid())
+  userId                String   // Client who created the order
+  user                  User     @relation("ReviewOrderClient", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Business Details
+  businessName          String
+  businessUrl           String?
+
+  // Review Details
+  reviewType            String   // "GOOGLE", "TRUSTPILOT", "YELP", etc.
+  targetRating          String   // "5_STAR", "4_STAR", "3_STAR", etc.
+  reviewContent         String   // The actual review text to post
+  reviewInstructions    String?  // Additional instructions from client
+  proofOfCompletion     String?  // Employee submission proof
+
+  // Credits & Status
+  creditsConsumed       Int      // Credits used for this order
+  status                String   // "PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"
+
+  // Employee Assignment
+  assignedEmployeeId    String?
+  assignedEmployee      User?    @relation("ReviewOrderEmployee", fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
+
+  // Timestamps
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  completedAt           DateTime?
+
+  @@index([status])
+  @@index([assignedEmployeeId])
+  @@index([createdAt])
+}
+
+model SkippedReview {
+  id              String   @id @default(uuid())
+  employeeId      String
+  employee        User     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  reviewOrderId   String
+  createdAt       DateTime @default(now())
+
+  @@unique([employeeId, reviewOrderId])  // Prevent duplicate skips
+  @@index([reviewOrderId])               // For querying which employees skipped what
+}
+
+model EmployeeStats {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Availability
+  isAvailable     Boolean  @default(true)
+
+  // Performance Tracking
+  ordersCompleted Int      @default(0)
+  ordersSkipped   Int      @default(0)
+  lastActiveAt    DateTime?
+
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([isAvailable])
+}
+
+// ============================================
+// NOTIFICATIONS SYSTEM
+// ============================================
+
+model Notification {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title           String
+  message         String
+  type            String   // "INFO", "SUCCESS", "WARNING", "REVIEW_ORDER", etc.
+  channels        String   // "TELEGRAM", "IN_APP", "EMAIL" (comma-separated)
+  isRead          Boolean  @default(false)
+  actionLink      String?  // Optional redirect URL
+  relatedOrderId  String?  // Link to related review/order
+
+  createdAt       DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
 }

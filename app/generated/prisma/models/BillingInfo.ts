@@ -498,10 +498,6 @@ export type BillingInfoUncheckedUpdateOneWithoutUserNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.BillingInfoUpdateToOneWithWhereWithoutUserInput, Prisma.BillingInfoUpdateWithoutUserInput>, Prisma.BillingInfoUncheckedUpdateWithoutUserInput>
 }
 
-export type NullableStringFieldUpdateOperationsInput = {
-  set?: string | null
-}
-
 export type BillingInfoCreateWithoutUserInput = {
   id?: string
   billingType: string

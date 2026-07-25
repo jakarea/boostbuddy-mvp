@@ -492,14 +492,6 @@ export type FloatFieldUpdateOperationsInput = {
   divide?: number
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type ServiceCreateNestedOneWithoutProfilesInput = {
   create?: Prisma.XOR<Prisma.ServiceCreateWithoutProfilesInput, Prisma.ServiceUncheckedCreateWithoutProfilesInput>
   connectOrCreate?: Prisma.ServiceCreateOrConnectWithoutProfilesInput

@@ -20,8 +20,18 @@ export type UserModel = runtime.Types.Result.DefaultSelection<Prisma.$UserPayloa
 
 export type AggregateUser = {
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
+}
+
+export type UserAvgAggregateOutputType = {
+  creditsBalance: number | null
+}
+
+export type UserSumAggregateOutputType = {
+  creditsBalance: number | null
 }
 
 export type UserMinAggregateOutputType = {
@@ -33,6 +43,9 @@ export type UserMinAggregateOutputType = {
   createdAt: Date | null
   updatedAt: Date | null
   isActive: boolean | null
+  creditsBalance: number | null
+  acceptingOrders: boolean | null
+  telegramChatId: string | null
 }
 
 export type UserMaxAggregateOutputType = {
@@ -44,6 +57,9 @@ export type UserMaxAggregateOutputType = {
   createdAt: Date | null
   updatedAt: Date | null
   isActive: boolean | null
+  creditsBalance: number | null
+  acceptingOrders: boolean | null
+  telegramChatId: string | null
 }
 
 export type UserCountAggregateOutputType = {
@@ -55,9 +71,20 @@ export type UserCountAggregateOutputType = {
   createdAt: number
   updatedAt: number
   isActive: number
+  creditsBalance: number
+  acceptingOrders: number
+  telegramChatId: number
   _all: number
 }
 
+
+export type UserAvgAggregateInputType = {
+  creditsBalance?: true
+}
+
+export type UserSumAggregateInputType = {
+  creditsBalance?: true
+}
 
 export type UserMinAggregateInputType = {
   id?: true
@@ -68,6 +95,9 @@ export type UserMinAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   isActive?: true
+  creditsBalance?: true
+  acceptingOrders?: true
+  telegramChatId?: true
 }
 
 export type UserMaxAggregateInputType = {
@@ -79,6 +109,9 @@ export type UserMaxAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   isActive?: true
+  creditsBalance?: true
+  acceptingOrders?: true
+  telegramChatId?: true
 }
 
 export type UserCountAggregateInputType = {
@@ -90,6 +123,9 @@ export type UserCountAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   isActive?: true
+  creditsBalance?: true
+  acceptingOrders?: true
+  telegramChatId?: true
   _all?: true
 }
 
@@ -131,6 +167,18 @@ export type UserAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: UserAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: UserSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: UserMinAggregateInputType
@@ -161,6 +209,8 @@ export type UserGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   _count?: UserCountAggregateInputType | true
+  _avg?: UserAvgAggregateInputType
+  _sum?: UserSumAggregateInputType
   _min?: UserMinAggregateInputType
   _max?: UserMaxAggregateInputType
 }
@@ -174,7 +224,12 @@ export type UserGroupByOutputType = {
   createdAt: Date
   updatedAt: Date
   isActive: boolean
+  creditsBalance: number
+  acceptingOrders: boolean
+  telegramChatId: string | null
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
 }
@@ -206,10 +261,19 @@ export type UserWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   isActive?: Prisma.BoolFilter<"User"> | boolean
+  creditsBalance?: Prisma.IntFilter<"User"> | number
+  acceptingOrders?: Prisma.BoolFilter<"User"> | boolean
+  telegramChatId?: Prisma.StringNullableFilter<"User"> | string | null
   billingInfo?: Prisma.XOR<Prisma.BillingInfoNullableScalarRelationFilter, Prisma.BillingInfoWhereInput> | null
   profiles?: Prisma.ProfileAccountListRelationFilter
   orders?: Prisma.OrderListRelationFilter
   invoices?: Prisma.InvoiceListRelationFilter
+  creditTransactions?: Prisma.CreditTransactionListRelationFilter
+  reviewOrdersAsClient?: Prisma.ReviewOrderListRelationFilter
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderListRelationFilter
+  skippedReviews?: Prisma.SkippedReviewListRelationFilter
+  employeeStats?: Prisma.XOR<Prisma.EmployeeStatsNullableScalarRelationFilter, Prisma.EmployeeStatsWhereInput> | null
+  notifications?: Prisma.NotificationListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -221,10 +285,19 @@ export type UserOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  creditsBalance?: Prisma.SortOrder
+  acceptingOrders?: Prisma.SortOrder
+  telegramChatId?: Prisma.SortOrderInput | Prisma.SortOrder
   billingInfo?: Prisma.BillingInfoOrderByWithRelationInput
   profiles?: Prisma.ProfileAccountOrderByRelationAggregateInput
   orders?: Prisma.OrderOrderByRelationAggregateInput
   invoices?: Prisma.InvoiceOrderByRelationAggregateInput
+  creditTransactions?: Prisma.CreditTransactionOrderByRelationAggregateInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderOrderByRelationAggregateInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderOrderByRelationAggregateInput
+  skippedReviews?: Prisma.SkippedReviewOrderByRelationAggregateInput
+  employeeStats?: Prisma.EmployeeStatsOrderByWithRelationInput
+  notifications?: Prisma.NotificationOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -239,10 +312,19 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   isActive?: Prisma.BoolFilter<"User"> | boolean
+  creditsBalance?: Prisma.IntFilter<"User"> | number
+  acceptingOrders?: Prisma.BoolFilter<"User"> | boolean
+  telegramChatId?: Prisma.StringNullableFilter<"User"> | string | null
   billingInfo?: Prisma.XOR<Prisma.BillingInfoNullableScalarRelationFilter, Prisma.BillingInfoWhereInput> | null
   profiles?: Prisma.ProfileAccountListRelationFilter
   orders?: Prisma.OrderListRelationFilter
   invoices?: Prisma.InvoiceListRelationFilter
+  creditTransactions?: Prisma.CreditTransactionListRelationFilter
+  reviewOrdersAsClient?: Prisma.ReviewOrderListRelationFilter
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderListRelationFilter
+  skippedReviews?: Prisma.SkippedReviewListRelationFilter
+  employeeStats?: Prisma.XOR<Prisma.EmployeeStatsNullableScalarRelationFilter, Prisma.EmployeeStatsWhereInput> | null
+  notifications?: Prisma.NotificationListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -254,9 +336,14 @@ export type UserOrderByWithAggregationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  creditsBalance?: Prisma.SortOrder
+  acceptingOrders?: Prisma.SortOrder
+  telegramChatId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
+  _avg?: Prisma.UserAvgOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
   _min?: Prisma.UserMinOrderByAggregateInput
+  _sum?: Prisma.UserSumOrderByAggregateInput
 }
 
 export type UserScalarWhereWithAggregatesInput = {
@@ -271,6 +358,9 @@ export type UserScalarWhereWithAggregatesInput = {
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   isActive?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
+  creditsBalance?: Prisma.IntWithAggregatesFilter<"User"> | number
+  acceptingOrders?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
+  telegramChatId?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
 }
 
 export type UserCreateInput = {
@@ -282,10 +372,19 @@ export type UserCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
   billingInfo?: Prisma.BillingInfoCreateNestedOneWithoutUserInput
   profiles?: Prisma.ProfileAccountCreateNestedManyWithoutAssignedClientInput
   orders?: Prisma.OrderCreateNestedManyWithoutUserInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -297,10 +396,19 @@ export type UserUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
   billingInfo?: Prisma.BillingInfoUncheckedCreateNestedOneWithoutUserInput
   profiles?: Prisma.ProfileAccountUncheckedCreateNestedManyWithoutAssignedClientInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -312,10 +420,19 @@ export type UserUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billingInfo?: Prisma.BillingInfoUpdateOneWithoutUserNestedInput
   profiles?: Prisma.ProfileAccountUpdateManyWithoutAssignedClientNestedInput
   orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -327,10 +444,19 @@ export type UserUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billingInfo?: Prisma.BillingInfoUncheckedUpdateOneWithoutUserNestedInput
   profiles?: Prisma.ProfileAccountUncheckedUpdateManyWithoutAssignedClientNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -342,6 +468,9 @@ export type UserCreateManyInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
 }
 
 export type UserUpdateManyMutationInput = {
@@ -353,6 +482,9 @@ export type UserUpdateManyMutationInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type UserUncheckedUpdateManyInput = {
@@ -364,6 +496,9 @@ export type UserUncheckedUpdateManyInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type UserCountOrderByAggregateInput = {
@@ -375,6 +510,13 @@ export type UserCountOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  creditsBalance?: Prisma.SortOrder
+  acceptingOrders?: Prisma.SortOrder
+  telegramChatId?: Prisma.SortOrder
+}
+
+export type UserAvgOrderByAggregateInput = {
+  creditsBalance?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -386,6 +528,9 @@ export type UserMaxOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  creditsBalance?: Prisma.SortOrder
+  acceptingOrders?: Prisma.SortOrder
+  telegramChatId?: Prisma.SortOrder
 }
 
 export type UserMinOrderByAggregateInput = {
@@ -397,6 +542,13 @@ export type UserMinOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  creditsBalance?: Prisma.SortOrder
+  acceptingOrders?: Prisma.SortOrder
+  telegramChatId?: Prisma.SortOrder
+}
+
+export type UserSumOrderByAggregateInput = {
+  creditsBalance?: Prisma.SortOrder
 }
 
 export type UserScalarRelationFilter = {
@@ -419,6 +571,18 @@ export type DateTimeFieldUpdateOperationsInput = {
 
 export type BoolFieldUpdateOperationsInput = {
   set?: boolean
+}
+
+export type IntFieldUpdateOperationsInput = {
+  set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
+export type NullableStringFieldUpdateOperationsInput = {
+  set?: string | null
 }
 
 export type UserCreateNestedOneWithoutBillingInfoInput = {
@@ -479,6 +643,92 @@ export type UserUpdateOneRequiredWithoutInvoicesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutInvoicesInput, Prisma.UserUpdateWithoutInvoicesInput>, Prisma.UserUncheckedUpdateWithoutInvoicesInput>
 }
 
+export type UserCreateNestedOneWithoutCreditTransactionsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCreditTransactionsInput, Prisma.UserUncheckedCreateWithoutCreditTransactionsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCreditTransactionsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutCreditTransactionsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCreditTransactionsInput, Prisma.UserUncheckedCreateWithoutCreditTransactionsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCreditTransactionsInput
+  upsert?: Prisma.UserUpsertWithoutCreditTransactionsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutCreditTransactionsInput, Prisma.UserUpdateWithoutCreditTransactionsInput>, Prisma.UserUncheckedUpdateWithoutCreditTransactionsInput>
+}
+
+export type UserCreateNestedOneWithoutReviewOrdersAsClientInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReviewOrdersAsClientInput, Prisma.UserUncheckedCreateWithoutReviewOrdersAsClientInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReviewOrdersAsClientInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserCreateNestedOneWithoutReviewOrdersAsEmployeeInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReviewOrdersAsEmployeeInput, Prisma.UserUncheckedCreateWithoutReviewOrdersAsEmployeeInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReviewOrdersAsEmployeeInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutReviewOrdersAsClientNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReviewOrdersAsClientInput, Prisma.UserUncheckedCreateWithoutReviewOrdersAsClientInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReviewOrdersAsClientInput
+  upsert?: Prisma.UserUpsertWithoutReviewOrdersAsClientInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutReviewOrdersAsClientInput, Prisma.UserUpdateWithoutReviewOrdersAsClientInput>, Prisma.UserUncheckedUpdateWithoutReviewOrdersAsClientInput>
+}
+
+export type UserUpdateOneWithoutReviewOrdersAsEmployeeNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReviewOrdersAsEmployeeInput, Prisma.UserUncheckedCreateWithoutReviewOrdersAsEmployeeInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReviewOrdersAsEmployeeInput
+  upsert?: Prisma.UserUpsertWithoutReviewOrdersAsEmployeeInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutReviewOrdersAsEmployeeInput, Prisma.UserUpdateWithoutReviewOrdersAsEmployeeInput>, Prisma.UserUncheckedUpdateWithoutReviewOrdersAsEmployeeInput>
+}
+
+export type UserCreateNestedOneWithoutSkippedReviewsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutSkippedReviewsInput, Prisma.UserUncheckedCreateWithoutSkippedReviewsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSkippedReviewsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutSkippedReviewsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutSkippedReviewsInput, Prisma.UserUncheckedCreateWithoutSkippedReviewsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSkippedReviewsInput
+  upsert?: Prisma.UserUpsertWithoutSkippedReviewsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutSkippedReviewsInput, Prisma.UserUpdateWithoutSkippedReviewsInput>, Prisma.UserUncheckedUpdateWithoutSkippedReviewsInput>
+}
+
+export type UserCreateNestedOneWithoutEmployeeStatsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutEmployeeStatsInput, Prisma.UserUncheckedCreateWithoutEmployeeStatsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutEmployeeStatsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutEmployeeStatsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutEmployeeStatsInput, Prisma.UserUncheckedCreateWithoutEmployeeStatsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutEmployeeStatsInput
+  upsert?: Prisma.UserUpsertWithoutEmployeeStatsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutEmployeeStatsInput, Prisma.UserUpdateWithoutEmployeeStatsInput>, Prisma.UserUncheckedUpdateWithoutEmployeeStatsInput>
+}
+
+export type UserCreateNestedOneWithoutNotificationsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutNotificationsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutNotificationsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutNotificationsInput
+  upsert?: Prisma.UserUpsertWithoutNotificationsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutNotificationsInput, Prisma.UserUpdateWithoutNotificationsInput>, Prisma.UserUncheckedUpdateWithoutNotificationsInput>
+}
+
 export type UserCreateWithoutBillingInfoInput = {
   id?: string
   email: string
@@ -488,9 +738,18 @@ export type UserCreateWithoutBillingInfoInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
   profiles?: Prisma.ProfileAccountCreateNestedManyWithoutAssignedClientInput
   orders?: Prisma.OrderCreateNestedManyWithoutUserInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutBillingInfoInput = {
@@ -502,9 +761,18 @@ export type UserUncheckedCreateWithoutBillingInfoInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
   profiles?: Prisma.ProfileAccountUncheckedCreateNestedManyWithoutAssignedClientInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutBillingInfoInput = {
@@ -532,9 +800,18 @@ export type UserUpdateWithoutBillingInfoInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   profiles?: Prisma.ProfileAccountUpdateManyWithoutAssignedClientNestedInput
   orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutBillingInfoInput = {
@@ -546,9 +823,18 @@ export type UserUncheckedUpdateWithoutBillingInfoInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   profiles?: Prisma.ProfileAccountUncheckedUpdateManyWithoutAssignedClientNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutProfilesInput = {
@@ -560,9 +846,18 @@ export type UserCreateWithoutProfilesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
   billingInfo?: Prisma.BillingInfoCreateNestedOneWithoutUserInput
   orders?: Prisma.OrderCreateNestedManyWithoutUserInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutProfilesInput = {
@@ -574,9 +869,18 @@ export type UserUncheckedCreateWithoutProfilesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
   billingInfo?: Prisma.BillingInfoUncheckedCreateNestedOneWithoutUserInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutProfilesInput = {
@@ -604,9 +908,18 @@ export type UserUpdateWithoutProfilesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billingInfo?: Prisma.BillingInfoUpdateOneWithoutUserNestedInput
   orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutProfilesInput = {
@@ -618,9 +931,18 @@ export type UserUncheckedUpdateWithoutProfilesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billingInfo?: Prisma.BillingInfoUncheckedUpdateOneWithoutUserNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutOrdersInput = {
@@ -632,9 +954,18 @@ export type UserCreateWithoutOrdersInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
   billingInfo?: Prisma.BillingInfoCreateNestedOneWithoutUserInput
   profiles?: Prisma.ProfileAccountCreateNestedManyWithoutAssignedClientInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutOrdersInput = {
@@ -646,9 +977,18 @@ export type UserUncheckedCreateWithoutOrdersInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
   billingInfo?: Prisma.BillingInfoUncheckedCreateNestedOneWithoutUserInput
   profiles?: Prisma.ProfileAccountUncheckedCreateNestedManyWithoutAssignedClientInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutOrdersInput = {
@@ -676,9 +1016,18 @@ export type UserUpdateWithoutOrdersInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billingInfo?: Prisma.BillingInfoUpdateOneWithoutUserNestedInput
   profiles?: Prisma.ProfileAccountUpdateManyWithoutAssignedClientNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutOrdersInput = {
@@ -690,9 +1039,18 @@ export type UserUncheckedUpdateWithoutOrdersInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billingInfo?: Prisma.BillingInfoUncheckedUpdateOneWithoutUserNestedInput
   profiles?: Prisma.ProfileAccountUncheckedUpdateManyWithoutAssignedClientNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutInvoicesInput = {
@@ -704,9 +1062,18 @@ export type UserCreateWithoutInvoicesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
   billingInfo?: Prisma.BillingInfoCreateNestedOneWithoutUserInput
   profiles?: Prisma.ProfileAccountCreateNestedManyWithoutAssignedClientInput
   orders?: Prisma.OrderCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutInvoicesInput = {
@@ -718,9 +1085,18 @@ export type UserUncheckedCreateWithoutInvoicesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
   billingInfo?: Prisma.BillingInfoUncheckedCreateNestedOneWithoutUserInput
   profiles?: Prisma.ProfileAccountUncheckedCreateNestedManyWithoutAssignedClientInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutInvoicesInput = {
@@ -748,9 +1124,18 @@ export type UserUpdateWithoutInvoicesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billingInfo?: Prisma.BillingInfoUpdateOneWithoutUserNestedInput
   profiles?: Prisma.ProfileAccountUpdateManyWithoutAssignedClientNestedInput
   orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutInvoicesInput = {
@@ -762,9 +1147,666 @@ export type UserUncheckedUpdateWithoutInvoicesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   billingInfo?: Prisma.BillingInfoUncheckedUpdateOneWithoutUserNestedInput
   profiles?: Prisma.ProfileAccountUncheckedUpdateManyWithoutAssignedClientNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutCreditTransactionsInput = {
+  id?: string
+  email: string
+  passwordHash: string
+  name: string
+  role: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
+  billingInfo?: Prisma.BillingInfoCreateNestedOneWithoutUserInput
+  profiles?: Prisma.ProfileAccountCreateNestedManyWithoutAssignedClientInput
+  orders?: Prisma.OrderCreateNestedManyWithoutUserInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutCreditTransactionsInput = {
+  id?: string
+  email: string
+  passwordHash: string
+  name: string
+  role: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
+  billingInfo?: Prisma.BillingInfoUncheckedCreateNestedOneWithoutUserInput
+  profiles?: Prisma.ProfileAccountUncheckedCreateNestedManyWithoutAssignedClientInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutCreditTransactionsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutCreditTransactionsInput, Prisma.UserUncheckedCreateWithoutCreditTransactionsInput>
+}
+
+export type UserUpsertWithoutCreditTransactionsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutCreditTransactionsInput, Prisma.UserUncheckedUpdateWithoutCreditTransactionsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutCreditTransactionsInput, Prisma.UserUncheckedCreateWithoutCreditTransactionsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutCreditTransactionsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutCreditTransactionsInput, Prisma.UserUncheckedUpdateWithoutCreditTransactionsInput>
+}
+
+export type UserUpdateWithoutCreditTransactionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  billingInfo?: Prisma.BillingInfoUpdateOneWithoutUserNestedInput
+  profiles?: Prisma.ProfileAccountUpdateManyWithoutAssignedClientNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutCreditTransactionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  billingInfo?: Prisma.BillingInfoUncheckedUpdateOneWithoutUserNestedInput
+  profiles?: Prisma.ProfileAccountUncheckedUpdateManyWithoutAssignedClientNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutReviewOrdersAsClientInput = {
+  id?: string
+  email: string
+  passwordHash: string
+  name: string
+  role: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
+  billingInfo?: Prisma.BillingInfoCreateNestedOneWithoutUserInput
+  profiles?: Prisma.ProfileAccountCreateNestedManyWithoutAssignedClientInput
+  orders?: Prisma.OrderCreateNestedManyWithoutUserInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutReviewOrdersAsClientInput = {
+  id?: string
+  email: string
+  passwordHash: string
+  name: string
+  role: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
+  billingInfo?: Prisma.BillingInfoUncheckedCreateNestedOneWithoutUserInput
+  profiles?: Prisma.ProfileAccountUncheckedCreateNestedManyWithoutAssignedClientInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutReviewOrdersAsClientInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutReviewOrdersAsClientInput, Prisma.UserUncheckedCreateWithoutReviewOrdersAsClientInput>
+}
+
+export type UserCreateWithoutReviewOrdersAsEmployeeInput = {
+  id?: string
+  email: string
+  passwordHash: string
+  name: string
+  role: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
+  billingInfo?: Prisma.BillingInfoCreateNestedOneWithoutUserInput
+  profiles?: Prisma.ProfileAccountCreateNestedManyWithoutAssignedClientInput
+  orders?: Prisma.OrderCreateNestedManyWithoutUserInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderCreateNestedManyWithoutUserInput
+  skippedReviews?: Prisma.SkippedReviewCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutReviewOrdersAsEmployeeInput = {
+  id?: string
+  email: string
+  passwordHash: string
+  name: string
+  role: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
+  billingInfo?: Prisma.BillingInfoUncheckedCreateNestedOneWithoutUserInput
+  profiles?: Prisma.ProfileAccountUncheckedCreateNestedManyWithoutAssignedClientInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutUserInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutReviewOrdersAsEmployeeInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutReviewOrdersAsEmployeeInput, Prisma.UserUncheckedCreateWithoutReviewOrdersAsEmployeeInput>
+}
+
+export type UserUpsertWithoutReviewOrdersAsClientInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutReviewOrdersAsClientInput, Prisma.UserUncheckedUpdateWithoutReviewOrdersAsClientInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutReviewOrdersAsClientInput, Prisma.UserUncheckedCreateWithoutReviewOrdersAsClientInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutReviewOrdersAsClientInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutReviewOrdersAsClientInput, Prisma.UserUncheckedUpdateWithoutReviewOrdersAsClientInput>
+}
+
+export type UserUpdateWithoutReviewOrdersAsClientInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  billingInfo?: Prisma.BillingInfoUpdateOneWithoutUserNestedInput
+  profiles?: Prisma.ProfileAccountUpdateManyWithoutAssignedClientNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutReviewOrdersAsClientInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  billingInfo?: Prisma.BillingInfoUncheckedUpdateOneWithoutUserNestedInput
+  profiles?: Prisma.ProfileAccountUncheckedUpdateManyWithoutAssignedClientNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserUpsertWithoutReviewOrdersAsEmployeeInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutReviewOrdersAsEmployeeInput, Prisma.UserUncheckedUpdateWithoutReviewOrdersAsEmployeeInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutReviewOrdersAsEmployeeInput, Prisma.UserUncheckedCreateWithoutReviewOrdersAsEmployeeInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutReviewOrdersAsEmployeeInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutReviewOrdersAsEmployeeInput, Prisma.UserUncheckedUpdateWithoutReviewOrdersAsEmployeeInput>
+}
+
+export type UserUpdateWithoutReviewOrdersAsEmployeeInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  billingInfo?: Prisma.BillingInfoUpdateOneWithoutUserNestedInput
+  profiles?: Prisma.ProfileAccountUpdateManyWithoutAssignedClientNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUpdateManyWithoutUserNestedInput
+  skippedReviews?: Prisma.SkippedReviewUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutReviewOrdersAsEmployeeInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  billingInfo?: Prisma.BillingInfoUncheckedUpdateOneWithoutUserNestedInput
+  profiles?: Prisma.ProfileAccountUncheckedUpdateManyWithoutAssignedClientNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedUpdateManyWithoutUserNestedInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutSkippedReviewsInput = {
+  id?: string
+  email: string
+  passwordHash: string
+  name: string
+  role: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
+  billingInfo?: Prisma.BillingInfoCreateNestedOneWithoutUserInput
+  profiles?: Prisma.ProfileAccountCreateNestedManyWithoutAssignedClientInput
+  orders?: Prisma.OrderCreateNestedManyWithoutUserInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderCreateNestedManyWithoutAssignedEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutSkippedReviewsInput = {
+  id?: string
+  email: string
+  passwordHash: string
+  name: string
+  role: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
+  billingInfo?: Prisma.BillingInfoUncheckedCreateNestedOneWithoutUserInput
+  profiles?: Prisma.ProfileAccountUncheckedCreateNestedManyWithoutAssignedClientInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutAssignedEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutSkippedReviewsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutSkippedReviewsInput, Prisma.UserUncheckedCreateWithoutSkippedReviewsInput>
+}
+
+export type UserUpsertWithoutSkippedReviewsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutSkippedReviewsInput, Prisma.UserUncheckedUpdateWithoutSkippedReviewsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutSkippedReviewsInput, Prisma.UserUncheckedCreateWithoutSkippedReviewsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutSkippedReviewsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutSkippedReviewsInput, Prisma.UserUncheckedUpdateWithoutSkippedReviewsInput>
+}
+
+export type UserUpdateWithoutSkippedReviewsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  billingInfo?: Prisma.BillingInfoUpdateOneWithoutUserNestedInput
+  profiles?: Prisma.ProfileAccountUpdateManyWithoutAssignedClientNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUpdateManyWithoutAssignedEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutSkippedReviewsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  billingInfo?: Prisma.BillingInfoUncheckedUpdateOneWithoutUserNestedInput
+  profiles?: Prisma.ProfileAccountUncheckedUpdateManyWithoutAssignedClientNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedUpdateManyWithoutAssignedEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutEmployeeStatsInput = {
+  id?: string
+  email: string
+  passwordHash: string
+  name: string
+  role: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
+  billingInfo?: Prisma.BillingInfoCreateNestedOneWithoutUserInput
+  profiles?: Prisma.ProfileAccountCreateNestedManyWithoutAssignedClientInput
+  orders?: Prisma.OrderCreateNestedManyWithoutUserInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewCreateNestedManyWithoutEmployeeInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutEmployeeStatsInput = {
+  id?: string
+  email: string
+  passwordHash: string
+  name: string
+  role: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
+  billingInfo?: Prisma.BillingInfoUncheckedCreateNestedOneWithoutUserInput
+  profiles?: Prisma.ProfileAccountUncheckedCreateNestedManyWithoutAssignedClientInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedCreateNestedManyWithoutEmployeeInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutEmployeeStatsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutEmployeeStatsInput, Prisma.UserUncheckedCreateWithoutEmployeeStatsInput>
+}
+
+export type UserUpsertWithoutEmployeeStatsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutEmployeeStatsInput, Prisma.UserUncheckedUpdateWithoutEmployeeStatsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutEmployeeStatsInput, Prisma.UserUncheckedCreateWithoutEmployeeStatsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutEmployeeStatsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutEmployeeStatsInput, Prisma.UserUncheckedUpdateWithoutEmployeeStatsInput>
+}
+
+export type UserUpdateWithoutEmployeeStatsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  billingInfo?: Prisma.BillingInfoUpdateOneWithoutUserNestedInput
+  profiles?: Prisma.ProfileAccountUpdateManyWithoutAssignedClientNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUpdateManyWithoutEmployeeNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutEmployeeStatsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  billingInfo?: Prisma.BillingInfoUncheckedUpdateOneWithoutUserNestedInput
+  profiles?: Prisma.ProfileAccountUncheckedUpdateManyWithoutAssignedClientNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedUpdateManyWithoutEmployeeNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutNotificationsInput = {
+  id?: string
+  email: string
+  passwordHash: string
+  name: string
+  role: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
+  billingInfo?: Prisma.BillingInfoCreateNestedOneWithoutUserInput
+  profiles?: Prisma.ProfileAccountCreateNestedManyWithoutAssignedClientInput
+  orders?: Prisma.OrderCreateNestedManyWithoutUserInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsCreateNestedOneWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutNotificationsInput = {
+  id?: string
+  email: string
+  passwordHash: string
+  name: string
+  role: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  isActive?: boolean
+  creditsBalance?: number
+  acceptingOrders?: boolean
+  telegramChatId?: string | null
+  billingInfo?: Prisma.BillingInfoUncheckedCreateNestedOneWithoutUserInput
+  profiles?: Prisma.ProfileAccountUncheckedCreateNestedManyWithoutAssignedClientInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutUserInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutUserInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutUserInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedCreateNestedManyWithoutAssignedEmployeeInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedCreateNestedManyWithoutEmployeeInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedCreateNestedOneWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutNotificationsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
+}
+
+export type UserUpsertWithoutNotificationsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutNotificationsInput, Prisma.UserUncheckedUpdateWithoutNotificationsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutNotificationsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutNotificationsInput, Prisma.UserUncheckedUpdateWithoutNotificationsInput>
+}
+
+export type UserUpdateWithoutNotificationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  billingInfo?: Prisma.BillingInfoUpdateOneWithoutUserNestedInput
+  profiles?: Prisma.ProfileAccountUpdateManyWithoutAssignedClientNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUpdateOneWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutNotificationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  creditsBalance?: Prisma.IntFieldUpdateOperationsInput | number
+  acceptingOrders?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  telegramChatId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  billingInfo?: Prisma.BillingInfoUncheckedUpdateOneWithoutUserNestedInput
+  profiles?: Prisma.ProfileAccountUncheckedUpdateManyWithoutAssignedClientNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutUserNestedInput
+  creditTransactions?: Prisma.CreditTransactionUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsClient?: Prisma.ReviewOrderUncheckedUpdateManyWithoutUserNestedInput
+  reviewOrdersAsEmployee?: Prisma.ReviewOrderUncheckedUpdateManyWithoutAssignedEmployeeNestedInput
+  skippedReviews?: Prisma.SkippedReviewUncheckedUpdateManyWithoutEmployeeNestedInput
+  employeeStats?: Prisma.EmployeeStatsUncheckedUpdateOneWithoutUserNestedInput
 }
 
 
@@ -776,12 +1818,22 @@ export type UserCountOutputType = {
   profiles: number
   orders: number
   invoices: number
+  creditTransactions: number
+  reviewOrdersAsClient: number
+  reviewOrdersAsEmployee: number
+  skippedReviews: number
+  notifications: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   profiles?: boolean | UserCountOutputTypeCountProfilesArgs
   orders?: boolean | UserCountOutputTypeCountOrdersArgs
   invoices?: boolean | UserCountOutputTypeCountInvoicesArgs
+  creditTransactions?: boolean | UserCountOutputTypeCountCreditTransactionsArgs
+  reviewOrdersAsClient?: boolean | UserCountOutputTypeCountReviewOrdersAsClientArgs
+  reviewOrdersAsEmployee?: boolean | UserCountOutputTypeCountReviewOrdersAsEmployeeArgs
+  skippedReviews?: boolean | UserCountOutputTypeCountSkippedReviewsArgs
+  notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
 }
 
 /**
@@ -815,6 +1867,41 @@ export type UserCountOutputTypeCountInvoicesArgs<ExtArgs extends runtime.Types.E
   where?: Prisma.InvoiceWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountCreditTransactionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CreditTransactionWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountReviewOrdersAsClientArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ReviewOrderWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountReviewOrdersAsEmployeeArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ReviewOrderWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountSkippedReviewsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SkippedReviewWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountNotificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.NotificationWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -825,10 +1912,19 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   createdAt?: boolean
   updatedAt?: boolean
   isActive?: boolean
+  creditsBalance?: boolean
+  acceptingOrders?: boolean
+  telegramChatId?: boolean
   billingInfo?: boolean | Prisma.User$billingInfoArgs<ExtArgs>
   profiles?: boolean | Prisma.User$profilesArgs<ExtArgs>
   orders?: boolean | Prisma.User$ordersArgs<ExtArgs>
   invoices?: boolean | Prisma.User$invoicesArgs<ExtArgs>
+  creditTransactions?: boolean | Prisma.User$creditTransactionsArgs<ExtArgs>
+  reviewOrdersAsClient?: boolean | Prisma.User$reviewOrdersAsClientArgs<ExtArgs>
+  reviewOrdersAsEmployee?: boolean | Prisma.User$reviewOrdersAsEmployeeArgs<ExtArgs>
+  skippedReviews?: boolean | Prisma.User$skippedReviewsArgs<ExtArgs>
+  employeeStats?: boolean | Prisma.User$employeeStatsArgs<ExtArgs>
+  notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -841,6 +1937,9 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   createdAt?: boolean
   updatedAt?: boolean
   isActive?: boolean
+  creditsBalance?: boolean
+  acceptingOrders?: boolean
+  telegramChatId?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -852,6 +1951,9 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   createdAt?: boolean
   updatedAt?: boolean
   isActive?: boolean
+  creditsBalance?: boolean
+  acceptingOrders?: boolean
+  telegramChatId?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
@@ -863,14 +1965,23 @@ export type UserSelectScalar = {
   createdAt?: boolean
   updatedAt?: boolean
   isActive?: boolean
+  creditsBalance?: boolean
+  acceptingOrders?: boolean
+  telegramChatId?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "passwordHash" | "name" | "role" | "createdAt" | "updatedAt" | "isActive", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "passwordHash" | "name" | "role" | "createdAt" | "updatedAt" | "isActive" | "creditsBalance" | "acceptingOrders" | "telegramChatId", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   billingInfo?: boolean | Prisma.User$billingInfoArgs<ExtArgs>
   profiles?: boolean | Prisma.User$profilesArgs<ExtArgs>
   orders?: boolean | Prisma.User$ordersArgs<ExtArgs>
   invoices?: boolean | Prisma.User$invoicesArgs<ExtArgs>
+  creditTransactions?: boolean | Prisma.User$creditTransactionsArgs<ExtArgs>
+  reviewOrdersAsClient?: boolean | Prisma.User$reviewOrdersAsClientArgs<ExtArgs>
+  reviewOrdersAsEmployee?: boolean | Prisma.User$reviewOrdersAsEmployeeArgs<ExtArgs>
+  skippedReviews?: boolean | Prisma.User$skippedReviewsArgs<ExtArgs>
+  employeeStats?: boolean | Prisma.User$employeeStatsArgs<ExtArgs>
+  notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -883,6 +1994,12 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     profiles: Prisma.$ProfileAccountPayload<ExtArgs>[]
     orders: Prisma.$OrderPayload<ExtArgs>[]
     invoices: Prisma.$InvoicePayload<ExtArgs>[]
+    creditTransactions: Prisma.$CreditTransactionPayload<ExtArgs>[]
+    reviewOrdersAsClient: Prisma.$ReviewOrderPayload<ExtArgs>[]
+    reviewOrdersAsEmployee: Prisma.$ReviewOrderPayload<ExtArgs>[]
+    skippedReviews: Prisma.$SkippedReviewPayload<ExtArgs>[]
+    employeeStats: Prisma.$EmployeeStatsPayload<ExtArgs> | null
+    notifications: Prisma.$NotificationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -893,6 +2010,9 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     createdAt: Date
     updatedAt: Date
     isActive: boolean
+    creditsBalance: number
+    acceptingOrders: boolean
+    telegramChatId: string | null
   }, ExtArgs["result"]["user"]>
   composites: {}
 }
@@ -1291,6 +2411,12 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   profiles<T extends Prisma.User$profilesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$profilesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProfileAccountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   orders<T extends Prisma.User$ordersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$ordersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   invoices<T extends Prisma.User$invoicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$invoicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  creditTransactions<T extends Prisma.User$creditTransactionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$creditTransactionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CreditTransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  reviewOrdersAsClient<T extends Prisma.User$reviewOrdersAsClientArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$reviewOrdersAsClientArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReviewOrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  reviewOrdersAsEmployee<T extends Prisma.User$reviewOrdersAsEmployeeArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$reviewOrdersAsEmployeeArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReviewOrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  skippedReviews<T extends Prisma.User$skippedReviewsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$skippedReviewsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SkippedReviewPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  employeeStats<T extends Prisma.User$employeeStatsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$employeeStatsArgs<ExtArgs>>): Prisma.Prisma__EmployeeStatsClient<runtime.Types.Result.GetResult<Prisma.$EmployeeStatsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  notifications<T extends Prisma.User$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1328,6 +2454,9 @@ export interface UserFieldRefs {
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly isActive: Prisma.FieldRef<"User", 'Boolean'>
+  readonly creditsBalance: Prisma.FieldRef<"User", 'Int'>
+  readonly acceptingOrders: Prisma.FieldRef<"User", 'Boolean'>
+  readonly telegramChatId: Prisma.FieldRef<"User", 'String'>
 }
     
 
@@ -1807,6 +2936,145 @@ export type User$invoicesArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   take?: number
   skip?: number
   distinct?: Prisma.InvoiceScalarFieldEnum | Prisma.InvoiceScalarFieldEnum[]
+}
+
+/**
+ * User.creditTransactions
+ */
+export type User$creditTransactionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CreditTransaction
+   */
+  select?: Prisma.CreditTransactionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CreditTransaction
+   */
+  omit?: Prisma.CreditTransactionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CreditTransactionInclude<ExtArgs> | null
+  where?: Prisma.CreditTransactionWhereInput
+  orderBy?: Prisma.CreditTransactionOrderByWithRelationInput | Prisma.CreditTransactionOrderByWithRelationInput[]
+  cursor?: Prisma.CreditTransactionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CreditTransactionScalarFieldEnum | Prisma.CreditTransactionScalarFieldEnum[]
+}
+
+/**
+ * User.reviewOrdersAsClient
+ */
+export type User$reviewOrdersAsClientArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ReviewOrder
+   */
+  select?: Prisma.ReviewOrderSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ReviewOrder
+   */
+  omit?: Prisma.ReviewOrderOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ReviewOrderInclude<ExtArgs> | null
+  where?: Prisma.ReviewOrderWhereInput
+  orderBy?: Prisma.ReviewOrderOrderByWithRelationInput | Prisma.ReviewOrderOrderByWithRelationInput[]
+  cursor?: Prisma.ReviewOrderWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ReviewOrderScalarFieldEnum | Prisma.ReviewOrderScalarFieldEnum[]
+}
+
+/**
+ * User.reviewOrdersAsEmployee
+ */
+export type User$reviewOrdersAsEmployeeArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ReviewOrder
+   */
+  select?: Prisma.ReviewOrderSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ReviewOrder
+   */
+  omit?: Prisma.ReviewOrderOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ReviewOrderInclude<ExtArgs> | null
+  where?: Prisma.ReviewOrderWhereInput
+  orderBy?: Prisma.ReviewOrderOrderByWithRelationInput | Prisma.ReviewOrderOrderByWithRelationInput[]
+  cursor?: Prisma.ReviewOrderWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ReviewOrderScalarFieldEnum | Prisma.ReviewOrderScalarFieldEnum[]
+}
+
+/**
+ * User.skippedReviews
+ */
+export type User$skippedReviewsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SkippedReview
+   */
+  select?: Prisma.SkippedReviewSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SkippedReview
+   */
+  omit?: Prisma.SkippedReviewOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SkippedReviewInclude<ExtArgs> | null
+  where?: Prisma.SkippedReviewWhereInput
+  orderBy?: Prisma.SkippedReviewOrderByWithRelationInput | Prisma.SkippedReviewOrderByWithRelationInput[]
+  cursor?: Prisma.SkippedReviewWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.SkippedReviewScalarFieldEnum | Prisma.SkippedReviewScalarFieldEnum[]
+}
+
+/**
+ * User.employeeStats
+ */
+export type User$employeeStatsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the EmployeeStats
+   */
+  select?: Prisma.EmployeeStatsSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the EmployeeStats
+   */
+  omit?: Prisma.EmployeeStatsOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.EmployeeStatsInclude<ExtArgs> | null
+  where?: Prisma.EmployeeStatsWhereInput
+}
+
+/**
+ * User.notifications
+ */
+export type User$notificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Notification
+   */
+  select?: Prisma.NotificationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Notification
+   */
+  omit?: Prisma.NotificationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.NotificationInclude<ExtArgs> | null
+  where?: Prisma.NotificationWhereInput
+  orderBy?: Prisma.NotificationOrderByWithRelationInput | Prisma.NotificationOrderByWithRelationInput[]
+  cursor?: Prisma.NotificationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.NotificationScalarFieldEnum | Prisma.NotificationScalarFieldEnum[]
 }
 
 /**

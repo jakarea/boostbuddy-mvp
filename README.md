@@ -5,9 +5,13 @@ A modern, full-stack Next.js web application designed to manage client profiles,
 ## Features
 
 - **Next.js App Router Architecture**: Leverages Server Components and Server Actions for fast, secure data fetching and mutations.
-- **Role-Based Authentication**: Secure authentication via Supabase with distinct `ADMIN` and `CLIENT` user roles and protected routes.
-- **Stripe Integration**: Automated checkout, payment processing, and webhooks for real-time order fulfillment.
+- **Role-Based Authentication**: Secure authentication via Supabase with distinct `ADMIN`, `CLIENT`, and `EMPLOYEE` user roles and protected routes.
+- **Credits System**: Complete credits-based payment system for reviews services with package management, balance tracking, and transaction history.
+- **Reviews Workflow**: Full review order management system with client submissions, employee assignment pool, skip tracking, and completion verification.
+- **Employee Management**: Dedicated employee accounts with availability toggles, performance tracking, and automated order distribution.
+- **Stripe Integration**: Automated checkout, payment processing, and webhooks for real-time order fulfillment (EUR currency for Box services, Credits packages for Reviews).
 - **Invoice Management**: Admin panel allows secure uploading of PDF invoices linked directly to client orders via Supabase Storage.
+- **Unified Notifications**: Multi-channel notification system supporting in-app alerts and Telegram delivery for reviews, orders, and system events.
 - **Internationalization (i18n)**: Multi-language support implemented using `react-i18next`.
 - **Telegram Notifications**: Real-time notifications dispatched to global admin channels and individual client chat IDs.
 - **Modern UI/UX**: Built with Tailwind CSS, Shadcn UI components, and SweetAlert2 for beautiful, responsive interactions and instant optimistic UI updates.
@@ -89,27 +93,62 @@ The application uses Supabase (PostgreSQL) as its primary database.
 
 ## Database Overview
 
+### User Roles & Credits System
+
 | Table | Purpose | Primary Key | Foreign Keys |
 |-------|---------|-------------|--------------|
-| `users` | Stores core user accounts, roles, and status | `id` | - |
+| `users` | Stores core user accounts, roles (ADMIN/CLIENT/EMPLOYEE), credits balance, and employee settings | `id` | - |
 | `billing_info` | Stores billing address and tax codes | `id` | `userId` -> `users.id` |
-| `services` | Available subscription services | `id` | - |
+| `credit_packages` | Credits packages available for purchase (Reviews services) | `id` | - |
+| `credit_transactions` | Complete financial ledger with running balance for all credit operations | `id` | `userId` -> `users.id` |
+
+### Reviews System
+
+| Table | Purpose | Primary Key | Foreign Keys |
+|-------|---------|-------------|--------------|
+| `review_orders` | Client review submissions with business details, review content, and employee assignment | `id` | `userId` -> `users.id`, `assignedEmployeeId` -> `users.id` |
+| `skipped_reviews` | Tracks which employees skipped which review orders (prevents re-assignment) | `id` | `employeeId` -> `users.id`, `reviewOrderId` -> `review_orders.id` |
+| `employee_stats` | Employee performance tracking and availability management | `id` | `userId` -> `users.id` |
+
+### Box Services (Legacy)
+
+| Table | Purpose | Primary Key | Foreign Keys |
+|-------|---------|-------------|--------------|
+| `services` | Available subscription services (Box profiles - EUR based) | `id` | - |
 | `profile_accounts` | Client profiles (e.g., IXBrowser) assigned to users | `id` | `assignedClientId`, `serviceId` |
-| `orders` | Stripe checkout sessions and purchases | `id` | `userId`, `serviceId`, `profileAccountId` |
+| `orders` | Stripe checkout sessions and purchases (Box services + Credits packages) | `id` | `userId`, `serviceId`, `profileAccountId`, `creditPackageId` |
 | `invoices` | PDF invoices uploaded by admins for orders | `id` | `userId`, `orderId` |
+
+### System & Notifications
+
+| Table | Purpose | Primary Key | Foreign Keys |
+|-------|---------|-------------|--------------|
+| `notifications` | Unified notification system (in-app + Telegram delivery) | `id` | `userId` -> `users.id` |
 | `notification_logs`| History of system notifications sent | `id` | - |
 | `app_settings` | Global application configuration | `id` | - |
 
 ```mermaid
 erDiagram
     users ||--o| billing_info : "has one"
+    users ||--o{ credit_transactions : "ledger entries"
+    users ||--o| employee_stats : "performance"
+    users ||--o{ review_orders : "creates (client)"
+    users ||--o{ review_orders : "handles (employee)"
+    users ||--o{ skipped_reviews : "skips"
+    users ||--o{ notifications : "receives"
+
     users ||--o{ profile_accounts : "assigned to"
     users ||--o{ orders : "places"
     users ||--o{ invoices : "receives"
-    
+
+    credit_packages ||--o{ orders : "purchased via"
+
     services ||--o{ profile_accounts : "linked to"
     services ||--o{ orders : "purchased via"
-    
+
+    review_orders ||--o{ skipped_reviews : "skipped by"
+    review_orders ||--o| notifications : "related to"
+
     orders ||--o{ invoices : "generates"
     profile_accounts ||--o{ orders : "renewed via"
 ```
@@ -311,8 +350,83 @@ Most data logic is handled by Next.js Server Actions. Standard API routes are li
 
 # Known Limitations
 
-- **Legacy Prisma File**: The `prisma/schema.prisma` file is out of sync with the live database and should be safely removed to avoid confusion.
+- **Prisma SQLite Database**: The `prisma/schema.prisma` file manages a local SQLite database for development. Production uses Supabase PostgreSQL with schema managed in the Supabase dashboard.
 - **Realtime Subscriptions**: Notifications currently require a page refresh. Integrating Supabase Realtime subscriptions would allow for live UI updates.
+
+---
+
+# Credits System Architecture
+
+The Credits System provides a flexible payment alternative to direct EUR purchases for Reviews services.
+
+## Credits Workflow
+
+1. **Purchase Credits**: Users buy credit packages via Stripe checkout
+2. **Credit Ledger**: Every transaction is logged in `credit_transactions` with running balance
+3. **Consume Credits**: Credits are deducted when users create review orders
+4. **Balance Cache**: `users.creditsBalance` stores calculated balance for performance
+
+## Credit Transaction Types
+
+| Type | Description | Amount Sign |
+|------|-------------|--------------|
+| `PURCHASE` | User bought credits package | Positive (+) |
+| `SPEND` | User created review order | Negative (-) |
+| `REFUND` | Admin refund credits | Positive (+) |
+| `ADMIN_ADJUST` | Manual balance adjustment | +/- |
+
+## Balance Calculation
+
+```typescript
+// Source of truth: Always calculate from ledger
+const balance = await db.creditTransaction.aggregate({
+  where: { userId },
+  _sum: { amount: true }
+});
+
+// Update cache for performance
+await db.user.update({
+  where: { id: userId },
+  data: { creditsBalance: balance._sum.amount || 0 }
+});
+```
+
+---
+
+# Reviews System Architecture
+
+The Reviews System manages client review requests with automated employee distribution.
+
+## Reviews Workflow
+
+1. **Client Creates Order**: Client submits review with business details and content
+2. **Credit Validation**: System verifies sufficient credits balance
+3. **Order Pool**: Review enters pending pool (no employee assigned)
+4. **Employee Distribution**: All available employees notified simultaneously
+5. **First Claim**: First employee to claim gets the assignment
+6. **Skip Tracking**: Skipped orders tracked to prevent re-notification
+7. **Completion**: Employee marks as complete with proof submission
+8. **Performance Update**: Employee stats updated (orders completed)
+
+## Review Order States
+
+| Status | Description | Employee Assigned |
+|--------|-------------|-------------------|
+| `PENDING` | New order in pool | No |
+| `IN_PROGRESS` | Employee working on it | Yes |
+| `COMPLETED` | Review finished and verified | Yes |
+| `CANCELLED` | Order cancelled by admin | Maybe |
+
+## Employee Availability
+
+```typescript
+// Employee can receive new orders if:
+isAvailable === true
+
+// Admin can toggle availability without deactivating account:
+// isAvailable = false → Employee taking time off
+// isAvailable = true  → Employee back to work
+```
 
 ---
 
@@ -328,8 +442,19 @@ Most data logic is handled by Next.js Server Actions. Standard API routes are li
 - [ ] Clone project (`git clone`)
 - [ ] Install dependencies (`npm install`)
 - [ ] Duplicate `.env.local` and populate Supabase/Stripe keys.
+- [ ] Run database migrations (`npx prisma migrate deploy`)
+- [ ] Generate Prisma client (`npx prisma generate`)
 - [ ] Run the development server (`npm run dev`)
 - [ ] Verify Supabase connection by logging in via the `/` route.
+
+## Database Migration Notes
+
+The project uses Prisma with SQLite for local development. The following migrations have been applied:
+
+- `20260617063720_init` - Initial database schema
+- `20260725031215_add_credits_reviews_system` - Credits system, Reviews workflow, Employee management, Unified notifications
+
+**Important**: These migrations are safe and preserve all existing data. New fields have sensible defaults (creditsBalance=0, acceptingOrders=true).
 
 ---
 
@@ -338,6 +463,20 @@ Most data logic is handled by Next.js Server Actions. Standard API routes are li
 - Always use `createClient()` from `@/lib/supabase/server` when inside a Server Component.
 - Never use the `admin.ts` (Service Role) client unless absolutely necessary (e.g., updating another user's email address), as it bypasses all Row Level Security.
 - Do not use standard `window.confirm()`. Always use `Swal.fire()` for user prompts.
+
+## Credits System Best Practices
+
+- **Balance Source of Truth**: Always calculate balance from `credit_transactions` ledger, never rely solely on `users.creditsBalance` cache
+- **Atomic Operations**: When consuming credits, always create the transaction and update the order in a single transaction
+- **Validation**: Verify sufficient credits before allowing review order creation
+- **Race Conditions**: Use database constraints and proper transaction ordering to prevent credit overspend
+
+## Reviews System Best Practices
+
+- **Skip Tracking**: Always record skips in `skipped_reviews` to prevent re-assigning to same employee
+- **Employee Distribution**: Notify all available employees simultaneously for fair order distribution
+- **Performance Tracking**: Update `employee_stats` on every order completion/skip for accurate metrics
+- **Status Transitions**: Follow strict state progression: PENDING → IN_PROGRESS → COMPLETED
 
 ---
 

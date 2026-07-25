@@ -71,3 +71,33 @@ export type Order = Prisma.OrderModel
  * 
  */
 export type Invoice = Prisma.InvoiceModel
+/**
+ * Model CreditPackage
+ * 
+ */
+export type CreditPackage = Prisma.CreditPackageModel
+/**
+ * Model CreditTransaction
+ * 
+ */
+export type CreditTransaction = Prisma.CreditTransactionModel
+/**
+ * Model ReviewOrder
+ * 
+ */
+export type ReviewOrder = Prisma.ReviewOrderModel
+/**
+ * Model SkippedReview
+ * 
+ */
+export type SkippedReview = Prisma.SkippedReviewModel
+/**
+ * Model EmployeeStats
+ * 
+ */
+export type EmployeeStats = Prisma.EmployeeStatsModel
+/**
+ * Model Notification
+ * 
+ */
+export type Notification = Prisma.NotificationModel

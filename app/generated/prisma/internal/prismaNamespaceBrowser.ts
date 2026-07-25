@@ -56,7 +56,13 @@ export const ModelName = {
   Service: 'Service',
   ProfileAccount: 'ProfileAccount',
   Order: 'Order',
-  Invoice: 'Invoice'
+  Invoice: 'Invoice',
+  CreditPackage: 'CreditPackage',
+  CreditTransaction: 'CreditTransaction',
+  ReviewOrder: 'ReviewOrder',
+  SkippedReview: 'SkippedReview',
+  EmployeeStats: 'EmployeeStats',
+  Notification: 'Notification'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -80,7 +86,10 @@ export const UserScalarFieldEnum = {
   role: 'role',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  isActive: 'isActive'
+  isActive: 'isActive',
+  creditsBalance: 'creditsBalance',
+  acceptingOrders: 'acceptingOrders',
+  telegramChatId: 'telegramChatId'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -154,6 +163,7 @@ export const OrderScalarFieldEnum = {
   status: 'status',
   type: 'type',
   profileAccountId: 'profileAccountId',
+  creditPackageId: 'creditPackageId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -172,6 +182,96 @@ export const InvoiceScalarFieldEnum = {
 } as const
 
 export type InvoiceScalarFieldEnum = (typeof InvoiceScalarFieldEnum)[keyof typeof InvoiceScalarFieldEnum]
+
+
+export const CreditPackageScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  creditsAmount: 'creditsAmount',
+  price: 'price',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CreditPackageScalarFieldEnum = (typeof CreditPackageScalarFieldEnum)[keyof typeof CreditPackageScalarFieldEnum]
+
+
+export const CreditTransactionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  amount: 'amount',
+  balanceAfter: 'balanceAfter',
+  type: 'type',
+  description: 'description',
+  referenceId: 'referenceId',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type CreditTransactionScalarFieldEnum = (typeof CreditTransactionScalarFieldEnum)[keyof typeof CreditTransactionScalarFieldEnum]
+
+
+export const ReviewOrderScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  businessName: 'businessName',
+  businessUrl: 'businessUrl',
+  reviewType: 'reviewType',
+  targetRating: 'targetRating',
+  reviewContent: 'reviewContent',
+  reviewInstructions: 'reviewInstructions',
+  proofOfCompletion: 'proofOfCompletion',
+  creditsConsumed: 'creditsConsumed',
+  status: 'status',
+  assignedEmployeeId: 'assignedEmployeeId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  completedAt: 'completedAt'
+} as const
+
+export type ReviewOrderScalarFieldEnum = (typeof ReviewOrderScalarFieldEnum)[keyof typeof ReviewOrderScalarFieldEnum]
+
+
+export const SkippedReviewScalarFieldEnum = {
+  id: 'id',
+  employeeId: 'employeeId',
+  reviewOrderId: 'reviewOrderId',
+  createdAt: 'createdAt'
+} as const
+
+export type SkippedReviewScalarFieldEnum = (typeof SkippedReviewScalarFieldEnum)[keyof typeof SkippedReviewScalarFieldEnum]
+
+
+export const EmployeeStatsScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  isAvailable: 'isAvailable',
+  ordersCompleted: 'ordersCompleted',
+  ordersSkipped: 'ordersSkipped',
+  lastActiveAt: 'lastActiveAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type EmployeeStatsScalarFieldEnum = (typeof EmployeeStatsScalarFieldEnum)[keyof typeof EmployeeStatsScalarFieldEnum]
+
+
+export const NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  title: 'title',
+  message: 'message',
+  type: 'type',
+  channels: 'channels',
+  isRead: 'isRead',
+  actionLink: 'actionLink',
+  relatedOrderId: 'relatedOrderId',
+  createdAt: 'createdAt'
+} as const
+
+export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
 
 
 export const SortOrder = {
