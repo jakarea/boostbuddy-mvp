@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Development
-npm run dev                 # Start dev server on port 3300
+npm run dev                 # Start dev server on port 3400
 
 # Production
 npm run build             # Build for production

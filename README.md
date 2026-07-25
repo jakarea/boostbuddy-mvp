@@ -186,7 +186,7 @@ erDiagram
 | `STRIPE_WEBHOOK_SECRET` | Yes | Stripe Webhook Signature Key |
 | `TELEGRAM_BOT_TOKEN` | No | Fallback Bot Token for notifications |
 | `TELEGRAM_CHAT_ID` | No | Fallback Admin Chat ID for notifications |
-| `NEXT_PUBLIC_SITE_URL` | Yes | Base URL for redirects (e.g. localhost:3300) |
+| `NEXT_PUBLIC_SITE_URL` | Yes | Base URL for redirects (e.g. localhost:3400) |
 
 ---
 
@@ -205,7 +205,7 @@ npm install
 # Running Project
 
 ```bash
-# Development (runs on port 3300 with expanded memory limit)
+# Development (runs on port 3400 with expanded memory limit)
 npm run dev
 
 # Build for Production
