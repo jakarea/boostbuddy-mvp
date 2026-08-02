@@ -100,37 +100,16 @@ async function loadUserChatId(
 
 /**
  * Sends a Telegram message. Never throws — logs errors and returns silently.
+ * NOTE: Telegram notifications are currently disabled for development.
  */
 async function dispatchToTelegram(
   credentials: TelegramCredentials | null,
   subject: string,
   body: string
 ): Promise<void> {
-  if (!credentials) {
-    console.info("[TELEGRAM] Not configured — skipping delivery.");
-    return;
-  }
-
-  try {
-    const text = `*${subject}*\n\n${body}`;
-    const url = `https://api.telegram.org/bot${credentials.bot_token}/sendMessage`;
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: credentials.chat_id,
-        text,
-        parse_mode: "Markdown",
-      }),
-    });
-
-    if (!response.ok) {
-      console.error("[TELEGRAM] API error:", await response.text());
-    }
-  } catch (err) {
-    // Never let Telegram errors crash the main notification flow
-    console.error("[TELEGRAM] Dispatch failed:", err);
-  }
+  // TELEGRAM NOTIFICATIONS DISABLED
+  console.info("[TELEGRAM] Notifications disabled - skipping delivery.");
+  return;
 }
 
 // ── Public actions ───────────────────────────────────────────────────
@@ -220,6 +199,48 @@ export async function getClientNotificationsAction() {
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : "Failed to fetch notifications";
     return { success: false, error: errorMsg };
+  }
+}
+
+/**
+ * Broadcast a notification to every active employee who is currently accepting orders.
+ * Each recipient is delivered via sendNotificationAction (Telegram + log) wrapped in
+ * its own try/catch so one failure does not abort the rest of the broadcast.
+ * Returns the count of recipients the message was sent to.
+ */
+export async function broadcastToEmployeesAction(
+  subject: string,
+  body: string,
+  type: string
+): Promise<{ success: boolean; sent: number; error?: string }> {
+  try {
+    let emails: string[] = [];
+
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .select("email")
+      .eq("role", "EMPLOYEE")
+      .eq("is_active", true)
+      .eq("accepting_orders", true);
+
+    if (error) throw error;
+    emails = (data || []).map((u: any) => u.email).filter(Boolean);
+
+    let sent = 0;
+    for (const email of emails) {
+      try {
+        await sendNotificationAction(email, subject, body, "TELEGRAM", type);
+        sent++;
+      } catch (recipientError) {
+        // Per-recipient isolation: keep going even if one delivery fails.
+        console.warn(`[broadcastToEmployees] Failed for ${email}:`, recipientError);
+      }
+    }
+
+    return { success: true, sent };
+  } catch (error: any) {
+    return { success: false, sent: 0, error: error?.message || "Failed to broadcast to employees" };
   }
 }
 

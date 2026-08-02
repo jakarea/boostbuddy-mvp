@@ -94,6 +94,10 @@ export async function sendTelegramTestAction(config: TelegramConfig): Promise<{
     // Verify admin before performing external call
     await getAdminClient();
 
+    // TELEGRAM NOTIFICATIONS DISABLED
+    console.info("[TELEGRAM] Test notifications disabled - skipping API call.");
+    return { success: true };
+
     const url = `https://api.telegram.org/bot${config.bot_token}/sendMessage`;
     const res = await fetch(url, {
       method: "POST",

@@ -4,12 +4,12 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import type { AuthContextType, AuthState, AuthUser } from "@/lib/auth/types";
 import {
   getCurrentSession,
-  getFullAuthUser,
   signInUser as signInUserUtil,
   signUpUser as signUpUserUtil,
   signOutUser as signOutUserUtil,
-  createUserProfile,
-} from "@/lib/auth/pure-functions";
+  hasRole,
+  isUserActive,
+} from "@/lib/auth/pure-functions-client";
 import { createClient } from "@/lib/supabase/client";
 
 const LOG_PREFIX = "[AUTH-CONTEXT]";
@@ -55,32 +55,50 @@ export function AuthProvider({ children, initialUser = null }: { children: React
           return;
         }
 
-        // Ignore INITIAL_SESSION because the server already gave us the initialUser
+        // Skip INITIAL_SESSION — server already provided initialUser
         if (event === 'INITIAL_SESSION') {
-          console.log(`${LOG_PREFIX} Skipping INITIAL_SESSION fetch, relying on server state`);
+          console.log(`${LOG_PREFIX} Skipping INITIAL_SESSION, relying on server state`);
           console.groupEnd();
           return;
         }
 
-        try {
-          // Instead of reading session.user (which triggers the warning), we use getUser() directly
-          const { data: { user } } = await supabase.auth.getUser();
-          
-          if (user) {
-            console.log(`${LOG_PREFIX} User authenticated via event:`, user.email);
-            // Only fetch fresh profile on SIGNED_IN or other active events
-            const authUser = await getFullAuthUser();
+        // Skip SIGNED_IN and TOKEN_REFRESHED — these fire simultaneously with the
+        // server action's router.push() and cause a "unexpected response" race condition.
+        // The server action + router.push() already handle navigation on login.
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          console.log(`${LOG_PREFIX} Skipping ${event} event — server action handles this redirect`);
+          console.groupEnd();
+          return;
+        }
 
-            if (authUser) {
-              setUser(authUser);
-              setState("AUTHENTICATED");
-              setError(null);
-            } else {
-              setUser(null);
-              setState("UNAUTHENTICATED");
-            }
+        // Only handle SIGNED_OUT to clear client state
+        if (event === 'SIGNED_OUT') {
+          console.log(`${LOG_PREFIX} User signed out, clearing state`);
+          setUser(null);
+          setState("UNAUTHENTICATED");
+          setError(null);
+          console.groupEnd();
+          return;
+        }
+
+        // For any other events (PASSWORD_RECOVERY, USER_UPDATED, etc.) refresh the user
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+
+          if (user) {
+            console.log(`${LOG_PREFIX} User updated via event:`, user.email);
+            const basicUser: AuthUser = {
+              id: user.id,
+              email: user.email || '',
+              name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+              role: user.user_metadata?.role || 'CLIENT',
+              isActive: user.user_metadata?.isActive !== undefined ? user.user_metadata?.isActive : true,
+              createdAt: new Date(user.created_at),
+            };
+            setUser(basicUser);
+            setState("AUTHENTICATED");
+            setError(null);
           } else {
-            console.log(`${LOG_PREFIX} User signed out`);
             setUser(null);
             setState("UNAUTHENTICATED");
             setError(null);
@@ -114,15 +132,25 @@ export function AuthProvider({ children, initialUser = null }: { children: React
       console.log("Step 1: Calling signInUser with:", email);
       await signInUserUtil(email, password);
 
-      console.log("Step 2: Fetching user profile...");
-      const authUser = await getFullAuthUser();
+      console.log("Step 2: Getting current session...");
+      const session = await getCurrentSession();
 
-      if (authUser) {
+      if (session?.user) {
         console.log("Step 3: ✅ Sign in complete");
-        setUser(authUser);
+        // Create basic user from Supabase auth data
+        const basicUser: AuthUser = {
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+          role: session.user.user_metadata?.role || 'CLIENT',
+          isActive: session.user.user_metadata?.isActive !== undefined ? session.user.user_metadata?.isActive : true,
+          createdAt: new Date(session.user.created_at),
+        };
+
+        setUser(basicUser);
         setState("AUTHENTICATED");
       } else {
-        throw new Error("Profile not found after sign in");
+        throw new Error("No session after sign in");
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Sign in failed";
@@ -150,16 +178,20 @@ export function AuthProvider({ children, initialUser = null }: { children: React
         throw new Error("No user ID returned from signup");
       }
 
-      console.log("Step 2: Creating user profile in database...");
-      const profile = await createUserProfile(authUser.id, email, name, "CLIENT");
+      console.log("Step 2: ✅ Sign up complete (profile will be created by server)");
+      // Create basic user from Supabase auth data
+      // Note: User profile in database will be created by server-side action
+      const basicUser: AuthUser = {
+        id: authUser.id,
+        email: authUser.email || '',
+        name: authUser.user_metadata?.name || name,
+        role: authUser.user_metadata?.role || 'CLIENT',
+        isActive: authUser.user_metadata?.isActive !== undefined ? authUser.user_metadata?.isActive : true,
+        createdAt: new Date(authUser.created_at),
+      };
 
-      if (profile) {
-        console.log("Step 3: ✅ Sign up complete, user is ACTIVE");
-        setUser(profile);
-        setState("AUTHENTICATED");
-      } else {
-        throw new Error("Failed to create user profile");
-      }
+      setUser(basicUser);
+      setState("AUTHENTICATED");
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Sign up failed";
       console.error("❌ Sign up error:", errorMsg);

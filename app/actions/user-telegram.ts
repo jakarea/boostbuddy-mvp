@@ -106,13 +106,22 @@ export async function sendUserTelegramTestAction(): Promise<{
     const auth = await requireAuth();
     if (!auth.success) return auth;
 
+    // TELEGRAM NOTIFICATIONS DISABLED
+    console.info("[TELEGRAM] User test notifications disabled - skipping API call.");
+    return { success: true };
+
+    if (!auth.success) {
+      return { success: false, error: "Authentication failed" };
+    }
+
+    const user = (auth as any).user;
     const supabase = await createClient();
 
     // Load user's chat ID
     const { data: userConfig } = await supabase
       .from("user_telegram_configs")
       .select("chat_id")
-      .eq("user_id", auth.user.id)
+      .eq("user_id", user.id)
       .maybeSingle();
 
     if (!userConfig?.chat_id) return { success: false, error: "No Telegram chat ID configured." };
@@ -128,7 +137,7 @@ export async function sendUserTelegramTestAction(): Promise<{
     if (!botToken) return { success: false, error: "Admin Telegram bot is not configured yet." };
 
     const botId = botToken.split(":")[0]?.trim();
-    if (botId && userConfig.chat_id.trim() === botId) {
+    if (botId && userConfig?.chat_id?.trim() === botId) {
       return {
         success: false,
         error: "Your configured Chat ID is the Bot's ID, not your personal Telegram Chat ID. Please update it using @userinfobot.",
@@ -141,7 +150,7 @@ export async function sendUserTelegramTestAction(): Promise<{
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          chat_id: userConfig.chat_id,
+          chat_id: userConfig?.chat_id,
           text: "✅ *BoostBuddy*\n\nYour personal Telegram notifications are set up correctly!",
           parse_mode: "Markdown",
         }),
@@ -180,6 +189,10 @@ export async function getTelegramBotUsernameAction(): Promise<{
   try {
     const auth = await requireAuth();
     if (!auth.success) return { success: false, error: "Unauthorized" };
+
+    // TELEGRAM NOTIFICATIONS DISABLED
+    console.info("[TELEGRAM] Bot username lookup disabled - returning success.");
+    return { success: true, username: "BoostBuddy Bot" };
 
     const supabase = await createClient();
     const { data: setting } = await supabase.from("app_settings").select("value").eq("key", "telegram_bot").maybeSingle();

@@ -1,10 +1,10 @@
 generator client {
   provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model User {
@@ -113,14 +113,17 @@ model Order {
 
 model Invoice {
   id                String    @id @default(uuid())
-  userId            String
+  userId            String    @map("user_id")
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orderId           String?
+  orderId           String?   @map("order_id")
   order             Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  paymentPeriodStart DateTime?
-  paymentPeriodEnd   DateTime?
-  pdfPath           String    // Path to the uploaded PDF invoice
-  uploadedAt        DateTime  @default(now())
+  paymentPeriodStart DateTime? @map("payment_period_start")
+  paymentPeriodEnd   DateTime? @map("payment_period_end")
+  pdfPath           String    @map("pdf_path") // Path to the uploaded PDF invoice
+  fileName          String    @map("file_name") // Original filename for display
+  fileSize          String    @map("file_size") // Human-readable file size
+  uploadedAt        DateTime  @map("uploaded_at") @default(now())
+  createdAt         DateTime  @map("created_at") @default(now()) // For compatibility with application code
 }
 
 // ============================================
@@ -183,15 +186,23 @@ model ReviewOrder {
   // Employee Assignment
   assignedEmployeeId    String?
   assignedEmployee      User?    @relation("ReviewOrderEmployee", fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
+  assignedAt            DateTime? // When order was assigned to employee
 
   // Timestamps
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   completedAt           DateTime?
 
+  // Admin Verification
+  adminVerificationStatus String?  // "PENDING", "APPROVED", "REJECTED" - Set by admin after employee completes review
+  adminVerifiedAt          DateTime? // When admin approved/rejected the review
+  rejectionReason          String?   // Reason for rejection (visible to all employees)
+
   @@index([status])
   @@index([assignedEmployeeId])
   @@index([createdAt])
+  @@index([assignedAt])
+  @@index([adminVerificationStatus])
 }
 
 model SkippedReview {
@@ -199,6 +210,7 @@ model SkippedReview {
   employeeId      String
   employee        User     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   reviewOrderId   String
+  reason          String?  // Optional reason for skipping
   createdAt       DateTime @default(now())
 
   @@unique([employeeId, reviewOrderId])  // Prevent duplicate skips

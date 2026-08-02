@@ -59,7 +59,7 @@ export async function upsertServiceAction(formData: FormData, serviceId?: string
       return { success: false, error: `Database error: ${error.message}` };
     }
 
-    revalidatePath("/admin/services");
+    revalidatePath("/a/services");
     return { success: true };
   } catch (e: any) {
     console.error("Exception in upsertServiceAction:", e);
@@ -83,7 +83,7 @@ export async function deleteServiceAction(id: string) {
       return { success: false, error: `Database error: ${error.message}` };
     }
 
-    revalidatePath("/admin/services");
+    revalidatePath("/a/services");
     return { success: true };
   } catch (e: any) {
     console.error("Exception in deleteServiceAction:", e);

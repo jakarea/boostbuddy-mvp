@@ -6,58 +6,74 @@ import { requireAuth } from '@/lib/auth/server-auth';
 import { revalidatePath } from "next/cache";
 
 export async function getProfilesAction() {
-  const supabase = await createClient();
-  
-  // Fetch profiles and join with users to get the assigned client name
-  const { data, error } = await supabase
-    .from("profile_accounts")
-    .select(`
-      *,
-      users (
-        name,
-        email
-      ),
-      services (
-        id,
-        name,
-        price,
-        duration_days
-      )
-    `)
-    .order("created_at", { ascending: false });
+  try {
+    const auth = await requireAuth({ role: 'ADMIN' });
+    if (!auth.success) return [];
 
-  if (error) {
-    console.error("Failed to fetch profiles:", error);
-    throw new Error("Failed to fetch profiles");
+    const supabase = await createClient();
+
+    // Fetch profiles and join with users to get the assigned client name
+    const { data, error } = await supabase
+      .from("profile_accounts")
+      .select(`
+        *,
+        users (
+          name,
+          email
+        ),
+        services (
+          id,
+          name,
+          price,
+          duration_days
+        )
+      `)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Failed to fetch profiles:", error);
+      return [];
+    }
+
+    // Transform the payload slightly to normalize the nested user info for the UI
+    return data.map((profile: any) => ({
+      ...profile,
+      client_name: profile.users?.name || "Unassigned",
+      client_email: profile.users?.email || "",
+      service_name: profile.services?.name || "",
+      service_price: profile.services?.price || null,
+      service_duration: profile.services?.duration_days || null
+    }));
+  } catch (error: any) {
+    console.error("getProfilesAction error:", error);
+    return [];
   }
-
-  // Transform the payload slightly to normalize the nested user info for the UI
-  return data.map((profile: any) => ({
-    ...profile,
-    client_name: profile.users?.name || "Unassigned",
-    client_email: profile.users?.email || "",
-    service_name: profile.services?.name || "",
-    service_price: profile.services?.price || null,
-    service_duration: profile.services?.duration_days || null
-  }));
 }
 
 export async function getActiveClientsAction() {
-  const supabase = await createClient();
-  
-  const { data, error } = await supabase
-    .from("users")
-    .select("id, name, email")
-    .eq("role", "CLIENT")
-    .eq("status", "ACTIVE")
-    .order("name", { ascending: true });
+  try {
+    const auth = await requireAuth({ role: 'ADMIN' });
+    if (!auth.success) return [];
 
-  if (error) {
-    console.error("Failed to fetch active clients:", error);
-    throw new Error("Failed to fetch active clients");
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, name, email")
+      .eq("role", "CLIENT")
+      .eq("status", "ACTIVE")
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("Failed to fetch active clients:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error: any) {
+    console.error("getActiveClientsAction error:", error);
+    return [];
   }
-
-  return data;
 }
 
 export async function upsertProfileAction(formData: FormData, profileId?: string) {
@@ -99,7 +115,7 @@ export async function upsertProfileAction(formData: FormData, profileId?: string
       return { success: false, error: `Database error: ${error.message}` };
     }
 
-    revalidatePath("/admin/profiles");
+    revalidatePath("/a/profiles");
     return { success: true };
   } catch (e: any) {
     console.error("Exception in upsertProfileAction:", e);
@@ -131,7 +147,7 @@ export async function assignProfileAction(profileId: string, clientId: string, e
       return { success: false, error: `Database error: ${error.message}` };
     }
 
-    revalidatePath("/admin/profiles");
+    revalidatePath("/a/profiles");
     return { success: true };
   } catch (e: any) {
     console.error("Exception in assignProfileAction:", e);
@@ -163,7 +179,7 @@ export async function unassignProfileAction(profileId: string) {
       return { success: false, error: `Database error: ${error.message}` };
     }
 
-    revalidatePath("/admin/profiles");
+    revalidatePath("/a/profiles");
     return { success: true };
   } catch (e: any) {
     console.error("Exception in unassignProfileAction:", e);
@@ -187,7 +203,7 @@ export async function deleteProfileAction(profileId: string) {
       return { success: false, error: `Database error: ${error.message}` };
     }
 
-    revalidatePath("/admin/profiles");
+    revalidatePath("/a/profiles");
     return { success: true };
   } catch (e: any) {
     console.error("Exception in deleteProfileAction:", e);

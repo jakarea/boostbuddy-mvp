@@ -92,7 +92,7 @@ export default function CheckoutClient({ services, profiles, userName }: Checkou
   };
 
   const handleReturnToDashboard = () => {
-    router.push("/dashboard/payments");
+    router.push("/c/payments");
   };
 
   if (!checkoutType || (!serviceId && !profileId)) {

@@ -12,6 +12,168 @@ export type InviteUserState = {
   error?: string;
 };
 
+export type CreateClientData = {
+  name: string;
+  email: string;
+  password: string;
+  role?: "CLIENT" | "ADMIN" | "EMPLOYEE";
+  telegram_chat_id?: string | null;
+};
+
+/**
+ * Create new client/account directly (no email verification, no approval needed)
+ * ADMIN ONLY: Creates account that's immediately active
+ */
+export async function createClientAction(data: CreateClientData) {
+  try {
+    console.log("👤 [CLIENT] Starting client creation (direct admin creation)...");
+
+    const auth = await requireAuth({ role: "ADMIN" });
+    if (!auth.success) {
+      console.log("❌ [CLIENT] Auth failed:", auth.error);
+      return auth;
+    }
+
+    console.log("✅ [CLIENT] Auth passed, validation...");
+
+    // Validation
+    if (!data.name?.trim() || !data.email?.trim() || !data.password) {
+      console.log("❌ [CLIENT] Validation failed - missing fields");
+      return { success: false, error: "Name, email, and password are required" };
+    }
+
+    if (data.password.length < 6) {
+      console.log("❌ [CLIENT] Password too short");
+      return { success: false, error: "Password must be at least 6 characters" };
+    }
+
+    const supabaseAdmin = await createAdminClient();
+
+    // Check if user with this email already exists
+    console.log("🔍 [CLIENT] Checking for existing users...");
+    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
+    const userExists = existingUser?.users?.some(u => u.email === data.email);
+
+    if (userExists) {
+      console.log("❌ [CLIENT] User already exists:", data.email);
+      return { success: false, error: "User with this email already exists" };
+    }
+
+    console.log("✅ [CLIENT] User doesn't exist, creating via REST API...");
+
+    // SOLUTION: Use Supabase REST API directly to create users (bypasses Auth client library issues)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const role = data.role || "CLIENT";
+
+    try {
+      console.log("📧 [CLIENT] Creating user via REST API:", data.email, "role:", role);
+
+      const response = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          email_confirm: true,
+          user_metadata: {
+            name: data.name,
+            role: role,
+            isActive: true,
+            status: 'ACTIVE', // Store status in JWT metadata
+            createdBy: auth.user.id
+          },
+          app_metadata: {
+            role: role,
+            status: 'ACTIVE' // Also store in app_metadata for faster access
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("❌ [CLIENT] REST API failed:", response.status, errorData);
+        return { success: false, error: `Failed to create user: ${response.status} ${JSON.stringify(errorData)}` };
+      }
+
+      const userData = await response.json();
+      console.log("✅ [CLIENT] User created successfully via REST API:", userData.id);
+
+      if (!userData.id) {
+        console.error("❌ [CLIENT] No user ID in REST API response");
+        return { success: false, error: "No user ID returned from user creation" };
+      }
+
+      const newUser = { user: userData };
+      console.log("✅ [CLIENT] User creation completed:", newUser.user.id);
+
+      // Create user profile in users table with ACTIVE status
+      console.log("📝 [CLIENT] Creating user profile with ACTIVE status...");
+      const now = new Date().toISOString();
+      const { error: profileError } = await supabaseAdmin
+        .from("users")
+        .insert({
+          id: newUser.user.id,
+          email: data.email,
+          name: data.name,
+          role: role,
+          status: "ACTIVE", // Immediately active - no approval needed
+          email_verified: true, // Email considered verified for admin-created accounts
+          telegram_chat_id: data.telegram_chat_id || null,
+          created_at: now,
+          updated_at: now
+        });
+
+      if (profileError) {
+        console.error("⚠️ [CLIENT] Failed to create user profile:", profileError);
+        // Don't fail here - the auth user was created successfully
+      } else {
+        console.log("✅ [CLIENT] User profile created with ACTIVE status");
+      }
+
+      // Send notification to the new user that their account is ready
+      try {
+        const { sendNotificationAction } = await import("./notifications");
+        const dashboardUrl = role === "EMPLOYEE" ? "/e/dashboard" : "/c/dashboard";
+        await sendNotificationAction(
+          data.email,
+          "🎉 Your BoostBuddy Account is Ready!",
+          `Hello ${data.name},\n\nYour ${role.toLowerCase()} account has been created and is ready to use!\n\nYou can log in immediately at: https://boostbuddy.it${dashboardUrl}\n\nYour credentials:\n📧 Email: ${data.email}\n🔑 Password: [The password you set]\n\nWelcome to BoostBuddy!`,
+          "TELEGRAM",
+          "SYSTEM"
+        );
+      } catch (notifError) {
+        console.log("⚠️ [CLIENT] Failed to send notification (non-blocking):", notifError);
+      }
+
+      revalidatePath("/a/clients");
+
+      console.log("🎉 [CLIENT] Client creation completed successfully");
+
+      return {
+        success: true,
+        data: {
+          id: newUser.user.id,
+          email: newUser.user.email,
+          name: data.name,
+          role: role
+        }
+      };
+
+    } catch (restApiError: any) {
+      console.error("❌ [CLIENT] REST API exception:", restApiError);
+      return { success: false, error: restApiError.message || "Failed to create user via REST API" };
+    }
+  } catch (error: any) {
+    console.error("❌ [CLIENT] Client creation error:", error);
+    return { success: false, error: error.message || "Failed to create client" };
+  }
+}
+
 /**
  * Server Action to invite a new user to the platform.
  * It creates the user in Supabase Auth (sending them an invite email),
@@ -91,7 +253,7 @@ export async function inviteUserAction(
     }
 
     // 5. Success & Cache Revalidation
-    revalidatePath("/admin/clients");
+    revalidatePath("/a/clients");
     
     return {
       success: true,
@@ -200,7 +362,7 @@ export async function updateBillingInfoAction(userId: string, billingData: any) 
     return { success: false, error: "Failed to update billing information." };
   }
 
-  revalidatePath("/admin/clients");
+  revalidatePath("/a/clients");
   return { success: true };
 }
 
@@ -244,8 +406,8 @@ export async function updateClientStatusAction(userId: string, status: string) {
       }
     }
 
-    revalidatePath("/admin/clients");
-    revalidatePath("/admin/dashboard");
+    revalidatePath("/a/clients");
+    revalidatePath("/a/dashboard");
     return { success: true };
   } catch (e: any) {
     console.error("Exception in updateClientStatusAction:", e);
@@ -308,8 +470,8 @@ export async function approveClientAndVerifyEmailAction(userId: string) {
       }
     }
 
-    revalidatePath("/admin/clients");
-    revalidatePath("/admin/dashboard");
+    revalidatePath("/a/clients");
+    revalidatePath("/a/dashboard");
     return { success: true };
   } catch (e: any) {
     console.error("Exception in approveClientAndVerifyEmailAction:", e);
@@ -326,16 +488,30 @@ export async function verifyClientEmailAction(userId: string) {
     if (!auth.success) return auth;
 
     const supabaseAdmin = createAdminClient();
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+
+    // Update Supabase Auth email confirmation
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       email_confirm: true,
     });
 
-    if (error) {
-      console.error("Failed to verify client email:", error);
-      return { success: false, error: error.message };
+    if (authError) {
+      console.error("Failed to verify client email in Auth:", authError);
+      return { success: false, error: authError.message };
     }
 
-    revalidatePath("/admin/clients");
+    // Update users table to keep in sync
+    const { error: dbError } = await supabaseAdmin
+      .from("users")
+      .update({ email_verified: true })
+      .eq("id", userId);
+
+    if (dbError) {
+      console.error("Failed to update email_verified in users table:", dbError);
+      // Don't fail here since Auth update succeeded
+    }
+
+    revalidatePath("/a/clients");
+    revalidatePath("/a/employees");
     return { success: true };
   } catch (e: any) {
     console.error("Exception in verifyClientEmailAction:", e);
@@ -360,10 +536,40 @@ export async function updateClientNotesAction(userId: string, notes: string) {
       return { success: false, error: `Database error: ${error.message}` };
     }
 
-    revalidatePath("/admin/clients");
+    revalidatePath("/a/clients");
     return { success: true };
   } catch (e: any) {
     console.error("Exception in updateClientNotesAction:", e);
+    return { success: false, error: `Server error: ${e.message}` };
+  }
+}
+
+/**
+ * Update user role action - ADMIN only
+ * Allows changing a user's role between ADMIN, CLIENT, and EMPLOYEE
+ */
+export async function updateUserRoleAction(userId: string, newRole: 'ADMIN' | 'CLIENT' | 'EMPLOYEE') {
+  try {
+    const auth = await requireAuth({ role: 'ADMIN' });
+    if (!auth.success) return auth;
+
+    const supabaseAdmin = createAdminClient();
+
+    // Update user role in Supabase
+    const { error } = await supabaseAdmin
+      .from("users")
+      .update({ role: newRole })
+      .eq("id", userId);
+
+    if (error) {
+      console.error("Failed to update user role:", error);
+      return { success: false, error: `Database error: ${error.message}` };
+    }
+
+    revalidatePath("/a/clients");
+    return { success: true };
+  } catch (e: any) {
+    console.error("Exception in updateUserRoleAction:", e);
     return { success: false, error: `Server error: ${e.message}` };
   }
 }

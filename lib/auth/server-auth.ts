@@ -4,8 +4,9 @@ export type AuthenticatedUser = {
   id: string;
   email: string;
   name: string;
-  role: 'ADMIN' | 'CLIENT';
-  status: 'ACTIVE' | 'PENDING' | string;
+  role: 'ADMIN' | 'CLIENT' | 'EMPLOYEE';
+  isActive: boolean;
+  status?: 'ACTIVE' | 'PENDING' | 'DEACTIVATED';
 };
 
 export type AuthResult<T> =
@@ -24,7 +25,7 @@ export type AuthResult<T> =
  *   const user = auth.user;
  */
 export async function requireAuth(options?: {
-  role?: 'ADMIN' | 'CLIENT'
+  role?: 'ADMIN' | 'CLIENT' | 'EMPLOYEE'
 }): Promise<AuthResult<never>> {
   const cachedUser = await getCachedUser();
   if (!cachedUser) {
@@ -43,7 +44,8 @@ export async function requireAuth(options?: {
       email: cachedUser.email,
       name: cachedUser.name,
       role: cachedUser.role,
-      status: cachedUser.status,
+      isActive: cachedUser.isActive,
+      status: cachedUser.status
     }
   };
 }

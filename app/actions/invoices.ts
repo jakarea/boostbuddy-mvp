@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from '@/lib/auth/server-auth';
 import { revalidatePath } from "next/cache";
+import { randomUUID } from 'crypto';
 
 // --- PURE HELPER FUNCTIONS ---
 
@@ -39,6 +40,7 @@ export async function getAdminInvoicesAction() {
     const auth = await requireAuth({ role: 'ADMIN' });
     if (!auth.success) return auth;
 
+    // Production: Use Supabase
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("invoices")
@@ -67,40 +69,60 @@ export async function getClientInvoicesAction() {
     if (error) throw error;
     return { success: true, data };
   } catch (error: any) {
-    return { success: false, error: error?.message || "Failed to fetch client invoices" };
+    return { success: false, error: error?.message || "Failed to fetch invoices" };
   }
 }
 
 export async function uploadInvoiceAction(formData: FormData) {
   try {
-    const file = formData.get("file") as File;
-    if (!file) return { success: false, error: "No file provided" };
-
     const auth = await requireAuth({ role: 'ADMIN' });
     if (!auth.success) return auth;
 
+    const file = formData.get("file") as File;
+    if (!file) {
+      console.error("❌ [INVOICE UPLOAD] No file provided");
+      return { success: false, error: "No file provided" };
+    }
+
+    console.log("📤 [INVOICE UPLOAD] Starting upload:", file.name, file.size, file.type);
+
+    // Always use Supabase Storage for file uploads
     const supabaseAdmin = createAdminClient();
     const safeFileName = generateSafeFileName(file.name);
     const buffer = Buffer.from(await file.arrayBuffer());
+
+    console.log("📤 [INVOICE UPLOAD] Uploading to Supabase Storage:", safeFileName);
 
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from("invoices")
       .upload(safeFileName, buffer, { contentType: file.type, upsert: false });
 
-    if (uploadError) throw new Error("Failed to upload file to storage");
+    if (uploadError) {
+      console.error("❌ [INVOICE UPLOAD] Supabase Storage error:", uploadError);
+      throw new Error(`Storage upload failed: ${uploadError.message}`);
+    }
 
+    console.log("✅ [INVOICE UPLOAD] File uploaded successfully:", uploadData);
+
+    // Production mode: Save to Supabase
     const invoicePayload = extractInvoiceData(formData, uploadData.path, file.name, formatFileSize(file.size));
+    console.log("💾 [INVOICE UPLOAD] Saving to database:", invoicePayload);
+
     const { error: dbError } = await supabaseAdmin.from("invoices").insert(invoicePayload);
 
     if (dbError) {
+      console.error("❌ [INVOICE UPLOAD] Database error:", dbError);
       await supabaseAdmin.storage.from("invoices").remove([uploadData.path]);
-      throw new Error("Failed to save invoice record");
+      throw new Error(`Failed to save invoice record: ${dbError.message}`);
     }
 
-    revalidatePath("/admin/invoices");
-    revalidatePath("/dashboard/invoices");
+    console.log("✅ [INVOICE UPLOAD] Invoice saved successfully");
+
+    revalidatePath("/a/invoices");
+    revalidatePath("/c/invoices");
     return { success: true };
   } catch (error: any) {
+    console.error("❌ [INVOICE UPLOAD] Upload failed:", error);
     return { success: false, error: error?.message || "Upload failed" };
   }
 }
@@ -112,17 +134,28 @@ export async function deleteInvoiceAction(id: string, path: string) {
 
     const supabaseAdmin = createAdminClient();
 
-    const { error: dbError } = await supabaseAdmin.from("invoices").delete().eq("id", id);
-    if (dbError) throw new Error("Failed to delete from database");
+    // Always delete from Supabase Storage (file cleanup)
+    const { error: storageError } = await supabaseAdmin.storage
+      .from("invoices")
+      .remove([path]);
 
-    const { error: storageError } = await supabaseAdmin.storage.from("invoices").remove([path]);
-    if (storageError) console.error("Storage delete failed, but DB record was removed:", storageError);
+    if (storageError) {
+      console.warn("Failed to delete file from storage:", storageError.message);
+    }
 
-    revalidatePath("/admin/invoices");
-    revalidatePath("/dashboard/invoices");
+    // Production mode: Delete from Supabase
+    const { error: dbError } = await supabaseAdmin
+      .from("invoices")
+      .delete()
+      .eq("id", id);
+
+    if (dbError) throw dbError;
+
+    revalidatePath("/a/invoices");
+    revalidatePath("/c/invoices");
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: error?.message || "Failed to delete invoice" };
+    return { success: false, error: error?.message || "Delete failed" };
   }
 }
 
@@ -131,12 +164,32 @@ export async function getInvoiceDownloadUrlAction(path: string) {
     const auth = await requireAuth();
     if (!auth.success) return auth;
 
-    // Use admin client to bypass storage RLS when generating signed URL
-    const supabaseAdmin = createAdminClient();
-    const { data, error } = await supabaseAdmin.storage.from("invoices").createSignedUrl(path, 3600, { download: true });
+    if (!path) {
+      return { success: false, error: "No file path provided" };
+    }
 
-    if (error || !data) throw new Error("Failed to generate download link");
-    return { success: true, url: data.signedUrl };
+    // SECURITY: For non-admin users, verify the invoice belongs to them (IDOR protection)
+    if (auth.user.role !== 'ADMIN') {
+      const supabase = await createClient();
+      const { data: owned } = await supabase
+        .from("invoices")
+        .select("id")
+        .eq("user_id", auth.user.id)
+        .eq("pdf_path", path)
+        .limit(1);
+      if (!owned || owned.length === 0) {
+        return { success: false, error: "Invoice not found" };
+      }
+    }
+
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin.storage
+      .from("invoices")
+      .createSignedUrl(path, 60);
+
+    if (error) throw error;
+
+    return { success: true, data: { url: data.signedUrl } };
   } catch (error: any) {
     return { success: false, error: error?.message || "Failed to get download URL" };
   }

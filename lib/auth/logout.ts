@@ -77,7 +77,7 @@ export async function performCompleteLogout() {
     clearAllStorage();
 
     console.log("Step 2: Signing out from Supabase...");
-    const { signOutUser } = await import("./pure-functions");
+    const { signOutUser } = await import("./pure-functions-client");
     await signOutUser();
     console.log("  ✅ Signed out from Supabase");
 

@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import { Globe } from "lucide-react";
 
 interface LoadingScreenProps {
@@ -6,6 +8,17 @@ interface LoadingScreenProps {
 }
 
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({ message = "Loading..." }) => {
+  const [elapsedMs, setElapsedMs] = useState(0);
+
+  useEffect(() => {
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      setElapsedMs(Date.now() - startTime);
+    }, 100); // Update every 100ms
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="flex-1 flex flex-col justify-center items-center min-h-[400px] w-full bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 relative overflow-hidden transition-all duration-300">
       {/* Dynamic Background Glow */}
@@ -29,6 +42,9 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ message = "Loading
           </div>
           <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">
             {message}
+          </p>
+          <p className="text-xs font-mono text-zinc-400 dark:text-zinc-500">
+            {elapsedMs}
           </p>
         </div>
       </div>

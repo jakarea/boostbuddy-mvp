@@ -4,9 +4,18 @@
  */
 
 import { createClient } from "@/lib/supabase/client";
+import path from 'path';
 import type { AuthUser } from "./types";
 
 const LOG_PREFIX = "[AUTH-PURE]";
+
+// Helper function to get database instance.
+// Lazy require() ensures better-sqlite3 is only loaded in local mode (never on Vercel).
+function getDb() {
+  const Database = require('better-sqlite3');
+  const dbPath = path.join(process.cwd(), 'prisma', 'dev.db');
+  return new Database(dbPath);
+}
 
 /**
  * Get current Supabase session (pure - just reads)
@@ -36,33 +45,34 @@ export async function getCurrentSession() {
 export async function fetchUserProfile(userId: string): Promise<AuthUser | null> {
   console.log(`${LOG_PREFIX} Fetching user profile for ID:`, userId);
 
-  const supabase = createClient();
-  const { data: profile, error } = await supabase
-    .from("users")
-    .select("id, email, name, role, status, email_verified, created_at")
-    .eq("id", userId)
-    .single();
+  try {
+    const db = getDb();
+    const profile = db.prepare(`
+      SELECT id, email, name, role, isActive, createdAt
+      FROM User
+      WHERE id = ?
+    `).get(userId) as any;
+    db.close();
 
-  if (error) {
-    console.warn(`${LOG_PREFIX} ⚠️ Profile fetch failed:`, error.message);
+    if (!profile) {
+      console.log(`${LOG_PREFIX} No profile found in database`);
+      return null;
+    }
+
+    console.log(`${LOG_PREFIX} ✅ Profile fetched:`, profile.email, `| Role: ${profile.role} | Active: ${profile.isActive}`);
+
+    return {
+      id: profile.id,
+      email: profile.email,
+      name: profile.name,
+      role: profile.role as "ADMIN" | "CLIENT" | "EMPLOYEE",
+      isActive: Boolean(profile.isActive),
+      createdAt: new Date(profile.createdAt),
+    };
+  } catch (error) {
+    console.error(`${LOG_PREFIX} ⚠️ Profile fetch error:`, error);
     return null;
   }
-
-  if (!profile) {
-    console.log(`${LOG_PREFIX} No profile found in database`);
-    return null;
-  }
-
-  console.log(`${LOG_PREFIX} ✅ Profile fetched:`, profile.email, `| Role: ${profile.role} | Verified: ${profile.email_verified}`);
-
-  return {
-    id: profile.id,
-    email: profile.email,
-    name: profile.name,
-    role: profile.role,
-    status: profile.status,
-    createdAt: profile.created_at,
-  };
 }
 
 /**
@@ -76,37 +86,36 @@ export async function createUserProfile(
 ): Promise<AuthUser | null> {
   console.log(`${LOG_PREFIX} Creating user profile:`, email, `| Role: ${role}`);
 
-  const supabase = createClient();
-  const { data: profile, error } = await supabase
-    .from("users")
-    .insert([
-      {
-        id: userId,
-        email,
-        name,
-        role,
-        status: "ACTIVE",
-        created_at: new Date().toISOString(),
-      },
-    ])
-    .select("id, email, name, role, status, created_at")
-    .single();
+  try {
+    const db = getDb();
+    const now = new Date().toISOString();
 
-  if (error) {
-    console.error(`${LOG_PREFIX} ❌ Profile creation failed:`, error.message);
+    db.prepare(`
+      INSERT INTO User (id, email, passwordHash, name, role, isActive, createdAt, updatedAt, creditsBalance, acceptingOrders)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(userId, email, 'supabase-managed', name, role, 1, now, now, 0, 1);
+
+    const profile = db.prepare(`
+      SELECT id, email, name, role, isActive, createdAt
+      FROM User
+      WHERE id = ?
+    `).get(userId) as any;
+    db.close();
+
+    console.log(`${LOG_PREFIX} ✅ Profile created successfully`);
+
+    return {
+      id: profile.id,
+      email: profile.email,
+      name: profile.name,
+      role: profile.role as "ADMIN" | "CLIENT" | "EMPLOYEE",
+      isActive: Boolean(profile.isActive),
+      createdAt: new Date(profile.createdAt),
+    };
+  } catch (error) {
+    console.error(`${LOG_PREFIX} ❌ Profile creation failed:`, error);
     return null;
   }
-
-  console.log(`${LOG_PREFIX} ✅ Profile created successfully`);
-
-  return {
-    id: profile.id,
-    email: profile.email,
-    name: profile.name,
-    role: profile.role,
-    status: profile.status,
-    createdAt: profile.created_at,
-  };
 }
 
 /**
@@ -137,7 +146,7 @@ export async function signUpUser(email: string, password: string, name: string) 
     email,
     password,
     options: {
-      data: { name, role: "CLIENT", status: "PENDING" },
+      data: { name, role: "CLIENT", isActive: true },
     },
   });
 
@@ -216,23 +225,12 @@ export function hasRole(user: AuthUser | null, requiredRole: "ADMIN" | "CLIENT")
 }
 
 /**
- * Check if user is active (for CLIENT role)
+ * Check if user is active
  */
 export function isUserActive(user: AuthUser | null): boolean {
   if (!user) return false;
 
-  const isActive = user.status === "ACTIVE";
-  console.log(`${LOG_PREFIX} isUserActive check: Status is ${user.status} → ${isActive}`);
+  const isActive = user.isActive === true;
+  console.log(`${LOG_PREFIX} isUserActive check: isActive is ${user.isActive} → ${isActive}`);
   return isActive;
-}
-
-/**
- * Check if user is pending approval
- */
-export function isUserPending(user: AuthUser | null): boolean {
-  if (!user) return false;
-
-  const isPending = user.status === "PENDING";
-  console.log(`${LOG_PREFIX} isUserPending check: Status is ${user.status} → ${isPending}`);
-  return isPending;
 }

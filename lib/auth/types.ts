@@ -1,14 +1,13 @@
 // Pure type definitions for auth system
-export type AuthRole = "ADMIN" | "CLIENT";
-export type UserStatus = "PENDING" | "ACTIVE" | "DEACTIVATED";
+export type AuthRole = "ADMIN" | "CLIENT" | "EMPLOYEE";
 
 export interface AuthUser {
   id: string;
   email: string;
   name: string;
   role: AuthRole;
-  status: UserStatus;
-  createdAt: string;
+  isActive: boolean;
+  createdAt: Date | string;
 }
 
 export type AuthState = "LOADING" | "AUTHENTICATED" | "UNAUTHENTICATED";

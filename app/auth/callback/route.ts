@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams, origin } = new URL(request.url);
     const code = searchParams.get("code");
-    const next = searchParams.get("next") ?? "/dashboard";
+    const next = searchParams.get("next") ?? "/c/dashboard";
 
     console.log("Step 1: Received code:", code ? "✅ Yes" : "❌ No");
     console.log("Step 2: Next URL:", next);

@@ -1,6 +1,55 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
+type Role = "ADMIN" | "CLIENT" | "EMPLOYEE";
+
+// Minimal shape of the Supabase auth user as returned by updateSession.
+type AuthUser = {
+  id: string;
+  app_metadata?: Record<string, unknown>;
+  user_metadata?: Record<string, unknown>;
+} | null;
+
+function getRoleHome(role: Role | undefined): string {
+  switch (role) {
+    case "ADMIN":
+      return "/a/dashboard";
+    case "EMPLOYEE":
+      return "/e/dashboard";
+    case "CLIENT":
+    default:
+      return "/c/dashboard";
+  }
+}
+
+async function resolveRole(user: AuthUser, supabase: any): Promise<Role | undefined> {
+  if (!user) return undefined;
+
+  // Try to get role from users table (source of truth)
+  try {
+    const { data: userData } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (userData?.role && ["ADMIN", "CLIENT", "EMPLOYEE"].includes(userData.role)) {
+      return userData.role as Role;
+    }
+  } catch (error) {
+    console.warn('[PROXY] Failed to fetch role from users table:', error);
+  }
+
+  // Fallback to JWT metadata if database query fails
+  const metaRole = (user.app_metadata?.role || user.user_metadata?.role) as unknown;
+  const role = typeof metaRole === "string" ? (metaRole as Role) : undefined;
+
+  if (role === "ADMIN" || role === "CLIENT" || role === "EMPLOYEE") {
+    return role;
+  }
+  return undefined;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -14,25 +63,58 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const { supabaseResponse, user } = await updateSession(request);
+  const { supabaseResponse, user, supabase } = await updateSession(request);
 
   // Pass current path to Server Components
   request.headers.set('x-current-path', pathname);
-  supabaseResponse.headers.set('x-current-path', pathname); // Keep for good measure if next allows it
+  supabaseResponse.headers.set('x-current-path', pathname);
 
+  // Public/auth routes
   const isAuthPage = pathname === "/" || pathname === "/forgot-password" || pathname.startsWith("/reset-password");
-  const isAdminPage = pathname.startsWith("/admin");
-  const isDashboardPage = pathname.startsWith("/dashboard");
+  const isPublicRoute = pathname.startsWith("/checkout") || pathname.startsWith("/logout");
 
   // Unauthenticated users cannot access protected routes
-  if (!user && (isAdminPage || isDashboardPage)) {
+  const role = await resolveRole(user, supabase);
+  if (!user && (pathname.startsWith("/a") || pathname.startsWith("/c") || pathname.startsWith("/e"))) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // Authenticated users shouldn't see the login page
+  // Authenticated users shouldn't see the login page (except password reset)
   if (user && isAuthPage && !pathname.startsWith("/reset-password")) {
-    // Send to /dashboard. If they are an Admin, the dashboard layout will redirect them to /admin/dashboard.
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL(getRoleHome(role), request.url));
+  }
+
+  // /a/* — ADMIN only
+  if (pathname.startsWith("/a")) {
+    if (!user) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    if (role !== "ADMIN") {
+      return NextResponse.redirect(new URL(getRoleHome(role), request.url));
+    }
+    return supabaseResponse;
+  }
+
+  // /e/* — EMPLOYEE only
+  if (pathname.startsWith("/e")) {
+    if (!user) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    if (role !== "EMPLOYEE") {
+      return NextResponse.redirect(new URL(getRoleHome(role), request.url));
+    }
+    return supabaseResponse;
+  }
+
+  // /c/* — CLIENT only (ADMIN/EMPLOYEE go to their own homes)
+  if (pathname.startsWith("/c")) {
+    if (!user) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    if (role === "ADMIN" || role === "EMPLOYEE") {
+      return NextResponse.redirect(new URL(getRoleHome(role), request.url));
+    }
+    return supabaseResponse;
   }
 
   return supabaseResponse;

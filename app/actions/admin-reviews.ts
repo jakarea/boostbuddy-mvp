@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth/server-auth";
 import { revalidatePath } from "next/cache";
-import { getLocalDb, logOperation, DB_MODE } from "@/lib/db/client";
 import { randomUUID } from "crypto";
 
 // ============================================
@@ -38,66 +37,89 @@ export type AdminAssignmentData = {
 
 /**
  * Get all review orders (admin only)
+ * Includes skip information from employees
  */
 export async function getAllReviewOrdersAction(filters?: ReviewOrderFilter) {
   try {
     const auth = await requireAuth({ role: 'ADMIN' });
     if (!auth.success) return auth;
 
-    if (DB_MODE === 'local') {
-      logOperation('SELECT', 'ReviewOrder', DB_MODE);
-      const db = getLocalDb();
+    const supabase = await createClient();
+    let query = supabase
+      .from("review_orders")
+      .select("*, users:user_id(name, email), employees:assigned_employee_id(name, email)")
+      .order("created_at", { ascending: false });
 
-      let query = `
-        SELECT
-          ro.*,
-          u.name as clientName,
-          u.email as clientEmail,
-          e.name as employeeName,
-          e.email as employeeEmail
-        FROM ReviewOrder ro
-        LEFT JOIN User u ON ro.userId = u.id
-        LEFT JOIN User e ON ro.assignedEmployeeId = e.id
-        WHERE 1=1
-      `;
-
-      const params: any[] = [];
-
-      if (filters?.status) {
-        query += ' AND ro.status = ?';
-        params.push(filters.status);
-      }
-
-      if (filters?.employeeId) {
-        query += ' AND ro.assignedEmployeeId = ?';
-        params.push(filters.employeeId);
-      }
-
-      query += ' ORDER BY ro.createdAt DESC';
-
-      const orders = db.prepare(query).all(...params);
-      db.close();
-      return { success: true, data: orders };
-    } else {
-      const supabase = await createClient();
-      let query = supabase
-        .from("review_orders")
-        .select("*, users:review_order_client_id(name, email), employees:assigned_employee_id(name, email)")
-        .order("created_at", { ascending: false });
-
-      if (filters?.status) {
-        query = query.eq("status", filters.status);
-      }
-
-      if (filters?.employeeId) {
-        query = query.eq("assigned_employee_id", filters.employeeId);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return { success: true, data };
+    if (filters?.status) {
+      query = query.eq("status", filters.status);
     }
+
+    if (filters?.employeeId) {
+      query = query.eq("assigned_employee_id", filters.employeeId);
+    }
+
+    const { data: orders, error } = await query;
+
+    if (error) throw error;
+
+    // Get skip information for all orders
+    const orderIds = orders?.map(o => o.id) || [];
+    let skipsMap = new Map<string, any[]>();
+
+    if (orderIds.length > 0) {
+      const { data: skips } = await supabase
+        .from("skipped_reviews")
+        .select("review_order_id, employee_id, reason, created_at, users:employee_id(name)")
+        .in("review_order_id", orderIds);
+
+      for (const skip of skips || []) {
+        if (!skipsMap.has(skip.review_order_id)) {
+          skipsMap.set(skip.review_order_id, []);
+        }
+        skipsMap.get(skip.review_order_id)!.push({
+          employeeId: skip.employee_id,
+          employeeName: (skip.users as any)?.name || null,
+          reason: skip.reason,
+          createdAt: skip.created_at
+        });
+      }
+    }
+
+    // Attach skip information to orders and normalize field names
+    const ordersWithSkips = orders?.map(order => {
+      const normalizedOrder = {
+        ...order,
+        skips: skipsMap.get(order.id) || [],
+        // Normalize database column names from snake_case to camelCase
+        targetRating: order.target_rating,
+        facebookUrl: order.facebook_url,
+        businessName: order.business_name,
+        orderType: order.order_type,
+        reviewType: order.review_type,
+        reviewContent: order.review_content,
+        reviewInstructions: order.review_instructions,
+        proofOfCompletion: order.proof_of_completion,
+        creditsConsumed: order.credits_consumed,
+        assignedEmployeeId: order.assigned_employee_id,
+        assignedAt: order.assigned_at,
+        completedAt: order.completed_at,
+        adminVerificationStatus: order.admin_verification_status,
+        adminVerifiedAt: order.admin_verified_at,
+        rejectionReason: order.rejection_reason,
+        clientFeedback: order.client_feedback,
+        content: order.content,
+        commentText: order.comment_text,
+        photoUrls: order.photo_urls ? JSON.parse(order.photo_urls) : null,
+        quantity: order.quantity,
+        createdAt: order.created_at,
+        updatedAt: order.updated_at
+      };
+      return normalizedOrder;
+    }) || [];
+
+    console.log("🔍 [ADMIN ORDERS] Returning", ordersWithSkips.length, "orders with normalized fields");
+
+    return { success: true, data: ordersWithSkips };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -112,141 +134,86 @@ export async function assignReviewToEmployeeAction(data: AdminAssignmentData) {
     if (!auth.success) return auth;
 
     const now = new Date().toISOString();
+    const supabase = await createAdminClient();
 
-    if (DB_MODE === 'local') {
-      logOperation('UPDATE', 'ReviewOrder', DB_MODE);
-      const db = getLocalDb();
+    // Check order status
+    const { data: order } = await supabase
+      .from("review_orders")
+      .select("id, status, business_name, assigned_employee_id, user_id, users:user_id(email)")
+      .eq("id", data.orderId)
+      .single();
 
-      // Get order and employee info
-      const order = db.prepare(`
-        SELECT id, status, assignedEmployeeId FROM ReviewOrder WHERE id = ?
-      `).get(data.orderId) as any;
-
-      const employee = db.prepare(`
-        SELECT id, isActive, acceptingOrders FROM User WHERE id = ? AND role = 'EMPLOYEE'
-      `).get(data.employeeId) as any;
-
-      if (!order) {
-        db.close();
-        return { success: false, error: "Order not found" };
-      }
-
-      if (order.status !== 'PENDING') {
-        db.close();
-        return { success: false, error: "Order must be PENDING to assign" };
-      }
-
-      if (!employee) {
-        db.close();
-        return { success: false, error: "Employee not found or not active" };
-      }
-
-      if (!employee.acceptingOrders) {
-        db.close();
-        return { success: false, error: "Employee is not currently accepting orders" };
-      }
-
-      // Assign order
-      db.prepare(`
-        UPDATE ReviewOrder
-        SET assignedEmployeeId = ?, status = 'IN_PROGRESS', assignedAt = ?
-        WHERE id = ?
-      `).run(data.employeeId, now, data.orderId);
-
-      // Update employee stats
-      db.prepare(`
-        INSERT OR IGNORE INTO EmployeeStats (id, userId, isAvailable, ordersCompleted, ordersSkipped, createdAt, updatedAt)
-        VALUES (?, ?, 1, 0, 0, ?, ?)
-      `).run(randomUUID(), data.employeeId, now, now);
-
-      db.prepare(`
-        UPDATE EmployeeStats SET lastActiveAt = ? WHERE userId = ?
-      `).run(now, data.employeeId);
-
-      db.close();
-
-      // Send notification to employee
-      try {
-        const { sendNotificationAction } = await import("./notifications");
-        await sendNotificationAction(
-          employee.email || data.employeeId,
-          "📝 New Review Order Assigned",
-          `You have been assigned a review order for ${order.businessName}. Check your dashboard for details.`,
-          "TELEGRAM",
-          "REVIEWS_ORDER_ASSIGNED"
-        );
-      } catch (notifError) {
-        console.warn("Failed to send notification:", notifError);
-      }
-
-      revalidatePath("/admin/reviews");
-      revalidatePath("/employee/dashboard");
-
-      return { success: true };
-    } else {
-      const supabase = await createAdminClient();
-
-      // Check order status
-      const { data: order } = await supabase
-        .from("review_orders")
-        .select("id, status, business_name, assigned_employee_id")
-        .eq("id", data.orderId)
-        .single();
-
-      if (!order || order.status !== "PENDING") {
-        return { success: false, error: "Order not found or must be PENDING" };
-      }
-
-      // Check employee availability
-      const { data: employee } = await supabase
-        .from("users")
-        .select("id, email, accepting_orders")
-        .eq("id", data.employeeId)
-        .eq("role", "EMPLOYEE")
-        .eq("is_active", true)
-        .single();
-
-      if (!employee || !employee.accepting_orders) {
-        return { success: false, error: "Employee not found or not accepting orders" };
-      }
-
-      // Assign order
-      const { error: assignError } = await supabase
-        .from("review_orders")
-        .update({
-          assigned_employee_id: data.employeeId,
-          status: "IN_PROGRESS",
-          assigned_at: now
-        })
-        .eq("id", data.orderId);
-
-      if (assignError) throw assignError;
-
-      // Update employee last active
-      await supabase
-        .from("employee_stats")
-        .update({ last_active_at: now })
-        .eq("user_id", data.employeeId);
-
-      // Send notification
-      try {
-        const { sendNotificationAction } = await import("./notifications");
-        await sendNotificationAction(
-          employee.email || data.employeeId,
-          "📝 New Review Order Assigned",
-          `You have been assigned a review order for ${order.business_name}. Check your dashboard for details.`,
-          "TELEGRAM",
-          "REVIEWS_ORDER_ASSIGNED"
-        );
-      } catch (notifError) {
-        console.warn("Failed to send notification:", notifError);
-      }
-
-      revalidatePath("/admin/reviews");
-      revalidatePath("/employee/dashboard");
-
-      return { success: true };
+    if (!order || order.status !== "PENDING") {
+      return { success: false, error: "Order not found or must be PENDING" };
     }
+
+    const clientEmail = (order.users as any)?.email || null;
+
+    // Check employee availability
+    const { data: employee } = await supabase
+      .from("users")
+      .select("id, email, accepting_orders")
+      .eq("id", data.employeeId)
+      .eq("role", "EMPLOYEE")
+      .eq("is_active", true)
+      .single();
+
+    if (!employee || !employee.accepting_orders) {
+      return { success: false, error: "Employee not found or not accepting orders" };
+    }
+
+    // Assign order
+    const { error: assignError } = await supabase
+      .from("review_orders")
+      .update({
+        assigned_employee_id: data.employeeId,
+        status: "IN_PROGRESS",
+        assigned_at: now
+      })
+      .eq("id", data.orderId);
+
+    if (assignError) throw assignError;
+
+    // Update employee last active
+    await supabase
+      .from("employee_stats")
+      .update({ last_active_at: now })
+      .eq("user_id", data.employeeId);
+
+    // Send notification to employee
+    try {
+      const { sendNotificationAction } = await import("./notifications");
+      await sendNotificationAction(
+        employee.email || data.employeeId,
+        "📝 New Review Order Assigned",
+        `You have been assigned a review order for ${order.business_name}. Check your dashboard for details.`,
+        "TELEGRAM",
+        "REVIEWS_ORDER_ASSIGNED"
+      );
+    } catch (notifError) {
+      console.warn("Failed to send notification:", notifError);
+    }
+
+    // Send notification to client
+    if (clientEmail) {
+      try {
+        const { sendNotificationAction } = await import("./notifications");
+        await sendNotificationAction(
+          clientEmail,
+          "🔄 Your Review Order Is In Progress",
+          `Your review order for ${order.business_name} has been assigned to our team and is now being worked on.`,
+          "TELEGRAM",
+          "REVIEWS_ORDER_IN_PROGRESS"
+        );
+      } catch (notifError) {
+        console.warn("Failed to send client notification:", notifError);
+      }
+    }
+
+    revalidatePath("/a/reviews");
+    revalidatePath("/e/dashboard");
+
+    return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -265,166 +232,122 @@ export async function cancelReviewOrderAction(orderId: string, reason: string) {
     }
 
     const now = new Date().toISOString();
+    const supabase = await createAdminClient();
 
-    if (DB_MODE === 'local') {
-      logOperation('UPDATE', 'ReviewOrder', DB_MODE);
-      const db = getLocalDb();
+    // Get order details
+    const { data: order } = await supabase
+      .from("review_orders")
+      .select("id, user_id, status, credits_consumed, business_name, assigned_employee_id, users:user_id(email), employees:assigned_employee_id(email)")
+      .eq("id", orderId)
+      .single();
 
-      // Get order details
-      const order = db.prepare(`
-        SELECT id, userId, status, creditsConsumed, assignedEmployeeId FROM ReviewOrder WHERE id = ?
-      `).get(orderId) as any;
+    if (!order) {
+      return { success: false, error: "Order not found" };
+    }
 
-      if (!order) {
-        db.close();
-        return { success: false, error: "Order not found" };
-      }
+    if (order.status === "CANCELLED") {
+      return { success: false, error: "Order already cancelled" };
+    }
 
-      if (order.status === 'CANCELLED') {
-        db.close();
-        return { success: false, error: "Order already cancelled" };
-      }
+    const clientEmail = (order.users as any)?.email || null;
+    const employeeEmail = (order.employees as any)?.email || null;
 
-      // Refund credits if not already completed
-      if (order.status !== 'COMPLETED') {
-        const user = db.prepare('SELECT creditsBalance FROM User WHERE id = ?').get(order.userId) as any;
-
-        if (!user) {
-          db.close();
-          return { success: false, error: "User not found" };
-        }
-
-        const newBalance = user.creditsBalance + order.creditsConsumed;
-
-        // Create refund transaction
-        db.prepare(`
-          INSERT INTO CreditTransaction (id, userId, amount, balanceAfter, type, description, referenceId, createdAt)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-          randomUUID(),
-          order.userId,
-          order.creditsConsumed,
-          newBalance,
-          "REFUND",
-          `Refund for cancelled order: ${reason}`,
-          orderId,
-          now
-        );
-
-        // Update user balance
-        db.prepare('UPDATE User SET creditsBalance = ? WHERE id = ?').run(newBalance, order.userId);
-
-        // Cancel order
-        db.prepare('UPDATE ReviewOrder SET status = ?, updatedAt = ? WHERE id = ?').run('CANCELLED', now, orderId);
-
-        db.close();
-
-        // Send notification
-        try {
-          const { sendNotificationAction } = await import("./notifications");
-          await sendNotificationAction(
-            user.email || order.userId,
-            "💰 Order Cancelled - Credits Refunded",
-            `Your review order has been cancelled and ${order.creditsConsumed} credits have been refunded to your balance.`,
-            "TELEGRAM",
-            "REVIEWS_ORDER_CANCELLED"
-          );
-        } catch (notifError) {
-          console.warn("Failed to send notification:", notifError);
-        }
-      } else {
-        // Just cancel completed orders without refund
-        db.prepare('UPDATE ReviewOrder SET status = ?, updatedAt = ? WHERE id = ?').run('CANCELLED', now, orderId);
-        db.close();
-      }
-
-      revalidatePath("/admin/reviews");
-      revalidatePath("/dashboard/services/reviews/orders");
-
-      return { success: true };
-    } else {
-      const supabase = await createAdminClient();
-
-      // Get order details
-      const { data: order } = await supabase
-        .from("review_orders")
-        .select("id, user_id, status, credits_consumed")
-        .eq("id", orderId)
+    // Refund credits if not completed
+    if (order.status !== "COMPLETED") {
+      const { data: user } = await supabase
+        .from("users")
+        .select("credits_balance, email")
+        .eq("id", order.user_id)
         .single();
 
-      if (!order) {
-        return { success: false, error: "Order not found" };
+      if (!user) {
+        return { success: false, error: "User not found" };
       }
 
-      if (order.status === "CANCELLED") {
-        return { success: false, error: "Order already cancelled" };
+      const newBalance = (user.credits_balance || 0) + order.credits_consumed;
+
+      // Create refund transaction
+      await supabase.from("credit_transactions").insert({
+        id: randomUUID(),
+        user_id: order.user_id,
+        amount: order.credits_consumed,
+        balance_after: newBalance,
+        type: "REFUND",
+        description: `Refund for cancelled order: ${reason}`,
+        reference_id: orderId
+      });
+
+      // Update user balance
+      await supabase
+        .from("users")
+        .update({ credits_balance: newBalance })
+        .eq("id", order.user_id);
+
+      // Cancel order
+      const { error: cancelError } = await supabase
+        .from("review_orders")
+        .update({ status: "CANCELLED", updated_at: now })
+        .eq("id", orderId);
+
+      if (cancelError) throw cancelError;
+
+      // Send notification to client
+      try {
+        const { sendNotificationAction } = await import("./notifications");
+        await sendNotificationAction(
+          clientEmail || order.user_id,
+          "💰 Order Cancelled - Credits Refunded",
+          `Your review order for ${order.business_name} has been cancelled and ${order.credits_consumed} credits have been refunded to your balance.`,
+          "TELEGRAM",
+          "REVIEWS_ORDER_CANCELLED"
+        );
+      } catch (notifError) {
+        console.warn("Failed to send notification:", notifError);
       }
 
-      // Refund credits if not completed
-      if (order.status !== "COMPLETED") {
-        const { data: user } = await supabase
-          .from("users")
-          .select("credits_balance, email")
-          .eq("id", order.user_id)
-          .single();
-
-        if (!user) {
-          return { success: false, error: "User not found" };
-        }
-
-        const newBalance = (user.credits_balance || 0) + order.credits_consumed;
-
-        // Create refund transaction
-        await supabase.from("credit_transactions").insert({
-          id: randomUUID(),
-          user_id: order.user_id,
-          amount: order.credits_consumed,
-          balance_after: newBalance,
-          type: "REFUND",
-          description: `Refund for cancelled order: ${reason}`,
-          reference_id: orderId
-        });
-
-        // Update user balance
-        await supabase
-          .from("users")
-          .update({ credits_balance: newBalance })
-          .eq("id", order.user_id);
-
-        // Cancel order
-        const { error: cancelError } = await supabase
-          .from("review_orders")
-          .update({ status: "CANCELLED", updated_at: now })
-          .eq("id", orderId);
-
-        if (cancelError) throw cancelError;
-
-        // Send notification
+      // Send notification to assigned employee
+      if (employeeEmail) {
         try {
           const { sendNotificationAction } = await import("./notifications");
           await sendNotificationAction(
-            user.email || order.user_id,
-            "💰 Order Cancelled - Credits Refunded",
-            `Your review order has been cancelled and ${order.credits_consumed} credits have been refunded to your balance.`,
+            employeeEmail,
+            "❌ Assigned Order Cancelled",
+            `The review order for ${order.business_name} that was assigned to you has been cancelled by the admin. Reason: ${reason}`,
+            "TELEGRAM",
+            "EMPLOYEE_ORDER_CANCELLED"
+          );
+        } catch (notifError) {
+          console.warn("Failed to send employee notification:", notifError);
+        }
+      }
+    } else {
+      // Just cancel completed orders
+      await supabase
+        .from("review_orders")
+        .update({ status: "CANCELLED", updated_at: now })
+        .eq("id", orderId);
+
+      // Send notification to client
+      if (clientEmail) {
+        try {
+          const { sendNotificationAction } = await import("./notifications");
+          await sendNotificationAction(
+            clientEmail,
+            "❌ Order Cancelled",
+            `Your review order for ${order.business_name} has been cancelled.`,
             "TELEGRAM",
             "REVIEWS_ORDER_CANCELLED"
           );
         } catch (notifError) {
-          console.warn("Failed to send notification:", notifError);
+          console.warn("Failed to send client notification:", notifError);
         }
-      } else {
-        // Just cancel completed orders
-        await supabase
-          .from("review_orders")
-          .update({ status: "CANCELLED", updated_at: now })
-          .eq("id", orderId);
       }
-
-      revalidatePath("/admin/reviews");
-      revalidatePath("/dashboard/services/reviews/orders");
-
-      return { success: true };
     }
+
+    revalidatePath("/a/reviews");
+    revalidatePath("/c/services/reviews/orders");
+
+    return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -438,48 +361,30 @@ export async function getAvailableEmployeesAction() {
     const auth = await requireAuth({ role: 'ADMIN' });
     if (!auth.success) return auth;
 
-    if (DB_MODE === 'local') {
-      logOperation('SELECT', 'User', DB_MODE);
-      const db = getLocalDb();
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, name, email, status, accepting_orders, employee_stats(*)")
+      .eq("role", "EMPLOYEE")
+      .eq("status", "ACTIVE")
+      .order("employee_stats.orders_completed", { ascending: false })
+      .order("name", { ascending: true });
 
-      const employees = db.prepare(`
-        SELECT
-          u.id, u.name, u.email, u.isActive, u.acceptingOrders,
-          es.isAvailable, es.ordersCompleted, es.lastActiveAt
-        FROM User u
-        LEFT JOIN EmployeeStats es ON u.id = es.userId
-        WHERE u.role = 'EMPLOYEE' AND u.isActive = 1
-        ORDER BY es.ordersCompleted DESC, u.name ASC
-      `).all();
+    if (error) throw error;
 
-      db.close();
-      return { success: true, data: employees };
-    } else {
-      const supabase = await createClient();
-      const { data, error } = await supabase
-        .from("users")
-        .select("id, name, email, is_active, accepting_orders, employee_stats(*)")
-        .eq("role", "EMPLOYEE")
-        .eq("is_active", true)
-        .order("employee_stats.orders_completed", { ascending: false })
-        .order("name", { ascending: true });
+    // Normalize to camelCase
+    const normalizedData = data?.map(emp => ({
+      id: emp.id,
+      name: emp.name,
+      email: emp.email,
+      isActive: emp.status === 'ACTIVE',
+      acceptingOrders: emp.accepting_orders,
+      isAvailable: emp.employee_stats?.[0]?.is_available || false,
+      ordersCompleted: emp.employee_stats?.[0]?.orders_completed || 0,
+      lastActiveAt: emp.employee_stats?.[0]?.last_active_at || null
+    })) || [];
 
-      if (error) throw error;
-
-      // Normalize to camelCase
-      const normalizedData = data?.map(emp => ({
-        id: emp.id,
-        name: emp.name,
-        email: emp.email,
-        isActive: emp.is_active,
-        acceptingOrders: emp.accepting_orders,
-        isAvailable: emp.employee_stats?.[0]?.is_available || false,
-        ordersCompleted: emp.employee_stats?.[0]?.orders_completed || 0,
-        lastActiveAt: emp.employee_stats?.[0]?.last_active_at || null
-      })) || [];
-
-      return { success: true, data: normalizedData };
-    }
+    return { success: true, data: normalizedData };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -493,39 +398,15 @@ export async function getEmployeePerformanceAction() {
     const auth = await requireAuth({ role: 'ADMIN' });
     if (!auth.success) return auth;
 
-    if (DB_MODE === 'local') {
-      logOperation('SELECT', 'EmployeeStats', DB_MODE);
-      const db = getLocalDb();
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("employee_stats")
+      .select("*, users:user_id(name, email, is_active, accepting_orders)")
+      .order("orders_completed", { ascending: false })
+      .order("last_active_at", { ascending: false });
 
-      const stats = db.prepare(`
-        SELECT
-          es.id,
-          es.userId,
-          u.name as employeeName,
-          u.email as employeeEmail,
-          es.isAvailable,
-          es.ordersCompleted,
-          es.ordersSkipped,
-          es.lastActiveAt,
-          es.createdAt
-        FROM EmployeeStats es
-        LEFT JOIN User u ON es.userId = u.id
-        ORDER BY es.ordersCompleted DESC, es.lastActiveAt DESC
-      `).all();
-
-      db.close();
-      return { success: true, data: stats };
-    } else {
-      const supabase = await createClient();
-      const { data, error } = await supabase
-        .from("employee_stats")
-        .select("*, users:user_id(name, email)")
-        .order("orders_completed", { ascending: false })
-        .order("last_active_at", { ascending: false });
-
-      if (error) throw error;
-      return { success: true, data };
-    }
+    if (error) throw error;
+    return { success: true, data };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -539,43 +420,26 @@ export async function getPendingOrdersQueueAction() {
     const auth = await requireAuth({ role: 'ADMIN' });
     if (!auth.success) return auth;
 
-    if (DB_MODE === 'local') {
-      logOperation('SELECT', 'ReviewOrder', DB_MODE);
-      const db = getLocalDb();
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("review_orders")
+      .select("id, business_name, review_type, target_rating, credits_consumed, created_at")
+      .eq("status", "PENDING")
+      .order("created_at", { ascending: true });
 
-      const orders = db.prepare(`
-        SELECT
-          id, businessName, reviewType, targetRating,
-          creditsConsumed, createdAt
-        FROM ReviewOrder
-        WHERE status = 'PENDING'
-        ORDER BY createdAt ASC
-      `).all();
+    if (error) throw error;
 
-      db.close();
-      return { success: true, data: orders };
-    } else {
-      const supabase = await createClient();
-      const { data, error } = await supabase
-        .from("review_orders")
-        .select("id, business_name, review_type, target_rating, credits_consumed, created_at")
-        .eq("status", "PENDING")
-        .order("created_at", { ascending: true });
+    // Normalize to camelCase
+    const normalizedData = data?.map(order => ({
+      id: order.id,
+      businessName: order.business_name,
+      reviewType: order.review_type,
+      targetRating: order.target_rating,
+      creditsConsumed: order.credits_consumed,
+      createdAt: order.created_at
+    })) || [];
 
-      if (error) throw error;
-
-      // Normalize to camelCase
-      const normalizedData = data?.map(order => ({
-        id: order.id,
-        businessName: order.business_name,
-        reviewType: order.review_type,
-        targetRating: order.target_rating,
-        creditsConsumed: order.credits_consumed,
-        createdAt: order.created_at
-      })) || [];
-
-      return { success: true, data: normalizedData };
-    }
+    return { success: true, data: normalizedData };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -583,112 +447,103 @@ export async function getPendingOrdersQueueAction() {
 
 /**
  * Verify completed review (admin only)
+ * When rejected with reason, order becomes PENDING again and available for all employees
  */
-export async function verifyCompletedReviewAction(orderId: string, approved: boolean) {
+export async function verifyCompletedReviewAction(orderId: string, approved: boolean, rejectionReason?: string) {
   try {
     const auth = await requireAuth({ role: 'ADMIN' });
     if (!auth.success) return auth;
 
     const now = new Date().toISOString();
+    const supabase = await createAdminClient();
 
-    if (DB_MODE === 'local') {
-      logOperation('UPDATE', 'ReviewOrder', DB_MODE);
-      const db = getLocalDb();
+    // Get order details with client and employee emails
+    const { data: order } = await supabase
+      .from("review_orders")
+      .select("id, status, user_id, assigned_employee_id, business_name, users:user_id(email), employees:assigned_employee_id(email)")
+      .eq("id", orderId)
+      .single();
 
-      // Get order details
-      const order = db.prepare(`
-        SELECT id, status, userId FROM ReviewOrder WHERE id = ?
-      `).get(orderId) as any;
+    if (!order) {
+      return { success: false, error: "Order not found" };
+    }
 
-      if (!order) {
-        db.close();
-        return { success: false, error: "Order not found" };
-      }
+    if (order.status !== "COMPLETED") {
+      return { success: false, error: "Order must be completed to verify" };
+    }
 
-      if (order.status !== 'COMPLETED') {
-        db.close();
-        return { success: false, error: "Order must be completed to verify" };
-      }
+    const clientEmail = (order.users as any)?.email || order.user_id;
+    const employeeEmail = (order.employees as any)?.email || null;
 
-      // Add verification note
-      db.prepare(`
-        UPDATE ReviewOrder
-        SET clientFeedback = ?, updatedAt = ?
-        WHERE id = ?
-      `).run(approved ? "APPROVED" : "REJECTED", now);
-
-      db.close();
-
-      // Send notification to client
-      try {
-        const { sendNotificationAction } = await import("./notifications");
-        await sendNotificationAction(
-          order.userId,
-          approved ? "✅ Review Approved by Admin" : "❌ Review Rejected by Admin",
-          approved
-            ? "Your completed review has been approved by our quality team."
-            : "Your completed review did not meet our quality standards. Please revise and resubmit.",
-          "TELEGRAM",
-          "REVIEWS_REVIEW_VERIFIED"
-        );
-      } catch (notifError) {
-        console.warn("Failed to send notification:", notifError);
-      }
-
-      revalidatePath("/admin/reviews");
-      revalidatePath("/dashboard/services/reviews/orders");
-
-      return { success: true };
-    } else {
-      const supabase = await createAdminClient();
-
-      // Get order details
-      const { data: order } = await supabase
-        .from("review_orders")
-        .select("id, status, user_id")
-        .eq("id", orderId)
-        .single();
-
-      if (!order) {
-        return { success: false, error: "Order not found" };
-      }
-
-      if (order.status !== "COMPLETED") {
-        return { success: false, error: "Order must be completed to verify" };
-      }
-
-      // Update verification status
+    // Update order based on approval/rejection
+    if (approved) {
+      // Approve: Set admin verification status to APPROVED
       const { error: updateError } = await supabase
         .from("review_orders")
         .update({
-          client_feedback: approved ? "APPROVED" : "REJECTED",
+          admin_verification_status: "APPROVED",
+          admin_verified_at: now,
           updated_at: now
         })
         .eq("id", orderId);
 
       if (updateError) throw updateError;
+    } else {
+      // Reject: Reset to PENDING, remove assignment, save rejection reason
+      const { error: updateError } = await supabase
+        .from("review_orders")
+        .update({
+          status: "PENDING",
+          assigned_employee_id: null,
+          assigned_at: null,
+          admin_verification_status: "REJECTED",
+          admin_verified_at: now,
+          rejection_reason: rejectionReason || "",
+          updated_at: now
+        })
+        .eq("id", orderId);
 
-      // Send notification
+      if (updateError) throw updateError;
+    }
+
+    // Send notification to client
+    try {
+      const { sendNotificationAction } = await import("./notifications");
+      await sendNotificationAction(
+        clientEmail,
+        approved ? "✅ Review Approved by Admin" : "❌ Review Rejected by Admin",
+        approved
+          ? `Your review for ${order.business_name} has been approved by our quality team.`
+          : `Your review for ${order.business_name} did not meet our quality standards. Please revise and resubmit.`,
+        "TELEGRAM",
+        "REVIEWS_REVIEW_VERIFIED"
+      );
+    } catch (notifError) {
+      console.warn("Failed to send notification:", notifError);
+    }
+
+    // Send notification to employee
+    if (employeeEmail) {
       try {
         const { sendNotificationAction } = await import("./notifications");
         await sendNotificationAction(
-          order.user_id,
-          approved ? "✅ Review Approved by Admin" : "❌ Review Rejected by Admin",
+          employeeEmail,
+          approved ? "✅ Your Review Was Approved" : "❌ Your Review Was Rejected",
           approved
-            ? "Your completed review has been approved by our quality team."
-            : "Your completed review did not meet our quality standards. Please revise and resubmit.",
+            ? `Your submitted review for ${order.business_name} has been approved by the admin. Great work!`
+            : `Your submitted review for ${order.business_name} was rejected and returned to the queue. Reason: ${rejectionReason || "Not specified"}`,
           "TELEGRAM",
-          "REVIEWS_REVIEW_VERIFIED"
+          approved ? "EMPLOYEE_REVIEW_APPROVED" : "EMPLOYEE_REVIEW_REJECTED"
         );
       } catch (notifError) {
-        console.warn("Failed to send notification:", notifError);
+        console.warn("Failed to send employee notification:", notifError);
       }
-
-      revalidatePath("/admin/reviews");
-      revalidatePath("/dashboard/services/reviews/orders");
-
-      return { success: true };
     }
+
+    revalidatePath("/a/reviews");
+    revalidatePath("/c/services/reviews/orders");
+
+    return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -702,70 +557,239 @@ export async function getReviewsOverviewAction() {
     const auth = await requireAuth({ role: 'ADMIN' });
     if (!auth.success) return auth;
 
-    if (DB_MODE === 'local') {
-      logOperation('SELECT', 'ReviewOrder', DB_MODE);
-      const db = getLocalDb();
+    const supabase = await createClient();
 
-      // Get stats
-      const totalOrders = db.prepare('SELECT COUNT(*) as count FROM ReviewOrder').get() as any;
-      const pendingOrders = db.prepare('SELECT COUNT(*) as count FROM ReviewOrder WHERE status = ?').get('PENDING') as any;
-      const inProgressOrders = db.prepare('SELECT COUNT(*) as count FROM ReviewOrder WHERE status = ?').get('IN_PROGRESS') as any;
-      const completedOrders = db.prepare('SELECT COUNT(*) as count FROM ReviewOrder WHERE status = ?').get('COMPLETED') as any;
+    const [totalOrders, pendingOrders, inProgressOrders, completedOrders, revenue, employeeStats] = await Promise.all([
+      supabase.from("review_orders").select("id", { count: "exact", head: true }),
+      supabase.from("review_orders").select("id", { count: "exact", head: true }).eq("status", "PENDING"),
+      supabase.from("review_orders").select("id", { count: "exact", head: true }).eq("status", "IN_PROGRESS"),
+      supabase.from("review_orders").select("id", { count: "exact", head: true }).eq("status", "COMPLETED"),
+      supabase.from("review_orders").select("credits_consumed").select("credits_consumed"),
+      supabase.from("employee_stats").select("id", { count: "exact", head: true })
+    ]);
 
-      // Get revenue from credits
-      const revenue = db.prepare('SELECT SUM(creditsConsumed) as total FROM ReviewOrder WHERE status != ?').get('CANCELLED') as any;
+    const totalRevenue = revenue.data?.reduce((sum: any, item: any) => {
+      return sum + (item.credits_consumed || 0);
+    }, 0);
 
-      // Get employee stats
-      const employeeStats = db.prepare(`
-        SELECT COUNT(*) as count, SUM(ordersCompleted) as completed, SUM(ordersSkipped) as skipped
-        FROM EmployeeStats
-      `).get() as any;
+    return {
+      success: true,
+      data: {
+        totalOrders: totalOrders.count || 0,
+        pendingOrders: pendingOrders.count || 0,
+        inProgressOrders: inProgressOrders.count || 0,
+        completedOrders: completedOrders.count || 0,
+        totalRevenue: totalRevenue,
+        totalEmployees: employeeStats.count || 0,
+        employeeCompleted: 0,
+        employeeSkipped: 0
+      }
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
 
-      db.close();
+// ============================================
+// EMPLOYEE LIFECYCLE MANAGEMENT (ADMIN)
+// ============================================
 
+export type InviteEmployeeState = {
+  success: boolean;
+  message?: string;
+  error?: string;
+};
+
+/**
+ * Invite a new employee to the platform (admin only).
+ * Creates the auth user via Supabase Admin API and upserts the profile row.
+ * In local mode, also writes to SQLite so the employee appears in the admin list immediately.
+ */
+export async function inviteEmployeeAction(
+  prevState: InviteEmployeeState | null,
+  formData: FormData
+): Promise<InviteEmployeeState> {
+  try {
+    const auth = await requireAuth({ role: 'ADMIN' });
+    if (!auth.success) return { success: false, error: auth.error };
+
+    const rawName = (formData.get("name") as string | null)?.toString().trim();
+    const rawEmail = (formData.get("email") as string | null)?.toString().trim().toLowerCase();
+
+    if (!rawName || !rawEmail) {
+      return { success: false, error: "Name and email are required" };
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(rawEmail)) {
+      return { success: false, error: "Please enter a valid email address" };
+    }
+
+    const name = rawName;
+    const email = rawEmail;
+    const role = "EMPLOYEE";
+
+    // 1. Initialize Admin Client
+    let supabaseAdmin;
+    try {
+      supabaseAdmin = createAdminClient();
+    } catch (e: any) {
       return {
-        success: true,
-        data: {
-          totalOrders: totalOrders?.count || 0,
-          pendingOrders: pendingOrders?.count || 0,
-          inProgressOrders: inProgressOrders?.count || 0,
-          completedOrders: completedOrders?.count || 0,
-          totalRevenue: revenue?.total || 0,
-          totalEmployees: employeeStats?.count || 0,
-          employeeCompleted: employeeStats?.completed || 0,
-          employeeSkipped: employeeStats?.skipped || 0
-        }
-      };
-    } else {
-      const supabase = await createClient();
-
-      const [totalOrders, pendingOrders, inProgressOrders, completedOrders, revenue, employeeStats] = await Promise.all([
-        supabase.from("review_orders").select("id", { count: "exact", head: true }),
-        supabase.from("review_orders").select("id", { count: "exact", head: true }).eq("status", "PENDING"),
-        supabase.from("review_orders").select("id", { count: "exact", head: true }).eq("status", "IN_PROGRESS"),
-        supabase.from("review_orders").select("id", { count: "exact", head: true }).eq("status", "COMPLETED"),
-        supabase.from("review_orders").select("credits_consumed").select("credits_consumed"),
-        supabase.from("employee_stats").select("id", { count: "exact", head: true })
-      ]);
-
-      const totalRevenue = revenue.data?.reduce((sum: any, item: any) => {
-        return sum + (item.credits_consumed || 0);
-      }, 0);
-
-      return {
-        success: true,
-        data: {
-          totalOrders: totalOrders.count || 0,
-          pendingOrders: pendingOrders.count || 0,
-          inProgressOrders: inProgressOrders.count || 0,
-          completedOrders: completedOrders.count || 0,
-          totalRevenue: totalRevenue,
-          totalEmployees: employeeStats.count || 0,
-          employeeCompleted: 0,
-          employeeSkipped: 0
-        }
+        success: false,
+        error: "Server configuration error: " + e.message,
       };
     }
+
+    // 2. Invite user via Supabase Auth Admin API
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3400";
+    const redirectTo = `${siteUrl}/dashboard`;
+
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+      data: { name, role },
+      redirectTo,
+    });
+
+    if (authError) {
+      // Gracefully handle "user already exists"
+      return { success: false, error: "Failed to invite employee: " + authError.message };
+    }
+
+    if (!authData.user) {
+      return { success: false, error: "Failed to create employee account. No user data returned." };
+    }
+
+    // 3. Upsert into public.users table (role EMPLOYEE, ACTIVE, accepting orders by default)
+    const { error: dbError } = await supabaseAdmin
+      .from("users")
+      .upsert({
+        id: authData.user.id,
+        email,
+        name,
+        role,
+        status: "ACTIVE",
+        is_active: true,
+        accepting_orders: true,
+      }, { onConflict: "id" });
+
+    if (dbError) {
+      console.error("Failed to upsert into public.users:", dbError);
+      return {
+        success: false,
+        error: "Employee was invited but failed to create database profile: " + dbError.message,
+      };
+    }
+
+    revalidatePath("/a/reviews/employees");
+
+    return {
+      success: true,
+      message: `Successfully sent invitation to ${email}`,
+    };
+  } catch (error: any) {
+    console.error("Invite Employee Action Error:", error);
+    return {
+      success: false,
+      error: "An unexpected error occurred while creating the employee account.",
+    };
+  }
+}
+
+/**
+ * Toggle an employee's "accepting orders" flag — the days-off switch.
+ * Pauses new order assignment without deactivating the account.
+ */
+export async function toggleEmployeeAcceptingOrdersAction(userId: string) {
+  try {
+    const auth = await requireAuth({ role: 'ADMIN' });
+    if (!auth.success) return auth;
+
+    const supabase = await createAdminClient();
+
+    const { data: current } = await supabase
+      .from("users")
+      .select("accepting_orders")
+      .eq("id", userId)
+      .eq("role", "EMPLOYEE")
+      .single();
+
+    if (!current) {
+      return { success: false, error: "Employee not found" };
+    }
+
+    const newStatus = !current.accepting_orders;
+
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({ accepting_orders: newStatus })
+      .eq("id", userId)
+      .eq("role", "EMPLOYEE");
+
+    if (updateError) throw updateError;
+
+    revalidatePath("/a/reviews/employees");
+    return { success: true, data: { acceptingOrders: Boolean(newStatus) } };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Activate or deactivate an employee account (full lifecycle control).
+ * Deactivated employees are blocked from /e/* via the layout redirect.
+ */
+export async function setEmployeeActiveStatusAction(userId: string, isActive: boolean) {
+  try {
+    const auth = await requireAuth({ role: 'ADMIN' });
+    if (!auth.success) return auth;
+
+    const supabase = await createAdminClient();
+
+    const { error: updateError, count } = await supabase
+      .from("users")
+      .update({ is_active: isActive })
+      .eq("id", userId)
+      .eq("role", "EMPLOYEE");
+
+    if (updateError) throw updateError;
+    if (count === 0) {
+      return { success: false, error: "Employee not found" };
+    }
+
+    revalidatePath("/a/reviews/employees");
+    return { success: true, data: { isActive } };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get full detail for a single review order, scoped to the caller's role.
+ * Employees may only view orders assigned to them; admins may view any order.
+ */
+export async function getEmployeeOrderDetailAction(orderId: string) {
+  try {
+    const auth = await requireAuth();
+    if (!auth.success) return auth;
+
+    const supabase = await createClient();
+    const { data: order, error } = await supabase
+      .from("review_orders")
+      .select("*, users:user_id(name, email), employees:assigned_employee_id(name, email)")
+      .eq("id", orderId)
+      .single();
+
+    if (error) throw error;
+    if (!order) {
+      return { success: false, error: "Order not found" };
+    }
+
+    // Employees can only view orders assigned to them
+    if (auth.user.role === 'EMPLOYEE' && order.assigned_employee_id !== auth.user.id) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    return { success: true, data: order };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

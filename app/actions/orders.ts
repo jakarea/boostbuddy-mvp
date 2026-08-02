@@ -63,6 +63,18 @@ export async function fulfillOrder(
   try {
     const supabaseAdmin = createAdminClient();
 
+    // IDEMPOTENCY: Check if this Stripe session was already fulfilled
+    const { data: existing } = await supabaseAdmin
+      .from("orders")
+      .select("id")
+      .eq("stripe_session_id", stripeSessionId)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      console.log(`Order already fulfilled for session ${stripeSessionId}; skipping.`);
+      return { success: true, skipped: true };
+    }
+
     // 1. Create the order
     const orderPayload = {
       user_id: userId,

@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from '@/lib/auth/server-auth';
 import { revalidatePath } from "next/cache";
 import { stripe } from "@/lib/stripe/stripe";
+import { randomUUID } from "crypto";
 
 // ============================================
 // TYPES
@@ -43,7 +44,15 @@ export async function getCreditPackagesAdminAction() {
       .order("credits_amount", { ascending: true });
 
     if (error) throw error;
-    return { success: true, data };
+
+    // Convert price from string to number for proper calculations
+    const packages = data?.map(pkg => ({
+      ...pkg,
+      price: typeof pkg.price === 'string' ? parseFloat(pkg.price) : pkg.price,
+      creditsAmount: typeof pkg.credits_amount === 'string' ? parseInt(pkg.credits_amount) : pkg.credits_amount
+    })) || [];
+
+    return { success: true, data: packages };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -61,11 +70,19 @@ export async function getActiveCreditPackagesAction() {
     const { data, error } = await supabase
       .from("credit_packages")
       .select("*")
-      .eq("isActive", true)
+      .eq("is_active", true)
       .order("credits_amount", { ascending: true });
 
     if (error) throw error;
-    return { success: true, data };
+
+    // Convert price from string to number for proper calculations
+    const packages = data?.map(pkg => ({
+      ...pkg,
+      price: typeof pkg.price === 'string' ? parseFloat(pkg.price) : pkg.price,
+      creditsAmount: typeof pkg.credits_amount === 'string' ? parseInt(pkg.credits_amount) : pkg.credits_amount
+    })) || [];
+
+    return { success: true, data: packages };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -78,6 +95,9 @@ export async function createCreditPackageAction(data: CreditPackageData) {
   try {
     const auth = await requireAuth({ role: 'ADMIN' });
     if (!auth.success) return auth;
+
+    const packageId = randomUUID();
+    const now = new Date().toISOString();
 
     const supabase = await createAdminClient();
     const { data: package_, error } = await supabase
@@ -94,8 +114,8 @@ export async function createCreditPackageAction(data: CreditPackageData) {
 
     if (error) throw error;
 
-    revalidatePath("/admin/services/credits");
-    revalidatePath("/wallet");
+    revalidatePath("/a/services/credits");
+    revalidatePath("/c/wallet");
     return { success: true, data: package_ };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -128,8 +148,8 @@ export async function updateCreditPackageAction(packageId: string, data: Partial
 
     if (error) throw error;
 
-    revalidatePath("/admin/services/credits");
-    revalidatePath("/wallet");
+    revalidatePath("/a/services/credits");
+    revalidatePath("/c/wallet");
     return { success: true, data: package_ };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -150,7 +170,7 @@ export async function deleteCreditPackageAction(packageId: string) {
     const { data: purchases } = await supabase
       .from("orders")
       .select("id")
-      .eq("creditPackageId", packageId)
+      .eq("credit_package_id", packageId)
       .limit(1);
 
     if (purchases && purchases.length > 0) {
@@ -164,8 +184,8 @@ export async function deleteCreditPackageAction(packageId: string) {
 
     if (error) throw error;
 
-    revalidatePath("/admin/services/credits");
-    revalidatePath("/wallet");
+    revalidatePath("/a/services/credits");
+    revalidatePath("/c/wallet");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -185,7 +205,7 @@ export async function togglePackageStatusAction(packageId: string) {
     // Get current status
     const { data: current } = await supabase
       .from("credit_packages")
-      .select("isActive")
+      .select("is_active")
       .eq("id", packageId)
       .single();
 
@@ -196,13 +216,13 @@ export async function togglePackageStatusAction(packageId: string) {
     // Toggle status
     const { data: package_ } = await supabase
       .from("credit_packages")
-      .update({ is_active: !current.isActive })
+      .update({ is_active: !current.is_active })
       .eq("id", packageId)
       .select()
       .single();
 
-    revalidatePath("/admin/services/credits");
-    revalidatePath("/wallet");
+    revalidatePath("/a/services/credits");
+    revalidatePath("/c/wallet");
     return { success: true, data: package_ };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -222,20 +242,27 @@ export async function purchaseCreditsAction(packageId: string) {
     if (!auth.success) return auth;
 
     const supabase = await createClient();
-
-    // Get package details
     const { data: package_, error: packageError } = await supabase
       .from("credit_packages")
       .select("*")
       .eq("id", packageId)
-      .eq("isActive", true)
+      .eq("is_active", true)
       .single();
 
     if (packageError || !package_) {
       return { success: false, error: "Credit package not found or inactive" };
     }
 
+    // Convert database column names (snake_case) to camelCase
+    const normalizedPackage = {
+      ...package_,
+      creditsAmount: typeof package_.credits_amount === 'string' ? parseInt(package_.credits_amount) : package_.credits_amount,
+      price: typeof package_.price === 'string' ? parseFloat(package_.price) : package_.price
+    };
+
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3400";
+
+    console.log("Creating Stripe session for package:", normalizedPackage.name, "price:", normalizedPackage.price);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -245,30 +272,51 @@ export async function purchaseCreditsAction(packageId: string) {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: package_.name,
-              description: package_.description || `${package_.credits_amount} Credits Package`,
+              name: normalizedPackage.name,
+              description: normalizedPackage.description || `${normalizedPackage.creditsAmount} Credits Package`,
             },
-            unit_amount: Math.round(package_.price * 100),
+            unit_amount: Math.round(normalizedPackage.price * 100),
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
-      success_url: `${siteUrl}/wallet?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${siteUrl}/wallet`,
+      success_url: `${siteUrl}/c/wallet/top-up?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${siteUrl}/c/wallet/top-up`,
       metadata: {
         userId: auth.user.id,
         type: 'CREDITS_PURCHASE',
-        packageId: package_.id,
-        creditsAmount: package_.credits_amount.toString(),
-        amount: package_.price.toString(),
+        packageId: normalizedPackage.id,
+        creditsAmount: normalizedPackage.creditsAmount.toString(),
+        amount: normalizedPackage.price.toString(),
       }
     });
 
+    console.log("Stripe session created:", session.id);
     return { success: true, url: session.url };
   } catch (error: any) {
     console.error("Credits checkout error:", error);
-    return { success: false, error: error.message || "Failed to create checkout session" };
+    console.error("Error type:", error.constructor.name);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+
+    // Provide more detailed error information
+    let errorMessage = "Failed to create checkout session";
+    if (error.type === 'StripeCardError') {
+      errorMessage = `Stripe error: ${error.message}`;
+    } else if (error.type === 'StripeInvalidRequestError') {
+      errorMessage = `Invalid request: ${error.message}`;
+    } else if (error.type === 'StripeAPIError') {
+      errorMessage = `Stripe API error: ${error.message}`;
+    } else if (error.type === 'StripeConnectionError') {
+      errorMessage = `Stripe connection error: ${error.message}`;
+    } else if (error.type === 'StripeAuthenticationError') {
+      errorMessage = `Stripe authentication error - check API keys`;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    return { success: false, error: errorMessage };
   }
 }
 
@@ -277,83 +325,143 @@ export async function purchaseCreditsAction(packageId: string) {
  */
 export async function fulfillCreditsPurchase(sessionId: string) {
   try {
-    const supabase = await createAdminClient();
+    console.log("📍 [LOG#1] fulfillCreditsPurchase START - sessionId:", sessionId);
 
     // Get session details from Stripe
+    console.log("📍 [LOG#3] Attempting to retrieve Stripe session...");
     const session = await stripe.checkout.sessions.retrieve(sessionId);
+    console.log("📍 [LOG#4] Stripe session retrieved successfully");
+
     const metadata = session.metadata;
+    console.log("📍 [LOG#7] Session metadata:", JSON.stringify(metadata));
 
     if (!metadata || !metadata.userId || !metadata.packageId) {
-      console.error("Invalid session metadata for credits purchase");
-      return;
+      console.error("📍 [LOG#8] ERROR: Invalid session metadata");
+      throw new Error("Invalid session metadata - missing userId or packageId");
     }
 
     const userId = metadata.userId;
     const packageId = metadata.packageId;
     const creditsAmount = parseInt(metadata.creditsAmount || "0");
     const amount = parseFloat(metadata.amount || "0");
+    const now = new Date().toISOString();
+
+    console.log("📍 [LOG#13] Parsed values - userId:", userId, "packageId:", packageId);
+    console.log("📍 [LOG#14] Credits amount:", creditsAmount, "Price:", amount);
+
+    console.log("📍 [LOG#46] Using production Supabase mode");
+    console.log("📍 [LOG#46a] Checking SUPABASE_SERVICE_ROLE_KEY...");
+    console.log("📍 [LOG#46b] Service key exists:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+    console.log("📍 [LOG#46c] Service key length:", process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0);
+
+    let supabase;
+    try {
+      supabase = await createAdminClient();
+      console.log("📍 [LOG#46d] Admin client created successfully");
+    } catch (adminError) {
+      console.error("📍 [LOG#46e] Failed to create admin client:", adminError);
+      const message = adminError instanceof Error ? adminError.message : String(adminError);
+      throw new Error(`Failed to create admin client: ${message}. Check SUPABASE_SERVICE_ROLE_KEY environment variable.`);
+    }
+
+    // IDEMPOTENCY: Check if this Stripe session was already fulfilled
+    const { data: existing } = await supabase
+      .from("orders")
+      .select("id")
+      .eq("stripe_session_id", sessionId)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      console.log("📍 [LOG#47] Session already fulfilled");
+      return;
+    }
 
     // Create order record
-    const { data: order } = await supabase
+    console.log("📍 [LOG#47] Creating order record...");
+    console.log("📍 [LOG#47a] Order data:", {
+      user_id: userId,
+      credit_package_id: packageId,
+      amount,
+      status: "PAID",
+      type: "CREDITS_PURCHASE",
+      stripe_session_id: sessionId,
+    });
+
+    const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
-        userId,
-        creditPackageId: packageId,
+        user_id: userId,
+        credit_package_id: packageId,
         amount,
         status: "PAID",
         type: "CREDITS_PURCHASE",
-        stripeSessionId: sessionId,
+        stripe_session_id: sessionId,
       })
       .select()
       .single();
 
-    if (!order) {
-      console.error("Failed to create order for credits purchase");
-      return;
+    console.log("📍 [LOG#47b] Order creation result:", order);
+    console.log("📍 [LOG#47c] Order error:", orderError);
+
+    if (!order || orderError) {
+      console.error("📍 [LOG#48] Failed to create order");
+      console.error("📍 [LOG#48a] Error details:", orderError);
+      console.error("📍 [LOG#48b] Error code:", orderError?.code);
+      console.error("📍 [LOG#48c] Error message:", orderError?.message);
+      console.error("📍 [LOG#48d] Error details:", orderError?.details);
+      console.error("📍 [LOG#48e] Error hint:", orderError?.hint);
+      throw new Error(`Failed to create order in Supabase: ${orderError?.message || 'Unknown error'}. Code: ${orderError?.code || 'Unknown'}`);
     }
 
     // Get current balance
     const { data: user } = await supabase
       .from("users")
-      .select("creditsBalance")
+      .select("credits_balance, email")
       .eq("id", userId)
       .single();
 
-    const currentBalance = user?.creditsBalance || 0;
+    const currentBalance = user?.credits_balance || 0;
     const newBalance = currentBalance + creditsAmount;
 
     // Create credit transaction
     await supabase
       .from("credit_transactions")
       .insert({
-        userId,
+        user_id: userId,
         amount: creditsAmount,
-        balanceAfter: newBalance,
+        balance_after: newBalance,
         type: "PURCHASE",
         description: `Purchased ${creditsAmount} credits`,
-        referenceId: order.id,
+        reference_id: order.id,
       });
 
     // Update user balance
     await supabase
       .from("users")
-      .update({ creditsBalance: newBalance })
+      .update({ credits_balance: newBalance })
       .eq("id", userId);
 
     // Send notifications
-    const { sendNotificationAction } = await import("./notifications");
-    await sendNotificationAction(
-      user?.email || userId,
-      "💰 Credits Purchased Successfully",
-      `You have purchased ${creditsAmount} credits. Your new balance is ${newBalance} credits.`,
-      "TELEGRAM",
-      "REVIEWS_CREDITS_PURCHASED"
-    );
+    try {
+      const { sendNotificationAction } = await import("./notifications");
+      await sendNotificationAction(
+        user?.email || userId,
+        "💰 Credits Purchased Successfully",
+        `You have purchased ${creditsAmount} credits. Your new balance is ${newBalance} credits.`,
+        "TELEGRAM",
+        "REVIEWS_CREDITS_PURCHASED"
+      );
+    } catch (notifError) {
+      console.warn("📍 [LOG#49] Failed to send notification:", notifError);
+    }
 
-    console.log(`Credits purchase fulfilled: ${creditsAmount} credits for user ${userId}`);
+    console.log("📍 [LOG#50] 🎉 Supabase fulfillment complete");
   } catch (error: any) {
-    console.error("Credits fulfillment error:", error);
+    console.error("📍 [LOG#51] ❌ ERROR:", error.message);
+    console.error("📍 [LOG#52] Stack:", error.stack);
+    throw error; // Re-throw to propagate to caller
   }
+  console.log("📍 [LOG#53] ========== FULFILL END ==========");
 }
 
 // ============================================
@@ -365,28 +473,42 @@ export async function fulfillCreditsPurchase(sessionId: string) {
  */
 export async function getUserCreditsBalanceAction(userId?: string) {
   try {
+    console.log("📍 [BALANCE#1] getUserCreditsBalanceAction called");
+    console.log("📍 [BALANCE#2] userId parameter:", userId);
+
     const auth = await requireAuth();
+    console.log("📍 [BALANCE#3] Auth check:", auth.success ? "SUCCESS" : "FAILED");
+
     if (!auth.success) return auth;
 
     const targetUserId = userId || auth.user.id;
+    console.log("📍 [BALANCE#4] targetUserId:", targetUserId);
+
     const isOwnBalance = !userId || userId === auth.user.id;
+    console.log("📍 [BALANCE#6] isOwnBalance:", isOwnBalance);
 
     // Only admins can check other users' balances
     if (!isOwnBalance && auth.user.role !== 'ADMIN') {
+      console.log("📍 [BALANCE#7] ❌ Unauthorized - not admin");
       return { success: false, error: "Unauthorized" };
     }
 
+    console.log("📍 [BALANCE#14] Using Supabase");
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("users")
-      .select("creditsBalance")
+      .select("credits_balance")
       .eq("id", targetUserId)
       .single();
 
+    console.log("📍 [BALANCE#15] Supabase query result:", data);
+    console.log("📍 [BALANCE#16] Supabase error:", error);
+
     if (error) throw error;
 
-    return { success: true, balance: data?.creditsBalance || 0 };
+    return { success: true, balance: data?.credits_balance || 0 };
   } catch (error: any) {
+    console.error("📍 [BALANCE#17] ❌ Error:", error.message);
     return { success: false, error: error.message };
   }
 }
@@ -411,14 +533,70 @@ export async function getCreditsHistoryAction(userId?: string, limit: number = 2
     const { data, error } = await supabase
       .from("credit_transactions")
       .select("*")
-      .eq("userId", targetUserId)
-      .order("createdAt", { ascending: false })
+      .eq("user_id", targetUserId)
+      .order("created_at", { ascending: false })
       .limit(limit);
 
     if (error) throw error;
 
-    return { success: true, data };
+    // Normalize field names to camelCase for frontend
+    const normalizedData = data?.map(tx => ({
+      id: tx.id,
+      userId: tx.user_id,
+      amount: tx.amount,
+      balanceAfter: tx.balance_after,
+      type: tx.type,
+      description: tx.description,
+      referenceId: tx.reference_id,
+      createdAt: tx.created_at
+    })) || [];
+
+    return { success: true, data: normalizedData };
   } catch (error: any) {
+    console.error("Error fetching credits history:", error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// Alias for wallet page
+export const getCreditTransactionsAction = getCreditsHistoryAction;
+
+/**
+ * Get wallet summary (balance + recent transactions) - optimized single call
+ */
+export async function getWalletSummaryAction(limit: number = 10) {
+  try {
+    const auth = await requireAuth();
+    if (!auth.success) return auth;
+
+    const supabase = await createClient();
+    const [userResult, transactionsResult] = await Promise.all([
+      supabase.from("users").select("credits_balance").eq("id", auth.user.id).single(),
+      supabase
+        .from("credit_transactions")
+        .select("id, user_id, amount, balance_after, type, description, reference_id, created_at")
+        .eq("user_id", auth.user.id)
+        .order("created_at", { ascending: false })
+        .limit(limit)
+    ]);
+
+    if (userResult.error) throw userResult.error;
+    if (transactionsResult.error) throw transactionsResult.error;
+
+    const normalizedData = transactionsResult.data?.map(tx => ({
+      id: tx.id,
+      userId: tx.user_id,
+      amount: tx.amount,
+      balanceAfter: tx.balance_after,
+      type: tx.type,
+      description: tx.description,
+      referenceId: tx.reference_id,
+      createdAt: tx.created_at
+    })) || [];
+
+    return { success: true, balance: userResult.data?.credits_balance || 0, data: normalizedData };
+  } catch (error: any) {
+    console.error("Error fetching wallet summary:", error.message);
     return { success: false, error: error.message };
   }
 }
@@ -427,40 +605,80 @@ export async function getCreditsHistoryAction(userId?: string, limit: number = 2
  * Get all credit transactions (admin only)
  */
 export async function getAllCreditTransactionsAction(filters?: {
-  userId?: string;
+  userSearch?: string;
   type?: string;
   dateFrom?: string;
   dateTo?: string;
 }) {
   try {
+    console.log("🔍 [TRANSACTIONS] Loading all transactions with filters:", filters);
     const auth = await requireAuth({ role: 'ADMIN' });
+    console.log("🔍 [TRANSACTIONS] Auth check:", auth.success ? "SUCCESS" : "FAILED");
     if (!auth.success) return auth;
 
-    const supabase = await createClient();
+    // Use admin client to bypass RLS policies
+    const supabase = await createAdminClient();
+    console.log("🔍 [TRANSACTIONS] Using admin client to bypass RLS");
+
+    console.log("🔍 [TRANSACTIONS] Testing: Count all transactions first");
+    const { count } = await supabase
+      .from("credit_transactions")
+      .select("*", { count: "exact", head: true });
+    console.log("🔍 [TRANSACTIONS] Total transactions in database:", count);
+
+    console.log("🔍 [TRANSACTIONS] Querying credit_transactions table...");
     let query = supabase
       .from("credit_transactions")
       .select("*")
-      .order("createdAt", { ascending: false });
+      .order("created_at", { ascending: false });
 
-    if (filters?.userId) {
-      query = query.eq("userId", filters.userId);
+    if (filters?.userSearch) {
+      console.log("🔍 [TRANSACTIONS] Filtering by user search:", filters.userSearch);
+      // Get user IDs that match the search first
+      const trimmed = filters.userSearch.trim();
+      const { data: users } = await supabase
+        .from("users")
+        .select("id")
+        .or(`name.ilike.%${trimmed}%,email.ilike.%${trimmed}%`)
+        .limit(100);
+
+      const userIds = users?.map(u => u.id) || [];
+      console.log("🔍 [TRANSACTIONS] Found matching user IDs:", userIds.length);
+
+      if (userIds.length > 0) {
+        query = query.in("user_id", userIds);
+      } else {
+        // If no users match, return empty result
+        console.log("🔍 [TRANSACTIONS] No matching users, returning empty");
+        return { success: true, data: [] };
+      }
     }
     if (filters?.type) {
+      console.log("🔍 [TRANSACTIONS] Filtering by type:", filters.type);
       query = query.eq("type", filters.type);
     }
     if (filters?.dateFrom) {
-      query = query.gte("createdAt", filters.dateFrom);
+      console.log("🔍 [TRANSACTIONS] Filtering from date:", filters.dateFrom);
+      query = query.gte("created_at", filters.dateFrom);
     }
     if (filters?.dateTo) {
-      query = query.lte("createdAt", filters.dateTo);
+      console.log("🔍 [TRANSACTIONS] Filtering to date:", filters.dateTo);
+      query = query.lte("created_at", filters.dateTo);
     }
 
     const { data, error } = await query;
+    console.log("🔍 [TRANSACTIONS] Query result - Error:", error);
+    console.log("🔍 [TRANSACTIONS] Query result - Data count:", data?.length || 0);
+    console.log("🔍 [TRANSACTIONS] Sample data:", data?.slice(0, 2));
 
-    if (error) throw error;
+    if (error) {
+      console.error("🔍 [TRANSACTIONS] Database error:", error);
+      throw error;
+    }
 
     return { success: true, data };
   } catch (error: any) {
+    console.error("🔍 [TRANSACTIONS] Exception:", error.message);
     return { success: false, error: error.message };
   }
 }
@@ -477,8 +695,6 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
     const auth = await requireAuth({ role: 'ADMIN' });
     if (!auth.success) return auth;
 
-    const supabase = await createAdminClient();
-
     // Validate inputs
     if (!data.userId || !data.reason) {
       return { success: false, error: "User ID and reason are required" };
@@ -488,10 +704,14 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
       return { success: false, error: "Adjustment amount cannot be zero" };
     }
 
+    const now = new Date().toISOString();
+
+    const supabase = await createAdminClient();
+
     // Get current user balance
     const { data: user } = await supabase
       .from("users")
-      .select("creditsBalance, email, name")
+      .select("credits_balance, email, name")
       .eq("id", data.userId)
       .single();
 
@@ -499,7 +719,7 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
       return { success: false, error: "User not found" };
     }
 
-    const currentBalance = user.creditsBalance || 0;
+    const currentBalance = user.credits_balance || 0;
     const newBalance = currentBalance + data.amount;
 
     // Check if removal would make balance negative
@@ -508,15 +728,14 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
     }
 
     // Create transaction record
-    const transactionType = data.amount > 0 ? "ADMIN_ADJUST" : "ADMIN_ADJUST";
     const { error: transactionError } = await supabase
       .from("credit_transactions")
       .insert({
-        userId: data.userId,
+        user_id: data.userId,
         amount: data.amount,
-        balanceAfter: newBalance,
-        type: transactionType,
-        description: data.reason,
+        balance_after: newBalance,
+        type: data.amount > 0 ? "PURCHASE" : "SPEND",
+        description: `Admin adjustment: ${data.reason}`,
         metadata: JSON.stringify({
           adminId: auth.user.id,
           adminEmail: auth.user.email,
@@ -530,7 +749,7 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
     // Update user balance
     const { error: updateError } = await supabase
       .from("users")
-      .update({ creditsBalance: newBalance })
+      .update({ credits_balance: newBalance })
       .eq("id", data.userId);
 
     if (updateError) throw updateError;
@@ -549,8 +768,8 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
       "REVIEWS_CREDITS_ADJUSTED"
     );
 
-    revalidatePath("/admin/services/credits");
-    revalidatePath("/wallet");
+    revalidatePath("/a/services/credits");
+    revalidatePath("/c/wallet");
 
     return {
       success: true,
@@ -595,7 +814,7 @@ export async function getCreditsOverviewAction() {
     const { count: activePackages } = await supabase
       .from("credit_packages")
       .select("*", { count: "exact", head: true })
-      .eq("isActive", true);
+      .eq("is_active", true);
 
     // Get total transactions
     const { count: totalTransactions } = await supabase
@@ -612,6 +831,48 @@ export async function getCreditsOverviewAction() {
       }
     };
   } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Search users by name, email, or ID for credit adjustment (admin only)
+ */
+export async function searchUsersForCreditsAction(query: string) {
+  try {
+    const auth = await requireAuth({ role: 'ADMIN' });
+    if (!auth.success) return auth;
+
+    const trimmed = (query || '').trim();
+    if (trimmed.length < 2) {
+      return { success: true, data: [] };
+    }
+
+    const supabase = await createClient();
+
+    // Use ILIKE only on text columns (name, email) - NOT on UUID id column
+    // PostgreSQL doesn't support ILIKE on UUID types
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, name, email, credits_balance")
+      .eq("role", "CLIENT")
+      .or(`name.ilike.%${trimmed}%,email.ilike.%${trimmed}%`)
+      .order("name", { ascending: true })
+      .limit(20);
+
+    if (error) throw error;
+
+    // Normalize to camelCase keys expected by the UI
+    const normalized = (data || []).map((u: any) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      creditsBalance: u.credits_balance ?? 0,
+    }));
+
+    return { success: true, data: normalized };
+  } catch (error: any) {
+    console.error("Credit search error:", error.message);
     return { success: false, error: error.message };
   }
 }

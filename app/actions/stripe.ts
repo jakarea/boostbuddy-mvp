@@ -115,13 +115,28 @@ export async function createCheckoutSessionAction(
       if (calculation.success) {
         checkoutAmount = calculation.finalPrice;
         checkoutItemName = `Renewal/Upgrade: ${calculation.targetName}`;
-        checkoutItemDescription = calculation.credit > 0 
+        checkoutItemDescription = calculation.credit > 0
           ? `Prorated upgrade. €${calculation.credit} credit applied for remaining days.`
           : `Standard subscription renewal.`;
       }
+    } else if (type === "PURCHASE" && serviceId) {
+      // SECURITY: For PURCHASE, always use the authoritative price from the database.
+      // Never trust the client-supplied amount to prevent arbitrary-price purchases.
+      const { data: service, error: srvError } = await supabase
+        .from("services")
+        .select("price, name")
+        .eq("id", serviceId)
+        .single();
+
+      if (srvError || !service) {
+        return { success: false, error: "Service not found" };
+      }
+
+      checkoutAmount = Number(service.price);
+      checkoutItemName = service.name || itemName;
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3300";
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3400";
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -142,8 +157,8 @@ export async function createCheckoutSessionAction(
       ],
       mode: 'payment',
       automatic_tax: { enabled: true },
-      success_url: `${siteUrl}/dashboard/payments/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${siteUrl}/dashboard/payments`,
+      success_url: `${siteUrl}/c/payments/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${siteUrl}/c/payments`,
       metadata: {
         userId: auth.user.id,
         type,

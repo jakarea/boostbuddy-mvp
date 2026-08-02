@@ -101,3 +101,79 @@ export function formatDate(
 ): string {
   return new Date(dateStr).toLocaleDateString("en-US", options);
 }
+
+/**
+ * Format date in short format (MM/DD/YYYY) - PREVENTS HYDRATION ISSUES
+ * Use this instead of toLocaleDateString() to avoid server/client mismatches
+ */
+export function formatDateShort(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+}
+
+/**
+ * Format date in long format (Month DD, YYYY)
+ */
+export function formatDateLong(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+}
+
+/**
+ * Format date and time (MM/DD/YYYY, HH:MM PM) - PREVENTS HYDRATION ISSUES
+ */
+export function formatDateTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleString("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
+}
+
+/**
+ * Format time only (HH:MM PM) - PREVENTS HYDRATION ISSUES
+ */
+export function formatTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
+}
+
+/**
+ * Safe date formatting that handles null/undefined and prevents hydration issues
+ * Use this for all date displays in React components
+ */
+export function safeDateDisplay(
+  dateStr: string | null | undefined,
+  format: "short" | "long" | "datetime" | "time" = "short"
+): string {
+  if (!dateStr) return "N/A";
+
+  try {
+    switch (format) {
+      case "short":
+        return formatDateShort(dateStr);
+      case "long":
+        return formatDateLong(dateStr);
+      case "datetime":
+        return formatDateTime(dateStr);
+      case "time":
+        return formatTime(dateStr);
+      default:
+        return formatDateShort(dateStr);
+    }
+  } catch {
+    return "Invalid date";
+  }
+}

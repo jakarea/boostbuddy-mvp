@@ -50,9 +50,9 @@ export default function UserTelegramConfig() {
       if (res.success) {
         setSavedChatId(chatId);
         setIsEditing(false);
-        setFeedback({ ok: true, msg: t("telegram_save_success", { defaultValue: "Settings saved successfully." }) });
+        setFeedback({ ok: true, msg: t("telegram_save_success") });
       } else {
-        setFeedback({ ok: false, msg: res.error ?? "Failed to save settings" });
+        setFeedback({ ok: false, msg: res.error ?? t("telegram_save_failed") });
       }
     });
   };
@@ -65,9 +65,9 @@ export default function UserTelegramConfig() {
         setSavedChatId(null);
         setChatId("");
         setIsEditing(true);
-        setFeedback({ ok: true, msg: t("telegram_delete_success", { defaultValue: "Settings removed successfully." }) });
+        setFeedback({ ok: true, msg: t("telegram_delete_success") });
       } else {
-        setFeedback({ ok: false, msg: res.error ?? "Failed to remove settings" });
+        setFeedback({ ok: false, msg: res.error ?? t("telegram_delete_failed") });
       }
     });
   };
@@ -79,8 +79,8 @@ export default function UserTelegramConfig() {
       setFeedback({
         ok: res.success,
         msg: res.success
-          ? t("telegram_test_success", { defaultValue: "Test message sent! Check your Telegram." })
-          : res.error ?? "Test send failed.",
+          ? t("telegram_test_success")
+          : res.error ?? t("telegram_test_failed"),
       });
     });
   };
@@ -150,7 +150,7 @@ export default function UserTelegramConfig() {
               <Input
                 value={chatId}
                 onChange={(e) => setChatId(e.target.value)}
-                placeholder="e.g. 123456789"
+                placeholder={t("telegram_placeholder")}
                 className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 h-9 text-xs flex-1"
               />
               <Button size="sm" className="bg-[#168BB0] hover:bg-[#0F7493] text-white h-9 px-3 text-xs" onClick={handleSave} disabled={isPending || !chatId.trim()}>
@@ -181,7 +181,7 @@ export default function UserTelegramConfig() {
           <DialogHeader>
             <DialogTitle className="text-base font-extrabold">{t("telegram_guide_title")}</DialogTitle>
             <DialogDescription className="text-xs text-zinc-500 leading-relaxed mt-1">
-              Follow these simple steps to start receiving updates on Telegram.
+              {t("telegram_guide_desc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3.5 text-xs text-zinc-600 dark:text-zinc-400 mt-2">

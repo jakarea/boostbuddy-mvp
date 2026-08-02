@@ -49,9 +49,11 @@ export default function Home() {
       if (signInState.success === false && signInState.error) {
         const key = signInState.error;
         setErrorMsg(t(`auth.${key}`, { defaultValue: t(key, { defaultValue: key }) }));
+      } else if (signInState.success === true && signInState.redirectUrl) {
+        router.push(signInState.redirectUrl);
       }
     }
-  }, [signInState, t]);
+  }, [signInState, t, router]);
 
   useEffect(() => {
     if (signUpState) {

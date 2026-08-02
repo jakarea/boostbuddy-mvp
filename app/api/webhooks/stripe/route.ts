@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe/stripe";
 import { fulfillOrder } from "@/app/actions/orders";
+import { fulfillCreditsPurchase } from "@/app/actions/credits";
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -22,18 +23,25 @@ export async function POST(request: Request) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as any;
-    
+
     // Retrieve metadata
     const metadata = session.metadata;
     if (metadata && metadata.userId) {
-      await fulfillOrder(
-        metadata.userId,
-        metadata.type as "PURCHASE" | "RENEWAL",
-        parseFloat(metadata.amount || "0"),
-        session.id,
-        metadata.serviceId || undefined,
-        metadata.profileId || undefined
-      );
+      // Branch on order type: credits purchases go through a dedicated fulfiller
+      // that creates the Order row, CreditTransaction, and increments User.creditsBalance.
+      // fulfillCreditsPurchase has its own idempotency check on stripe_session_id.
+      if (metadata.type === "CREDITS_PURCHASE") {
+        await fulfillCreditsPurchase(session.id);
+      } else {
+        await fulfillOrder(
+          metadata.userId,
+          metadata.type as "PURCHASE" | "RENEWAL",
+          parseFloat(metadata.amount || "0"),
+          session.id,
+          metadata.serviceId || undefined,
+          metadata.profileId || undefined
+        );
+      }
     }
   }
 

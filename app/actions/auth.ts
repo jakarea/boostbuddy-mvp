@@ -10,6 +10,7 @@ export type AuthState = {
   success: boolean;
   error?: string;
   successMessage?: string;
+  redirectUrl?: string;
 };
 
 /**
@@ -65,43 +66,45 @@ export async function signInAction(prevState: AuthState | undefined, formData: F
     };
   }
 
-  const { data: profile, error: profileError } = await supabase
+  // Read role and status from custom users table (reliable source of truth)
+  const { data: userData, error: userError } = await supabase
     .from("users")
     .select("role, status")
     .eq("id", user.id)
     .single();
 
-  if (profileError || !profile) {
-    console.error("❌ Profile fetch failed:", profileError?.message);
+  if (userError || !userData) {
+    console.error("❌ Failed to fetch user role from users table:", userError?.message);
     console.groupEnd();
-    return { success: false, error: "Failed to fetch user profile" };
+    return { success: false, error: "Failed to verify user role. Please contact support." };
   }
 
-  console.log("Step 3: ✅ Sign in authenticated | Role:", profile.role, "| Status:", profile.status);
+  const role = userData.role;
+  const isActive = userData.status === 'ACTIVE';
 
-  // Priority 2: Check Admin Approval
-  if (profile.role === "ADMIN") {
-    console.log("Redirecting to: /admin/dashboard");
-    redirect("/admin/dashboard");
-  } else if (profile.status === "PENDING") {
-    console.log("❌ Sign in blocked: Priority 2 - Account is PENDING admin approval");
+  console.log("Step 3: ✅ Sign in authenticated | Role:", role, "| Status:", userData.status, "| isActive:", isActive);
+
+  // Priority 2: Check if user is active (regardless of role)
+  if (!isActive) {
+    console.log("❌ Sign in blocked: Account is not active (status:", userData.status, ")");
     await supabase.auth.signOut();
     console.groupEnd();
-    return {
-      success: false,
-      error: "pending_approval_login_error",
-    };
-  } else if (profile.status === "DEACTIVATED") {
-    console.log("❌ Sign in blocked: Account is DEACTIVATED");
-    await supabase.auth.signOut();
+    return { success: false, error: "pending_approval_login_error" };
+  }
+
+  // Priority 3: Role-based redirect
+  if (role === "ADMIN") {
+    console.log("Returning redirect URL: /a/dashboard");
     console.groupEnd();
-    return {
-      success: false,
-      error: "deactivated_login_error",
-    };
+    return { success: true, redirectUrl: "/a/dashboard" };
+  } else if (role === "EMPLOYEE") {
+    console.log("Returning redirect URL: /e/dashboard");
+    console.groupEnd();
+    return { success: true, redirectUrl: "/e/dashboard" };
   } else {
-    console.log("Redirecting to: /dashboard");
-    redirect("/dashboard");
+    console.log("Returning redirect URL: /c/dashboard");
+    console.groupEnd();
+    return { success: true, redirectUrl: "/c/dashboard" };
   }
 }
 
@@ -145,7 +148,7 @@ export async function signUpAction(prevState: AuthState | undefined, formData: F
     email,
     password,
     options: {
-      data: { name, role: "CLIENT", status: "PENDING" },
+      data: { name, role: "CLIENT", isActive: false },
     },
   });
 

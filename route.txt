@@ -1,0 +1,297 @@
+================================================================================
+BoostBuddy MVP - Application Routes with Role-Based Access
+================================================================================
+Base URL (development): http://localhost:3400
+Framework: Next.js 16 (App Router)
+
+User Roles: ADMIN, CLIENT, EMPLOYEE
+Access Legend:
+  [PUBLIC]     = No authentication required
+  [ADMIN]      = Admin only
+  [CLIENT]     = Client only
+  [EMPLOYEE]   = Employee only
+  [AUTH]       = Any authenticated user (Admin / Client / Employee)
+  [SYSTEM]     = Backend only (webhooks / OAuth callbacks, not for users)
+================================================================================
+
+--------------------------------------------------------------------------------
+1. PUBLIC / AUTHENTICATION ROUTES
+--------------------------------------------------------------------------------
+Name                        Link                         Access
+--------------------------- ---------------------------- -----------------
+Home (Login / Sign Up)      /                            [PUBLIC]
+Forgot Password             /forgot-password             [PUBLIC]
+Reset Password              /reset-password              [PUBLIC]
+Stripe Checkout             /checkout                    [AUTH] (Client flow)
+Logout Confirmation         /logout                      [AUTH]
+
+--------------------------------------------------------------------------------
+2. API & WEBHOOK ROUTES (route handlers)
+--------------------------------------------------------------------------------
+Name                        Link                         Access
+--------------------------- ---------------------------- -----------------
+Supabase Auth Callback      /auth/callback               [SYSTEM]
+Logout API                  /api/logout                  [AUTH]
+User Credits API            /api/user/credits            [AUTH] (Client flow)
+Stripe Webhook              /api/webhooks/stripe         [SYSTEM]
+
+--------------------------------------------------------------------------------
+3. ADMIN PANEL ROUTES (role: ADMIN)
+--------------------------------------------------------------------------------
+Name                        Link                         Access
+--------------------------- ---------------------------- -----------------
+Admin Dashboard             /admin/dashboard             [ADMIN]
+Manage Clients              /admin/clients               [ADMIN]
+Manage Profiles             /admin/profiles              [ADMIN]
+Manage Services             /admin/services              [ADMIN]
+Manage Credits              /admin/services/credits      [ADMIN]
+Adjust Credits              /admin/services/credits/adjust       [ADMIN]
+Credit Transactions         /admin/services/credits/transactions [ADMIN]
+Manage Orders               /admin/orders                [ADMIN]
+Manage Invoices             /admin/invoices              [ADMIN]
+Admin Notifications         /admin/notifications         [ADMIN]
+Reviews Overview            /admin/reviews               [ADMIN]
+Review Employees            /admin/reviews/employees     [ADMIN]
+Review Queue                /admin/reviews/queue         [ADMIN]
+Review Verification         /admin/reviews/verification  [ADMIN]
+
+--------------------------------------------------------------------------------
+4. CLIENT DASHBOARD ROUTES (role: CLIENT)
+--------------------------------------------------------------------------------
+Name                        Link                         Access
+--------------------------- ---------------------------- -----------------
+Client Dashboard            /dashboard                   [CLIENT]
+Billing                     /dashboard/billing           [CLIENT]
+Payments                    /dashboard/payments          [CLIENT]
+Payment Success             /dashboard/payments/success  [CLIENT]
+Invoices                    /dashboard/invoices          [CLIENT]
+Client Notifications        /dashboard/notifications     [CLIENT]
+Pending Orders              /dashboard/pending           [CLIENT]
+Settings                    /dashboard/settings          [CLIENT]
+Documentation               /dashboard/docs              [CLIENT]
+Reviews Service             /dashboard/services/reviews            [CLIENT]
+New Review Order            /dashboard/services/reviews/new-order  [CLIENT]
+Review Orders               /dashboard/services/reviews/orders     [CLIENT]
+Review Order Detail         /dashboard/services/reviews/orders/[id] [CLIENT]
+Clocker (coming soon)       /dashboard/services/clocker            [CLIENT]
+Prompt  (coming soon)       /dashboard/services/prompt              [CLIENT]
+
+--------------------------------------------------------------------------------
+5. EMPLOYEE PANEL ROUTES (role: EMPLOYEE)
+--------------------------------------------------------------------------------
+Name                        Link                         Access
+--------------------------- ---------------------------- -----------------
+Employee Dashboard          /employee/dashboard          [EMPLOYEE]
+Employee Orders             /employee/orders             [EMPLOYEE]
+Employee Order Detail       /employee/orders/[id]        [EMPLOYEE]
+Employee Pending            /employee/pending            [EMPLOYEE]
+Employee Notifications      /employee/notifications      [EMPLOYEE]
+
+--------------------------------------------------------------------------------
+6. WALLET ROUTES (Credits & Transactions)
+--------------------------------------------------------------------------------
+Name                        Link                         Access
+--------------------------- ---------------------------- -----------------
+Wallet                      /wallet                      [AUTH] (Client flow)
+Wallet Top-Up               /wallet/top-up               [AUTH] (Client flow)
+Wallet Transactions         /wallet/transactions         [AUTH] (Client flow)
+
+================================================================================
+ROUTE COUNT PER ROLE (exclusive routes only)
+================================================================================
+[PUBLIC]   ... 3   (/, /forgot-password, /reset-password)
+[ADMIN]    ... 14  (all /admin/*)
+[CLIENT]   ... 15  (all /dashboard/*) -- includes 4 new pages
+                   (docs, settings, services/clocker, services/prompt)
+[EMPLOYEE] ... 5   (all /employee/*)
+[SYSTEM]   ... 2   (/auth/callback, /api/webhooks/stripe)
+[AUTH] (shared by all authenticated users) ... 7
+   - /checkout, /logout, /api/logout, /api/user/credits
+   - /wallet, /wallet/top-up, /wallet/transactions
+
+TOTAL ROUTES: 46 (incl. dynamic [id] routes)
+
+--------------------------------------------------------------------------------
+HTTP METHOD BREAKDOWN (all 46 routes)
+--------------------------------------------------------------------------------
+Method     Count   Notes
+---------- ------- -------------------------------------------------------
+GET        44      42 page.tsx routes + 2 route.ts handlers
+                   (auth/callback, api/user/credits)
+POST        2      api/logout, api/webhooks/stripe
+PUT         0      -
+PATCH       0      -
+DELETE      0      -
+OTHER       0      -
+---------- ------- -------------------------------------------------------
+TOTAL      46
+
+Note: page.tsx URLs are accessed via GET in the browser. Forms on those
+pages may submit via Server Actions (POST under the hood), but the route
+itself is GET-addressable. Only /api/* and /auth/callback export explicit
+HTTP handlers.
+
+================================================================================
+ACCESS PER ROLE (including shared [AUTH] routes)
+================================================================================
+Role          GET    POST   PUT/PATCH/DELETE   TOTAL ACCESSIBLE
+------------ ------ ------ ----------------- -------------------
+ADMIN         20     1      0                 21
+CLIENT        21     1      0                 22
+EMPLOYEE      11     1      0                 12
+PUBLIC         3     0      0                  3
+SYSTEM         1     1      0                  2
+------------ ------ ------ ----------------- -------------------
+
+Details:
+- ADMIN:     14 admin-only + 7 shared [AUTH] = 21  (GET 20, POST 1)
+- CLIENT:    15 client-only + 7 shared [AUTH] = 22 (GET 21, POST 1)
+- EMPLOYEE:   5 employee-only + 7 shared [AUTH] = 12 (GET 11, POST 1)
+
+The 7 shared [AUTH] routes are: /checkout, /logout, /api/logout,
+/api/user/credits, /wallet, /wallet/top-up, /wallet/transactions
+(GET 6, POST 1 = /api/logout).
+
+The 2 [SYSTEM] routes are called by external services (Supabase / Stripe),
+not by logged-in users, and are not counted toward any user role.
+
+POST routes (only 2 in the whole app):
+  1. /api/logout           [AUTH]   - handled by logout API
+  2. /api/webhooks/stripe  [SYSTEM] - called by Stripe
+
+================================================================================
+CLIENT SIDEBAR MAPPING (route coverage vs. final sidebar structure)
+================================================================================
+Sidebar behavior (matches ADMIN sidebar):
+  - Single-link entries: always visible (Dashboard, Documentation)
+  - Collapsible groups (Boxes, Services, Wallet, Account): COLLAPSED BY
+    DEFAULT. The group containing the current route auto-expands; others
+    stay collapsed until clicked. User toggles persist for the session.
+
+Legend:  [OK] = route exists   [MISSING] = route not found   [SOON] = placeholder
+
+--------------------------------------------------------------------------------
+Dashboard
+--------------------------------------------------------------------------------
+  • Dashboard                  -> /dashboard                              [OK]
+
+--------------------------------------------------------------------------------
+Boxes
+--------------------------------------------------------------------------------
+  • My Boxes                   -> /dashboard         (assigned profiles) [OK*]
+                                                              * no dedicated /boxes route yet
+  • Buy Boxes                  -> /checkout                               [OK]
+
+--------------------------------------------------------------------------------
+Services
+--------------------------------------------------------------------------------
+  • Reviews                    -> /dashboard/services/reviews             [OK]
+       - New Review Order      -> /dashboard/services/reviews/new-order   [OK]
+       - Review Orders         -> /dashboard/services/reviews/orders      [OK]
+       - Review Order Detail   -> /dashboard/services/reviews/orders/[id] [OK]
+  • Clocker (Available soon)   -> /dashboard/services/clocker             [OK - placeholder]
+  • Prompt  (Available soon)   -> /dashboard/services/prompt              [OK - placeholder]
+
+--------------------------------------------------------------------------------
+Wallet
+--------------------------------------------------------------------------------
+  • Wallet (overview)          -> /wallet                                 [OK]
+  • Top Up Credits             -> /wallet/top-up                          [OK]
+  • Transactions               -> /wallet/transactions                    [OK]
+  • Payments                   -> /dashboard/payments                     [OK]
+                                  (Stripe orders + active subs + service catalog)
+
+--------------------------------------------------------------------------------
+Documentation
+--------------------------------------------------------------------------------
+  • Documentation              -> /dashboard/docs                         [OK]
+
+--------------------------------------------------------------------------------
+Account
+--------------------------------------------------------------------------------
+  • Billing                    -> /dashboard/billing                      [OK]
+  • Invoices                   -> /dashboard/invoices                     [OK]
+  • Settings                   -> /dashboard/settings                     [OK]
+  • Notifications              -> /dashboard/notifications                [OK]
+
+================================================================================
+SIDEBAR COVERAGE SUMMARY
+================================================================================
+Sidebar items ......... 14
+Existing routes found .. 14  (all [OK])
+Placeholders (soon) .... 2   (Clocker, Prompt - pages exist with "coming soon")
+Missing routes ......... 0   (none)
+Orphan routes .......... 1   (/dashboard/pending - intentional, layout redirect target)
+
+Existing CLIENT routes NOT shown in the sidebar (intentional):
+  - /dashboard/pending            -> auto-redirect target for inactive users
+                                     (interstitial state page, not a destination)
+  - /dashboard/payments/success   -> post-payment redirect target (no nav link)
+
+Routes CREATED in this update:
+  1. /dashboard/docs              (Documentation)
+  2. /dashboard/settings          (Account -> Settings)
+  3. /dashboard/services/clocker  (Services -> Clocker, placeholder)
+  4. /dashboard/services/prompt   (Services -> Prompt, placeholder)
+
+Routes RE-LINKED in this update (were orphans, now in sidebar):
+  5. /dashboard/payments          (Wallet -> Payments)
+  6. /dashboard/invoices          (Account -> Invoices)
+
+================================================================================
+ADMIN SIDEBAR MAPPING (collapsible grouped structure)
+================================================================================
+Sidebar behavior:
+  - Single-link entries: always visible (Dashboard, Client Registry, Box
+    Inventory, Notifications)
+  - Collapsible groups: COLLAPSED BY DEFAULT. The group containing the
+    current route auto-expands; others stay collapsed until clicked.
+  - Click a group header to toggle expand/collapse. User toggles persist
+    for the session; navigation auto-opens the destination group.
+
+--------------------------------------------------------------------------------
+Top-level (single links)
+--------------------------------------------------------------------------------
+  • Stats & Alerts              -> /admin/dashboard                       [OK]
+  • Client Registry             -> /admin/clients                         [OK]
+  • Box Inventory               -> /admin/profiles                        [OK]
+  • Notifications               -> /admin/notifications                   [OK]
+
+--------------------------------------------------------------------------------
+Catalog (collapsible)
+--------------------------------------------------------------------------------
+  • Service Settings            -> /admin/services                        [OK]
+  • Credits                     -> /admin/services/credits                [OK]
+  • Adjust Credits              -> /admin/services/credits/adjust         [OK]
+  • Transactions                -> /admin/services/credits/transactions   [OK]
+
+--------------------------------------------------------------------------------
+Finance (collapsible)
+--------------------------------------------------------------------------------
+  • Payment Records             -> /admin/orders                          [OK]
+  • Manual Invoices             -> /admin/invoices                        [OK]
+
+--------------------------------------------------------------------------------
+Reviews Management (collapsible)
+--------------------------------------------------------------------------------
+  • Overview                    -> /admin/reviews                         [OK]
+  • Queue                       -> /admin/reviews/queue                   [OK]
+  • Verification                -> /admin/reviews/verification            [OK]
+  • Employees                   -> /admin/reviews/employees               [OK]
+
+================================================================================
+ADMIN SIDEBAR COVERAGE SUMMARY
+================================================================================
+Admin routes ........... 14
+Sidebar entries ........ 14  (4 single links + 3 collapsible groups x 10 children)
+Coverage ............... 14/14 [OK]
+Orphans ................ 0
+Collapsed by default ... yes (only active group auto-expands)
+
+================================================================================
+Notes:
+- [id] is a dynamic route parameter (e.g., order ID).
+- Server actions in /app/actions/ are NOT exposed as URL routes.
+- Generated Prisma output in /app/generated/ is internal only.
+- Development server runs on port 3400 (npm run dev).
+================================================================================

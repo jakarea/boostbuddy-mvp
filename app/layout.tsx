@@ -1,17 +1,9 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
 import "./globals.css";
 import { ToastContainer } from "@/components/ToastContainer";
 import { AppProvider } from "@/components/providers/AppProvider";
 import { getCachedUser } from "@/lib/auth/cached-auth";
 import NextTopLoader from "nextjs-toploader";
-import { ClientPerformanceLogger } from "@/components/ClientPerformanceLogger";
-
-const outfit = Outfit({
-  variable: "--font-outfit",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
-});
 
 export const metadata: Metadata = {
   title: "BoostBuddy MWP - Client Portal & Admin Management",
@@ -27,7 +19,7 @@ export default async function RootLayout({
   const initialUser = await getCachedUser();
 
   return (
-    <html lang="en" className={`${outfit.variable} h-full`} suppressHydrationWarning>
+    <html lang="en" className="h-full" suppressHydrationWarning>
       <body className="font-sans antialiased h-full flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
         <NextTopLoader
           color="#168BB0"
@@ -41,7 +33,6 @@ export default async function RootLayout({
           shadow="0 0 10px #168BB0,0 0 5px #168BB0"
         />
         <AppProvider initialUser={initialUser}>
-          <ClientPerformanceLogger />
           <div className="flex-1 flex flex-col overflow-x-hidden min-h-0">
             {children}
           </div>

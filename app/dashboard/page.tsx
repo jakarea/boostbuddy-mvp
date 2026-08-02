@@ -1,27 +1,40 @@
-import { Suspense } from "react";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import DashboardClient from "./dashboard-client";
-import { getClientProfilesData } from "@/lib/data/dashboard";
-import { requireAuth } from "@/lib/auth/server-auth";
-import { ServerFetchTimeLogger } from "@/components/ServerFetchTimeLogger";
 
-export const metadata = {
-  title: "Dashboard - Client Portal",
-};
+export default function DashboardRedirectPage() {
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
 
-export default async function DashboardPage() {
-  const start = Date.now();
-  const auth = await requireAuth();
-  if (!auth.success) return null;
+  useEffect(() => {
+    if (isLoading) return;
 
-  const response = await getClientProfilesData(auth.user.id);
-  const initialProfiles = (response.success ? response.data : []) as any[];
-  const duration = Date.now() - start;
+    if (!user) {
+      // Not authenticated, redirect to login
+      router.push("/");
+      return;
+    }
 
-  return (
-    <Suspense fallback={<LoadingScreen />}>
-      <ServerFetchTimeLogger pageName="/dashboard" fetchTimeMs={duration} />
-      <DashboardClient initialProfiles={initialProfiles} />
-    </Suspense>
-  );
+    // Redirect based on role
+    switch (user.role) {
+      case "ADMIN":
+        router.push("/a/dashboard");
+        break;
+      case "EMPLOYEE":
+        router.push("/e/dashboard");
+        break;
+      case "CLIENT":
+        router.push("/c/dashboard");
+        break;
+      default:
+        // Fallback to client dashboard
+        router.push("/c/dashboard");
+    }
+  }, [user, isLoading, router]);
+
+  // Show loading screen while redirecting
+  return <LoadingScreen />;
 }
