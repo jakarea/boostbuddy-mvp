@@ -50,9 +50,11 @@ prisma/migrations/
 prisma/.dev.db
 prisma/.dev.db-journal
 
-# SQLite (development database files - but keep dev.db for consistency)
+# SQLite (development database files)
+*.db
 *.db-wal
 *.db-shm
+dev.db
 
 # Testing
 coverage/
@@ -67,6 +69,7 @@ lerna-debug.log*
 .cache/
 .eslintcache
 .node-gyp/
+tsconfig.tsbuildinfo
 
 # Vercel / Build cache
 .vercel/
