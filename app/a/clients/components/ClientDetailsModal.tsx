@@ -500,7 +500,7 @@ export default function ClientDetailsModal({
                     disabled={approving}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3 shadow-sm cursor-pointer flex items-center gap-1.5"
                   >
-                    {approving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                    {approving ? <div className="bb-loading-sm"></div> : <Check className="h-3.5 w-3.5" />}
                     {t("btn_approve_registration", { defaultValue: "Approve Account" })}
                   </Button>
                 ) : (
@@ -515,7 +515,7 @@ export default function ClientDetailsModal({
                 <span className="text-zinc-500">{t("edit_lbl_role")}</span>
                 <div className="flex items-center gap-2">
                   {roleUpdating ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-500" />
+                    <div className="bb-loading-sm"></div>
                   ) : (
                     <Select
                       value={userRole}

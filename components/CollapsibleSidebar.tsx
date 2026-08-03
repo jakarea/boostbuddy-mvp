@@ -252,14 +252,35 @@ export function CollapsibleSidebar({
   );
 
   const renderHeader = () => (
-    <div className="flex items-center gap-2 min-w-0">
+    <div className="flex items-center gap-2.5 min-w-0">
+      {/* BoostBuddy Logo - Grid Design */}
+      <div
+        className="bb-logo-cell"
+        style={{ '--bb-logo-size': '10px' } as React.CSSProperties}
+        aria-hidden="true"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span className="bb-center"></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <div className="min-w-0">
+        <div className="bb-logo-text text-xs sm:text-sm leading-none tracking-tight text-zinc-900 dark:text-white truncate">
+          BOOSTBUDDY
+        </div>
+        {subtitle && <div className="text-[10px] text-zinc-500 mt-0.5 sm:mt-1">{subtitle}</div>}
+      </div>
+
+      {/* Original Icon-Based Logo - Commented Out
       <div className={`p-1.5 ${headerIconClass} shrink-0`}>
         <HeaderIcon className="h-4 w-4 sm:h-5 sm:w-5" />
       </div>
-      <div className="min-w-0">
-        <div className="font-bold text-xs sm:text-sm leading-none tracking-tight text-zinc-900 dark:text-white truncate">{title}</div>
-        {subtitle && <div className="text-[10px] text-zinc-500 mt-0.5 sm:mt-1">{subtitle}</div>}
-      </div>
+      */}
     </div>
   );
 

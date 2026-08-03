@@ -103,7 +103,7 @@ export default function PhotoUpload({
 
         {uploading !== null ? (
           <div className="w-32 h-32 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex items-center justify-center">
-            <Loader2 className="h-6 w-6 text-zinc-400 animate-spin" />
+            <div className="bb-loading-sm"></div>
           </div>
         ) : photos.length < maxPhotos ? (
           <button

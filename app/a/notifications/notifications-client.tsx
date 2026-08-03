@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pagination } from "@/components/ui/pagination";
-import { Mail, CheckCircle, ShieldAlert, RefreshCw } from "lucide-react";
+import { Mail, CheckCircle, ShieldAlert, RefreshCw, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import TelegramBotConfig from "@/components/admin/TelegramBotConfig";
 import type { TelegramConfig } from "@/app/actions/telegram";
@@ -35,7 +35,29 @@ export default function NotificationsClient({ initialLogs, telegramConfig }: Not
   const [logs, setLogs] = useState<NotificationLogDTO[]>(initialLogs);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
   const itemsPerPage = 10;
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Navigation handlers
+  const goToPage = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', page.toString());
+    router.push(`/a/notifications?${params.toString()}`);
+    setCurrentPage(page);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) goToPage(currentPage + 1);
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) goToPage(currentPage - 1);
+  };
+
+  const handleClearSearch = () => setSearchTerm("");
 
   // Refresh function to pull fresh notification logs from database
   const fetchLatestLogs = useCallback(async () => {
@@ -87,12 +109,28 @@ export default function NotificationsClient({ initialLogs, telegramConfig }: Not
     };
   }, []);
 
+  // Filter logs based on search term
+  const filteredLogs = useMemo(() => {
+    if (!searchTerm) return logs;
+    const term = searchTerm.toLowerCase();
+    return logs.filter(log =>
+      log.recipient.toLowerCase().includes(term) ||
+      log.subject.toLowerCase().includes(term) ||
+      log.id.toLowerCase().includes(term)
+    );
+  }, [logs, searchTerm]);
+
   const paginatedLogs = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return logs.slice(startIndex, startIndex + itemsPerPage);
-  }, [logs, currentPage, itemsPerPage]);
+    return filteredLogs.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredLogs, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(logs.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+
+  // Reset pagination when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   return (
     <div className="space-y-6">
@@ -132,6 +170,35 @@ export default function NotificationsClient({ initialLogs, telegramConfig }: Not
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={t("search_placeholder", { defaultValue: "Search by recipient, subject, or ID..." })}
+              className="w-full pl-10 pr-10 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+            />
+            {searchTerm && (
+              <button
+                onClick={handleClearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {searchTerm && (
+            <div className="text-sm text-zinc-600 dark:text-zinc-400">
+              Found {filteredLogs.length} result{filteredLogs.length !== 1 ? 's' : ''}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Notification Log Table */}
       <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
@@ -143,7 +210,7 @@ export default function NotificationsClient({ initialLogs, telegramConfig }: Not
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {logs.length === 0 ? (
+          {filteredLogs.length === 0 ? (
             <div className="p-10 flex flex-col items-center justify-center text-center">
               <ShieldAlert className="h-10 w-10 text-zinc-300 dark:text-zinc-700 mb-3" />
               <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400">{t("empty_title")}</p>
@@ -207,14 +274,50 @@ export default function NotificationsClient({ initialLogs, telegramConfig }: Not
       </Card>
 
       {/* Pagination */}
-      {logs.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          totalItems={logs.length}
-          itemsPerPage={itemsPerPage}
-        />
+      {filteredLogs.length > 0 && (
+        <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+          <div className="text-sm text-zinc-600 dark:text-zinc-400">
+            {searchTerm
+              ? `Showing ${currentPage} of ${totalPages} pages (${filteredLogs.length} filtered)`
+              : `Showing ${currentPage} of ${totalPages} pages (${filteredLogs.length} notifications)`
+            }
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => goToPage(page)}
+                  className={`min-w-[40px] px-3 py-2 border rounded-lg ${
+                    currentPage === page
+                      ? 'bg-[#168BB0] text-white border-[#168BB0]'
+                      : 'hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:border-zinc-700'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

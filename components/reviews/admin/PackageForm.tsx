@@ -289,7 +289,7 @@ export function PackageForm({ mode = "create" }: PackageFormProps) {
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <div className="bb-loading-sm mr-2"></div>
                     {t("package_form.saving", "Saving...")}
                   </>
                 ) : (

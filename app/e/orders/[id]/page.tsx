@@ -11,6 +11,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { formatDateTime, safeDateDisplay } from "@/lib/dateUtils";
+import { getReactionEmoji, getReactionBadgeClasses } from "@/lib/reactionUtils";
 
 export default function EmployeeOrderDetailPage() {
   const { user } = useAuth();
@@ -41,6 +42,7 @@ export default function EmployeeOrderDetailPage() {
             businessUrl: raw.businessUrl || raw.business_url,
             reviewType: raw.reviewType || raw.review_type,
             targetRating: raw.targetRating || raw.target_rating,
+            reactionType: raw.reactionType || raw.reaction_type || 'LIKE',
             reviewContent: raw.reviewContent || raw.review_content,
             reviewInstructions: raw.reviewInstructions || raw.review_instructions,
             creditsConsumed: raw.creditsConsumed ?? raw.credits_consumed ?? 0,
@@ -130,10 +132,14 @@ export default function EmployeeOrderDetailPage() {
 
             <div>
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                {t("employee.targetRating", "Target Rating")}
+                {t("employee.reaction", "Reaction")}
               </h3>
-              <p className="font-medium">{order.targetRating?.replace("_", " ")}</p>
+              <p className={`font-medium text-lg ${getReactionBadgeClasses(order.reactionType || 'LIKE')}`}>
+                {getReactionEmoji(order.reactionType || 'LIKE')}
+              </p>
             </div>
+
+            {/* Target Rating - Hidden from UI */}
 
             <div>
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">

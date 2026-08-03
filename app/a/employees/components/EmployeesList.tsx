@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, UserPlus, ChevronLeft, ChevronRight, Shield, UserCog, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Search, UserPlus, ChevronLeft, ChevronRight, Shield, UserCog, CheckCircle, XCircle, Clock, X } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface EmployeesListProps {
   paginatedEmployees: EmployeeUser[];
@@ -24,6 +25,12 @@ interface EmployeesListProps {
   filteredEmployees: EmployeeUser[];
   itemsPerPage: number;
   i18nLanguage: string;
+  goToPage: (page: number) => void;
+  goToNextPage: (totalPages: number) => void;
+  goToPrevPage: () => void;
+  handleClearSearch: () => void;
+  searchParams: ReturnType<typeof useSearchParams>;
+  router: ReturnType<typeof useRouter>;
 }
 
 export default function EmployeesList({
@@ -41,6 +48,12 @@ export default function EmployeesList({
   filteredEmployees,
   itemsPerPage,
   i18nLanguage,
+  goToPage,
+  goToNextPage,
+  goToPrevPage,
+  handleClearSearch,
+  searchParams,
+  router,
 }: EmployeesListProps) {
   const { t } = useTranslation("admin_employees");
 
@@ -115,15 +128,32 @@ export default function EmployeesList({
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-          <Input
-            type="text"
-            placeholder={t("search_placeholder", { defaultValue: "Search by name or email..." })}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800"
-          />
+        <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow flex-1">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={t("search_placeholder", { defaultValue: "Search by name or email..." })}
+                className="w-full pl-10 pr-10 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+              />
+              {searchTerm && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {searchTerm && (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                Found {filteredEmployees.length} result{filteredEmployees.length !== 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
         </div>
         <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as "ACTIVE" | "PENDING" | "DEACTIVATED" | "ALL")}>
           <SelectTrigger className="w-full sm:w-40 bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800">
@@ -232,34 +262,47 @@ export default function EmployeesList({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-zinc-500">
-            {t("showing", { defaultValue: "Showing" })} {(currentPage - 1) * itemsPerPage + 1}-
-            {Math.min(currentPage * itemsPerPage, filteredEmployees.length)} {t("of", { defaultValue: "of" })}{" "}
-            {filteredEmployees.length}
+        <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+          <div className="text-sm text-zinc-600 dark:text-zinc-400">
+            {searchTerm
+              ? `Showing ${currentPage} of ${totalPages} pages (${filteredEmployees.length} filtered)`
+              : `Showing ${currentPage} of ${totalPages} pages (${filteredEmployees.length} employees)`
+            }
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            <button
+              onClick={goToPrevPage}
               disabled={currentPage === 1}
-              className="h-8 px-3 border-zinc-200"
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
             >
               <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm text-zinc-600">
-              {t("page", { defaultValue: "Page" })} {currentPage} {t("of", { defaultValue: "of" })} {totalPages}
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              Previous
+            </button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => goToPage(page)}
+                  className={`min-w-[40px] px-3 py-2 border rounded-lg ${
+                    currentPage === page
+                      ? 'bg-[#168BB0] text-white border-[#168BB0]'
+                      : 'hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:border-zinc-700'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => goToNextPage(totalPages)}
               disabled={currentPage === totalPages}
-              className="h-8 px-3 border-zinc-200"
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
             >
+              Next
               <ChevronRight className="h-4 w-4" />
-            </Button>
+            </button>
           </div>
         </div>
       )}

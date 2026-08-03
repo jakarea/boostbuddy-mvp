@@ -609,13 +609,15 @@ export async function submitCompletedReviewAction(orderId: string, proof: string
     }
     businessName = order.business_name || "";
 
-    // Mark as completed
+    // Mark as completed and auto-approve
     const { error: completeError } = await supabase
       .from("review_orders")
       .update({
         status: "COMPLETED",
         proof_of_completion: proof,
-        completed_at: now
+        completed_at: now,
+        admin_verification_status: "APPROVED",
+        admin_verified_at: now
       })
       .eq("id", orderId);
 
@@ -643,8 +645,8 @@ export async function submitCompletedReviewAction(orderId: string, proof: string
       const { sendNotificationAction } = await import("./notifications");
       await sendNotificationAction(
         auth.user.email,
-        "🎉 Review Completed & Awaiting Verification",
-        `Your review has been submitted successfully and is now awaiting admin verification before being delivered to the client.`,
+        "🎉 Review Completed Successfully",
+        `Your review has been submitted successfully and marked as complete.`,
         "TELEGRAM",
         "EMPLOYEE_REVIEW_COMPLETED"
       );
@@ -652,16 +654,16 @@ export async function submitCompletedReviewAction(orderId: string, proof: string
       console.warn("Failed to send notification:", notifError);
     }
 
-    // Notify the client that their review is now in the verification queue
+    // Notify the client that their review is completed
     if (clientEmail) {
       try {
         const { sendNotificationAction } = await import("./notifications");
         await sendNotificationAction(
           clientEmail,
-          "✅ Review Submitted for Verification",
-          `Your review for ${businessName} is now in the verification queue.`,
+          "✅ Review Completed",
+          `Your review for ${businessName} has been completed and is ready to view!`,
           "TELEGRAM",
-          "REVIEWS_REVIEW_SUBMITTED"
+          "REVIEWS_REVIEW_COMPLETED"
         );
       } catch (clientNotifError) {
         console.warn("Failed to send client notification:", clientNotifError);
@@ -1021,14 +1023,15 @@ export async function completeReviewAction(orderId: string, proofOfCompletion: s
 
     const now = new Date().toISOString();
 
-    // Update order status and add proof
+    // Update order status and add proof (auto-approved)
     const { error: updateError } = await supabase
       .from("review_orders")
       .update({
         status: 'COMPLETED',
         proof_of_completion: proofOfCompletion,
         completed_at: now,
-        admin_verification_status: 'PENDING'
+        admin_verification_status: 'APPROVED',
+        admin_verified_at: now
       })
       .eq("id", orderId);
 

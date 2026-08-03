@@ -4,6 +4,13 @@ import { ToastContainer } from "@/components/ToastContainer";
 import { AppProvider } from "@/components/providers/AppProvider";
 import { getCachedUser } from "@/lib/auth/cached-auth";
 import NextTopLoader from "nextjs-toploader";
+import { Space_Grotesk } from "next/font/google";
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["700"],
+  variable: "--font-space-grotesk",
+});
 
 export const metadata: Metadata = {
   title: "BoostBuddy MWP - Client Portal & Admin Management",
@@ -20,7 +27,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
-      <body className="font-sans antialiased h-full flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
+      <body className={`${spaceGrotesk.variable} font-sans antialiased h-full flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50`}>
         <NextTopLoader
           color="#168BB0"
           initialPosition={0.08}

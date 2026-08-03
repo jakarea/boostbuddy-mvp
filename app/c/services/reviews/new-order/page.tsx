@@ -12,6 +12,7 @@ import {
 } from "@/app/actions/reviews";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import PhotoUpload from "@/components/ui/PhotoUpload";
+import { REACTIONS, type ReactionType } from "@/lib/reactionUtils";
 
 type OrderType = "REVIEW" | "COMMENT" | "COMMENT_WITH_PHOTO";
 const RATINGS = ["5_STAR", "4_STAR", "3_STAR", "2_STAR", "1_STAR"] as const;
@@ -31,6 +32,7 @@ export default function NewReviewOrderPage() {
     facebookUrl: "",
     quantity: 1,
     targetRating: "5_STAR" as const,
+    reactionType: "LIKE" as ReactionType,
     content: "",
     commentText: "",
     photoUrls: [] as string[]
@@ -100,6 +102,7 @@ export default function NewReviewOrderPage() {
       orderType: formData.orderType,
       facebookUrl: formData.facebookUrl,
       quantity: formData.quantity,
+      reactionType: formData.reactionType,
       targetRating: formData.targetRating,
       content: formData.content,
       commentText: formData.commentText,
@@ -169,6 +172,7 @@ export default function NewReviewOrderPage() {
         orderType: formData.orderType,
         facebookUrl: formData.facebookUrl,
         quantity: formData.quantity,
+        reactionType: formData.reactionType,
         targetRating: formData.targetRating,
         content: formData.content,
         commentText: formData.commentText,
@@ -327,15 +331,15 @@ export default function NewReviewOrderPage() {
         {/* Quantity */}
         <div>
           <label className="block text-sm font-medium mb-1">
-            Quantity *
+            Quantity * (1-50 units)
           </label>
           <input
             type="number"
             min="1"
-            max="100"
+            max="50"
             required
             value={formData.quantity}
-            onChange={e => setFormData({ ...formData, quantity: Math.max(1, Math.min(100, parseInt(e.target.value) || 1)) })}
+            onChange={e => setFormData({ ...formData, quantity: Math.max(1, Math.min(50, parseInt(e.target.value) || 1)) })}
             className="w-full px-3 py-2 border rounded-lg dark:bg-zinc-700 dark:border-zinc-600"
           />
           <p className="text-xs text-zinc-500 mt-1">
@@ -343,26 +347,34 @@ export default function NewReviewOrderPage() {
           </p>
         </div>
 
-        {/* Review-specific: Target Rating */}
-        {formData.orderType === "REVIEW" && (
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Target Rating *
-            </label>
-            <select
-              required
-              value={formData.targetRating}
-              onChange={e => setFormData({ ...formData, targetRating: e.target.value as any })}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-zinc-700 dark:border-zinc-600"
-            >
-              {RATINGS.map(rating => (
-                <option key={rating} value={rating}>
-                  {rating.replace("_", " ")}
-                </option>
-              ))}
-            </select>
+        {/* Reaction Selector */}
+        <div>
+          <label className="block text-sm font-medium mb-3">
+            Reaction *
+          </label>
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+            {REACTIONS.map((reaction) => (
+              <button
+                key={reaction.type}
+                type="button"
+                onClick={() => setFormData({ ...formData, reactionType: reaction.type as ReactionType })}
+                className={`p-3 rounded-lg border-2 text-center transition-all ${
+                  formData.reactionType === reaction.type
+                    ? 'border-[#168BB0] bg-[#168BB0]/10 ring-2 ring-[#168BB0]/20'
+                    : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                }`}
+              >
+                <div className="text-2xl mb-1">{reaction.emoji}</div>
+                <div className="text-xs font-medium">{reaction.label}</div>
+              </button>
+            ))}
           </div>
-        )}
+          <p className="text-xs text-zinc-500 mt-2">
+            Selected: {REACTIONS.find(r => r.type === formData.reactionType)?.emoji} {REACTIONS.find(r => r.type === formData.reactionType)?.label}
+          </p>
+        </div>
+
+        {/* Target Rating - Hidden from UI, defaults to 5_STAR */}
 
         {/* Review-specific: Review Content */}
         {formData.orderType === "REVIEW" && (

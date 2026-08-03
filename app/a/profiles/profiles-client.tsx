@@ -45,7 +45,7 @@ export default function ProfilesContent({
   // Filter state
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1", 10));
   const itemsPerPage = 10;
 
   const getClientName = (p: ProfileAccountRecord) => {
@@ -68,7 +68,16 @@ export default function ProfilesContent({
 
   // Reset to first page when filters change
   useEffect(() => {
-    setCurrentPage(1);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    setCurrentPage(page);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (params.get('page') !== '1') {
+      params.set('page', '1');
+      router.push(`/a/profiles?${params.toString()}`);
+    }
   }, [searchTerm, statusFilter]);
 
   // Calculate paginated results

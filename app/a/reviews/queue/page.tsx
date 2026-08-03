@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
@@ -21,9 +22,13 @@ import {
   Check,
   CheckCircle,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  Search
 } from "lucide-react";
 import { formatDateShort } from "@/lib/dateUtils";
+import { getReactionEmoji, getReactionBadgeClasses } from "@/lib/reactionUtils";
 
 interface ReviewOrder {
   id: string;
@@ -32,6 +37,7 @@ interface ReviewOrder {
   orderType: "REVIEW" | "COMMENT" | "COMMENT_WITH_PHOTO";
   reviewType: string;
   targetRating?: string;
+  reactionType?: string;
   content?: string;
   commentText?: string;
   photoUrls?: string[];
@@ -67,13 +73,83 @@ export default function AdminReviewsQueuePage() {
   const { t } = useTranslation("admin_reviews");
   const { success, error } = useToast();
   const { confirm } = useConfirm();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [orders, setOrders] = useState<ReviewOrder[]>([]);
+  const [allOrders, setAllOrders] = useState<ReviewOrder[]>([]); // Store all orders for filtering
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [assigningOrderId, setAssigningOrderId] = useState<string | null>(null);
   const [selectedEmployees, setSelectedEmployees] = useState<Record<string, string>>({});
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Pagination state
+  const ITEMS_PER_PAGE = 10;
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  const totalPages = Math.ceil(orders.length / ITEMS_PER_PAGE);
+
+  // Filter orders based on search term
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setOrders(allOrders);
+    } else {
+      const filtered = allOrders.filter((order) => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          order.businessName?.toLowerCase().includes(searchLower) ||
+          order.clientName?.toLowerCase().includes(searchLower) ||
+          order.clientEmail?.toLowerCase().includes(searchLower) ||
+          order.facebookUrl?.toLowerCase().includes(searchLower) ||
+          order.id.toLowerCase().includes(searchLower)
+        );
+      });
+      setOrders(filtered);
+      // Reset to page 1 when searching
+      const params = new URLSearchParams(searchParams.toString());
+      if (params.get('page') !== '1') {
+        params.set('page', '1');
+        router.push(`/a/reviews/queue?${params.toString()}`);
+      }
+    }
+  }, [searchTerm, allOrders]);
+
+  // Get current page items
+  const getCurrentPageOrders = () => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return orders.slice(startIndex, endIndex);
+  };
+
+  const currentOrders = getCurrentPageOrders();
+
+  // Clear search handler
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+
+  // Navigation handlers
+  const goToPage = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', page.toString());
+    // Clear selected employees when changing pages
+    setSelectedEmployees({});
+    router.push(`/a/reviews/queue?${params.toString()}`);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      goToPage(currentPage + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      goToPage(currentPage - 1);
+    }
+  };
 
   useEffect(() => {
     if (cancelOrderId === null) return;
@@ -98,6 +174,7 @@ export default function AdminReviewsQueuePage() {
       if (ordersRes.success) {
         const orders = ordersRes.data as ReviewOrder[];
         console.log("📋 [ADMIN QUEUE] Orders loaded:", orders.length, orders);
+        setAllOrders(orders);
         setOrders(orders);
       }
 
@@ -113,7 +190,7 @@ export default function AdminReviewsQueuePage() {
 
   useEffect(() => {
     loadData();
-  }, [error]);
+  }, [error, currentPage]);
 
   const handleAssign = async (orderId: string) => {
     const employeeId = selectedEmployees[orderId];
@@ -212,16 +289,24 @@ export default function AdminReviewsQueuePage() {
 
   const availableEmployees = employees.filter(e => e.isActive && e.acceptingOrders);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#168BB0]"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/50 dark:bg-zinc-950/50 z-50 flex items-center justify-center rounded-lg backdrop-blur-sm">
+          <div className="bb-loading">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span className="bb-center"></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -243,12 +328,44 @@ export default function AdminReviewsQueuePage() {
         </Button>
       </div>
 
+      {/* Search Bar */}
+      <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by business name, client name, email, Facebook URL, or order ID..."
+              className="w-full pl-10 pr-10 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+            />
+            {searchTerm && (
+              <button
+                onClick={handleClearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {searchTerm && (
+            <div className="text-sm text-zinc-600 dark:text-zinc-400">
+              Found {orders.length} result{orders.length !== 1 ? 's' : ''}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Stats Bar */}
       <div className="flex items-center gap-4 text-sm">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-yellow-600" />
           <span className="text-zinc-600">
-            {t("queue.pendingCount", "{{count}} pending", { count: orders.length })}
+            {searchTerm
+              ? `${orders.length} of ${allOrders.length} orders`
+              : t("queue.pendingCount", "{{count}} pending", { count: orders.length })
+            }
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -272,7 +389,7 @@ export default function AdminReviewsQueuePage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {orders.map((order) => (
+          {currentOrders.map((order) => (
             <Card key={order.id} className="p-4">
               <div className="flex flex-col lg:flex-row gap-4">
                 {/* Order Details */}
@@ -309,7 +426,10 @@ export default function AdminReviewsQueuePage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {getPlatformIcon(order.reviewType)}
-                      {order.targetRating && getRatingStars(order.targetRating)}
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getReactionBadgeClasses(order.reactionType || 'LIKE')}`}>
+                        {getReactionEmoji(order.reactionType || 'LIKE')}
+                      </span>
+                      {/* Rating display - Hidden from UI */}
                     </div>
                   </div>
 
@@ -444,7 +564,11 @@ export default function AdminReviewsQueuePage() {
                   >
                     {assigningOrderId === order.id ? (
                       <>
-                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                        <div className="bb-loading bb-loading-sm">
+                          <span></span><span></span><span></span><span></span>
+                          <span className="bb-center"></span>
+                          <span></span><span></span><span></span><span></span>
+                        </div>
                         {t("queue.assigning", "Assigning...")}
                       </>
                     ) : (
@@ -468,6 +592,56 @@ export default function AdminReviewsQueuePage() {
               </div>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {orders.length > 0 && (
+        <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+          <div className="text-sm text-zinc-600 dark:text-zinc-400">
+            {searchTerm
+              ? `Showing ${currentPage} of ${totalPages} page${totalPages === 1 ? '' : 's'} (${orders.length} filtered from ${allOrders.length} total)`
+              : `Showing ${currentPage} of ${totalPages} ${totalPages === 1 ? 'order' : 'orders'} (${orders.length} total)`
+            }
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className="gap-2"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+
+            {/* Page Numbers */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => goToPage(page)}
+                  className="min-w-[40px]"
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className="gap-2"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
 

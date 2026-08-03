@@ -8,10 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pagination } from "@/components/ui/pagination";
 import {
   CreditCard, ShoppingBag, RefreshCw, AlertCircle, CheckCircle,
-  Search, Copy, FolderKey
+  Search, Copy, FolderKey, X, ChevronLeft, ChevronRight
 } from "lucide-react";
 
 // --- CONSTANTS (No Magic Strings) ---
@@ -104,10 +103,28 @@ export default function OrdersClient({ initialOrders }: OrdersClientProps) {
 
   // State
   const [searchTerm, setSearchTerm] = useState(initialSearch);
+  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1", 10));
   const [statusFilter, setStatusFilter] = useState<string>(ORDER_STATUS.ALL);
   const [typeFilter, setTypeFilter] = useState<string>(ORDER_TYPE.ALL);
-  const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+
+  // Navigation handlers
+  const goToPage = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', page.toString());
+    router.push(`/a/orders?${params.toString()}`);
+    setCurrentPage(page);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) goToPage(currentPage + 1);
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) goToPage(currentPage - 1);
+  };
+
+  const handleClearSearch = () => setSearchTerm("");
 
   // Derived filtered data
   const filteredOrders = useMemo(() => {
@@ -126,6 +143,9 @@ export default function OrdersClient({ initialOrders }: OrdersClientProps) {
   // Reset pagination on filter change
   useEffect(() => {
     setCurrentPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('page');
+    router.push(`/a/orders?${params.toString()}`);
   }, [searchTerm, statusFilter, typeFilter]);
 
   const { t: tStatus } = useTranslation("status");
@@ -164,14 +184,32 @@ export default function OrdersClient({ initialOrders }: OrdersClientProps) {
       </div>
 
       <div className="flex gap-3 flex-wrap md:flex-nowrap">
-        <div className="relative flex-1">
-          <Input
-            placeholder={t("search_placeholder")}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-800 h-9 text-xs pl-9 text-zinc-800 dark:text-zinc-200 placeholder-zinc-400"
-          />
-          <Search className="h-4 w-4 text-zinc-400 absolute left-3 top-2.5" />
+        <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow flex-1">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={t("search_placeholder")}
+                className="w-full pl-10 pr-10 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+              />
+              {searchTerm && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {searchTerm && (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                Found {filteredOrders.length} result{filteredOrders.length !== 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
         </div>
 
         <select
@@ -425,13 +463,49 @@ export default function OrdersClient({ initialOrders }: OrdersClientProps) {
       </Card>
 
       {filteredOrders.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          totalItems={filteredOrders.length}
-          itemsPerPage={ITEMS_PER_PAGE}
-        />
+        <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+          <div className="text-sm text-zinc-600 dark:text-zinc-400">
+            {searchTerm
+              ? `Showing ${currentPage} of ${totalPages} pages (${filteredOrders.length} filtered)`
+              : `Showing ${currentPage} of ${totalPages} pages (${filteredOrders.length} orders)`
+            }
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => goToPage(page)}
+                  className={`min-w-[40px] px-3 py-2 border rounded-lg ${
+                    currentPage === page
+                      ? 'bg-[#168BB0] text-white border-[#168BB0]'
+                      : 'hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:border-zinc-700'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

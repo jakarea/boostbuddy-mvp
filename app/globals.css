@@ -95,37 +95,37 @@
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.694 0.089 222.1);
-    --primary-foreground: oklch(0.145 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.753 0.087 222.1);
-    --accent-foreground: oklch(0.145 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.694 0.089 222.1);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.694 0.089 222.1);
-    --sidebar-primary-foreground: oklch(0.145 0 0);
-    --sidebar-accent: oklch(0.220 0.025 222.1);
-    --sidebar-accent-foreground: oklch(0.753 0.087 222.1);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.694 0.089 222.1);
+    --background: #0b0e10;
+    --foreground: #f7f8f8;
+    --card: #16191c;
+    --card-foreground: #f7f8f8;
+    --popover: #1b1f23;
+    --popover-foreground: #f7f8f8;
+    --primary: #0f9bc0;
+    --primary-foreground: #04171d;
+    --secondary: #1b1f23;
+    --secondary-foreground: #f7f8f8;
+    --muted: #1b1f23;
+    --muted-foreground: #7c8791;
+    --accent: #1b1f23;
+    --accent-foreground: #f7f8f8;
+    --destructive: #c05a3a;
+    --border: #23282c;
+    --input: #2f3439;
+    --ring: #0f9bc0;
+    --chart-1: #0f9bc0;
+    --chart-2: #12b4de;
+    --chart-3: #1d505f;
+    --chart-4: #2f3439;
+    --chart-5: #7c8791;
+    --sidebar: #16191c;
+    --sidebar-foreground: #f7f8f8;
+    --sidebar-primary: #0f9bc0;
+    --sidebar-primary-foreground: #04171d;
+    --sidebar-accent: #1b1f23;
+    --sidebar-accent-foreground: #f7f8f8;
+    --sidebar-border: #23282c;
+    --sidebar-ring: #0f9bc0;
 }
 
 @layer base {
@@ -142,4 +142,149 @@
   button, a, [role="button"], input[type="submit"], input[type="button"], input[type="reset"] {
     @apply cursor-pointer;
     }
+}
+
+/* BoostBuddy Logo Styles */
+.bb-logo-cell {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: calc(var(--bb-logo-size) * 0.15);
+  width: calc(var(--bb-logo-size) * 3.3);
+  height: calc(var(--bb-logo-size) * 3.3);
+  flex-shrink: 0;
+}
+
+.bb-logo-cell span {
+  background-color: #1d505f;
+  border-radius: calc(var(--bb-logo-size) * 0.15);
+  width: 100%;
+  height: 100%;
+}
+
+.bb-logo-cell .bb-center {
+  background: #11b4de;
+  opacity: 1;
+  box-shadow: rgba(15, 155, 192, 0.55) 0px 0px 12px;
+}
+
+.bb-logo-text {
+  font-family: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  color: var(--bb-text, currentColor);
+}
+
+/* BoostBuddy Loading Animation */
+.bb-loading {
+  --bb-logo-size: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: calc(var(--bb-logo-size) * 0.1);
+  width: calc(var(--bb-logo-size) * 3.3);
+  height: calc(var(--bb-logo-size) * 3.3);
+}
+
+/* Small variant for buttons and inline use */
+.bb-loading-sm {
+  --bb-logo-size: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: calc(var(--bb-logo-size) * 0.1);
+  width: calc(var(--bb-logo-size) * 3.3);
+  height: calc(var(--bb-logo-size) * 3.3);
+}
+
+.bb-loading span {
+  background-color: #1d505f;
+  border-radius: calc(var(--bb-logo-size) * 0.15);
+  width: 100%;
+  height: 100%;
+  animation: bb-cube-pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 0 rgba(17, 180, 222, 0);
+  transition: box-shadow 0.3s ease;
+}
+
+.bb-loading .bb-center {
+  background: #11b4de;
+  animation: bb-heartbeat 1.2s ease-in-out infinite;
+  box-shadow: 0 0 15px rgba(17, 180, 222, 0.7);
+}
+
+/* Staggered animation delays for outer cubes - clockwise rotation pattern */
+/* Position mapping: 1 2 3 / 4 5 6 / 7 8 9 (5 is center) */
+/* Clockwise: 1→2→3→6→9→8→7→4→1 */
+.bb-loading span:nth-child(1) { animation-delay: 0s; }     /* Top-left */
+.bb-loading span:nth-child(2) { animation-delay: 0.2s; }   /* Top-center */
+.bb-loading span:nth-child(3) { animation-delay: 0.4s; }   /* Top-right */
+.bb-loading span:nth-child(6) { animation-delay: 0.6s; }  /* Middle-right */
+.bb-loading span:nth-child(9) { animation-delay: 0.8s; }   /* Bottom-right */
+.bb-loading span:nth-child(8) { animation-delay: 1.0s; }  /* Bottom-center */
+.bb-loading span:nth-child(7) { animation-delay: 1.2s; }   /* Bottom-left */
+.bb-loading span:nth-child(4) { animation-delay: 1.4s; }  /* Middle-left */
+
+/* Outer cube color animation - clockwise with color change only */
+@keyframes bb-cube-pulse {
+  0% {
+    background-color: #1d505f;
+  }
+  25% {
+    background-color: #2a6b7a;
+  }
+  50% {
+    background-color: #0ea5e9; /* Sky blue - different from center teal */
+  }
+  75% {
+    background-color: #2a6b7a;
+  }
+  100% {
+    background-color: #1d505f;
+  }
+}
+
+/* Center subtle pulse animation - very gentle */
+@keyframes bb-heartbeat {
+  0%, 100% {
+    background: #11b4de;
+    box-shadow: 0 0 12px rgba(17, 180, 222, 0.5);
+    transform: scale(1);
+  }
+  50% {
+    background: #12b4de;
+    box-shadow: 0 0 15px rgba(17, 180, 222, 0.6);
+    transform: scale(1.03);
+  }
+}
+
+/* BoostBuddy Dark Mode Card Styles */
+.bb-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.042);
+  transition: border-color 0.2s;
+}
+
+.bb-card:hover {
+  border-color: var(--input);
+}
+
+/* BoostBuddy Label Typography */
+.bb-label {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* BoostBuddy Eyebrow/Highlight */
+.bb-eyebrow {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--primary);
 }

@@ -14,13 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Pagination } from "@/components/ui/pagination";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import {
   Receipt, Plus, ArrowLeft, Upload, FileText,
-  Calendar, Check, AlertTriangle, ShieldCheck, Trash, ChevronsUpDown
+  Calendar, Check, AlertTriangle, ShieldCheck, Trash, ChevronsUpDown,
+  X, ChevronLeft, ChevronRight
 } from "lucide-react";
 
 export type InvoiceRecord = {
@@ -210,8 +210,26 @@ export default function InvoicesClient({
   // --- HOOKS MOVED TO TOP ---
   const [searchTerm, setSearchTerm] = useState("");
   const [clientFilter, setClientFilter] = useState("ALL");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1", 10));
   const itemsPerPage = 10;
+
+  // Navigation handlers
+  const goToPage = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', page.toString());
+    router.push(`/a/invoices?${params.toString()}`);
+    setCurrentPage(page);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) goToPage(currentPage + 1);
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) goToPage(currentPage - 1);
+  };
+
+  const handleClearSearch = () => setSearchTerm("");
 
   const filteredInvoices = useMemo(() => {
     return initialInvoices.filter(inv => {
@@ -232,6 +250,9 @@ export default function InvoicesClient({
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('page');
+    router.push(`/a/invoices?${params.toString()}`);
   }, [searchTerm, clientFilter]);
 
   // Calculate paginated results
@@ -626,14 +647,32 @@ export default function InvoicesClient({
 
       {/* Search & Filter Toolbar */}
       <div className="flex gap-3 flex-wrap md:flex-nowrap">
-        <div className="relative flex-1">
-          <Input
-            placeholder={t("search_placeholder")}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-800 h-9 text-xs pl-9 text-zinc-800 dark:text-zinc-200 placeholder-zinc-400"
-          />
-          <Receipt className="h-4 w-4 text-zinc-400 absolute left-3 top-2.5" />
+        <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow flex-1">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <Receipt className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={t("search_placeholder")}
+                className="w-full pl-10 pr-10 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+              />
+              {searchTerm && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {searchTerm && (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                Found {filteredInvoices.length} result{filteredInvoices.length !== 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
         </div>
 
         <select
@@ -867,13 +906,49 @@ export default function InvoicesClient({
 
       {/* Pagination */}
       {filteredInvoices.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          totalItems={filteredInvoices.length}
-          itemsPerPage={itemsPerPage}
-        />
+        <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+          <div className="text-sm text-zinc-600 dark:text-zinc-400">
+            {searchTerm
+              ? `Showing ${currentPage} of ${totalPages} pages (${filteredInvoices.length} filtered)`
+              : `Showing ${currentPage} of ${totalPages} pages (${filteredInvoices.length} invoices)`
+            }
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => goToPage(page)}
+                  className={`min-w-[40px] px-3 py-2 border rounded-lg ${
+                    currentPage === page
+                      ? 'bg-[#168BB0] text-white border-[#168BB0]'
+                      : 'hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:border-zinc-700'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

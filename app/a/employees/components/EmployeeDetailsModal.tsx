@@ -226,7 +226,7 @@ export default function EmployeeDetailsModal({
                 </Label>
                 <div className="flex items-center gap-2">
                   {roleUpdating ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />
+                    <div className="bb-loading-sm"></div>
                   ) : (
                     <Select
                       value={userRole}

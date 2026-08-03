@@ -84,7 +84,17 @@ export function CreditsHistory({
     return (
       <Card className="p-6">
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#168BB0]"></div>
+          <div className="bb-loading">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span className="bb-center"></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
         </div>
       </Card>
     );

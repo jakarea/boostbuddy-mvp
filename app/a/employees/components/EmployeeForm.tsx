@@ -228,7 +228,11 @@ export default function EmployeeForm({ onCancel }: EmployeeFormProps) {
           >
             {submitting ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <div className="bb-loading bb-loading-sm mr-2">
+                  <span></span><span></span><span></span><span></span>
+                  <span className="bb-center"></span>
+                  <span></span><span></span><span></span><span></span>
+                </div>
                 {t("form.creating", { defaultValue: "Creating..." })}
               </>
             ) : (

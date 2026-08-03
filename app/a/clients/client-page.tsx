@@ -28,7 +28,7 @@ export default function ClientsContent({
   // Search/Filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1", 10));
   const itemsPerPage = 10;
 
   // Edit/Details states
@@ -84,8 +84,17 @@ export default function ClientsContent({
 
   // Reset to first page when filters change
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCurrentPage(1);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    setCurrentPage(page);
+  }, [searchParams]);
+
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    const params = new URLSearchParams(searchParams.toString());
+    if (params.get('page') !== '1') {
+      params.set('page', '1');
+      router.push(`/a/clients?${params.toString()}`);
+    }
   }, [searchTerm, statusFilter]);
 
   // Calculate paginated results

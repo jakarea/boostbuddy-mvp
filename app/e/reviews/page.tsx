@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
@@ -30,9 +31,14 @@ import {
   Inbox,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  X
 } from "lucide-react";
 import { formatDateShort, formatDateTime } from "@/lib/dateUtils";
+import { getReactionEmoji, getReactionBadgeClasses } from "@/lib/reactionUtils";
 
 interface ReviewOrder {
   id: string;
@@ -40,6 +46,7 @@ interface ReviewOrder {
   businessUrl?: string;
   reviewType: string;
   targetRating: string;
+  reactionType?: string;
   reviewContent: string;
   reviewInstructions?: string;
   status: string;
@@ -72,6 +79,10 @@ export default function EmployeeReviewsPage() {
   const { user } = useAuth();
   const { success, error } = useToast();
   const { t } = useTranslation();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const [allOrders, setAllOrders] = useState<ReviewOrder[]>([]);
   const [orders, setOrders] = useState<ReviewOrder[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -85,6 +96,49 @@ export default function EmployeeReviewsPage() {
   const [proofOfCompletion, setProofOfCompletion] = useState("");
   const [completingOrderId, setCompletingOrderId] = useState<string | null>(null);
   const [isSubmittingCompletion, setIsSubmittingCompletion] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Pagination state
+  const ITEMS_PER_PAGE = 10;
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  const totalPages = Math.ceil(orders.length / ITEMS_PER_PAGE);
+
+  // Get current page items
+  const getCurrentPageOrders = () => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return orders.slice(startIndex, endIndex);
+  };
+
+  const currentOrders = getCurrentPageOrders();
+
+  // Navigation handlers
+  const goToPage = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', page.toString());
+    router.push(`/e/reviews?${params.toString()}`);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      goToPage(currentPage + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      goToPage(currentPage - 1);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+
+  // Status filter applied to orders
+  const filteredOrders = statusFilter === "ALL"
+    ? orders
+    : orders.filter(o => o.status === statusFilter);
 
   const loadData = async () => {
     try {
@@ -113,6 +167,7 @@ export default function EmployeeReviewsPage() {
           skips: order.skips || []
         })) || [];
 
+        setAllOrders(normalizedOrders);
         setOrders(normalizedOrders);
         setStats(data.stats);
       } else {
@@ -125,6 +180,30 @@ export default function EmployeeReviewsPage() {
       setIsLoading(false);
     }
   };
+
+  // Apply search filter
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setOrders(allOrders);
+    } else {
+      const filtered = allOrders.filter((order) => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          order.businessName?.toLowerCase().includes(searchLower) ||
+          order.businessUrl?.toLowerCase().includes(searchLower) ||
+          order.reviewType?.toLowerCase().includes(searchLower) ||
+          order.id?.toLowerCase().includes(searchLower)
+        );
+      });
+      setOrders(filtered);
+      // Reset to page 1 when searching
+      const params = new URLSearchParams(searchParams.toString());
+      if (params.get('page') !== '1') {
+        params.set('page', '1');
+        router.push(`/e/reviews?${params.toString()}`);
+      }
+    }
+  }, [searchTerm, allOrders]);
 
   useEffect(() => {
     if (!user) return;
@@ -212,10 +291,6 @@ export default function EmployeeReviewsPage() {
     setShowCompleteModal(true);
   };
 
-  const filteredOrders = statusFilter === "ALL"
-    ? orders
-    : orders.filter(o => o.status === statusFilter);
-
   const getPlatformBadge = (type: string) => {
     const platformColors: Record<string, string> = {
       GOOGLE: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
@@ -258,16 +333,24 @@ export default function EmployeeReviewsPage() {
 
   const STATUS_FILTERS: StatusFilter[] = ["ALL", "PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#168BB0]"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/50 dark:bg-zinc-950/50 z-50 flex items-center justify-center rounded-lg backdrop-blur-sm">
+          <div className="bb-loading">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span className="bb-center"></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      )}
       {/* Header with stats */}
       <div className="flex items-center justify-between">
         <div>
@@ -327,6 +410,35 @@ export default function EmployeeReviewsPage() {
         ))}
       </div>
 
+      {/* Search Bar */}
+      <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by business name, URL, or type..."
+              className="w-full pl-10 pr-10 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+            />
+            {searchTerm && (
+              <button
+                onClick={handleClearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {searchTerm && (
+            <div className="text-sm text-zinc-600 dark:text-zinc-400">
+              Found {orders.length} result{orders.length !== 1 ? 's' : ''}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Orders list */}
       {filteredOrders.length === 0 ? (
         <Card className="p-12 text-center">
@@ -340,7 +452,7 @@ export default function EmployeeReviewsPage() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {filteredOrders.map((order) => (
+          {currentOrders.map((order) => (
             <Card key={order.id} className="p-4 hover:shadow-md transition-shadow">
               <div className="flex flex-col lg:flex-row gap-4">
                 {/* Order details */}
@@ -363,7 +475,10 @@ export default function EmployeeReviewsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {getPlatformBadge(order.reviewType)}
-                      {getRatingStars(order.targetRating)}
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getReactionBadgeClasses(order.reactionType || 'LIKE')}`}>
+                        {getReactionEmoji(order.reactionType || 'LIKE')}
+                      </span>
+                      {/* Rating display - Hidden from UI */}
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE_STYLES[order.status] || "bg-zinc-100 text-zinc-700"}`}>
                         {order.status.replace("_", " ")}
                       </span>
@@ -432,7 +547,11 @@ export default function EmployeeReviewsPage() {
                       >
                         {acceptingOrderId === order.id ? (
                           <>
-                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                            <div className="bb-loading bb-loading-sm">
+                              <span></span><span></span><span></span><span></span>
+                              <span className="bb-center"></span>
+                              <span></span><span></span><span></span><span></span>
+                            </div>
                             Accepting...
                           </>
                         ) : (
@@ -462,7 +581,11 @@ export default function EmployeeReviewsPage() {
                     >
                       {completingOrderId === order.id ? (
                         <>
-                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                          <div className="bb-loading bb-loading-sm">
+                            <span></span><span></span><span></span><span></span>
+                            <span className="bb-center"></span>
+                            <span></span><span></span><span></span><span></span>
+                          </div>
                           Completing...
                         </>
                       ) : (
@@ -480,13 +603,60 @@ export default function EmployeeReviewsPage() {
         </div>
       )}
 
+      {/* Pagination Controls */}
+      {filteredOrders.length > 0 && (
+        <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+          <div className="text-sm text-zinc-600 dark:text-zinc-400">
+            {searchTerm
+              ? `Showing ${currentPage} of ${totalPages} pages (${filteredOrders.length} filtered from ${allOrders.length} total)`
+              : `Showing ${currentPage} of ${totalPages} pages (${filteredOrders.length} orders)`
+            }
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => goToPage(page)}
+                  className={`min-w-[40px] px-3 py-2 border rounded-lg ${
+                    currentPage === page
+                      ? 'bg-[#168BB0] text-white border-[#168BB0]'
+                      : 'hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:border-zinc-700'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Order detail dialog */}
       <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{selectedOrder?.businessName}</DialogTitle>
             <DialogDescription>
-              {selectedOrder?.reviewType} • {selectedOrder?.targetRating?.replace("_", " ")}
+              {selectedOrder?.reviewType} {/* Rating - Hidden from UI */}
             </DialogDescription>
           </DialogHeader>
 

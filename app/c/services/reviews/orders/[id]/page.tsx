@@ -9,6 +9,7 @@ import { getReviewOrderDetailAction, submitClientFeedbackAction } from "@/app/ac
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDateTime } from "@/lib/dateUtils";
+import { getReactionEmoji, getReactionBadgeClasses } from "@/lib/reactionUtils";
 
 const FEEDBACK_OPTIONS = [
   { value: "HAPPY", label: "Happy", color: "bg-green-500 hover:bg-green-600" },
@@ -102,17 +103,21 @@ export default function ReviewOrderDetailPage() {
 
           <div>
             <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+              {t("reviews.reaction", "Reaction")}
+            </h3>
+            <p className={`font-medium text-lg ${getReactionBadgeClasses(order.reactionType || 'LIKE')}`}>
+              {getReactionEmoji(order.reactionType || 'LIKE')}
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
               {t("reviews.businessName", "Business Name")}
             </h3>
             <p className="font-medium">{order.businessName || 'N/A'}</p>
           </div>
 
-          <div>
-            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              {t("reviews.targetRating", "Target Rating")}
-            </h3>
-            <p className="font-medium">{order.targetRating?.replace("_", " ") || 'N/A'}</p>
-          </div>
+          {/* Target Rating - Hidden from UI */}
 
           <div>
             <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">

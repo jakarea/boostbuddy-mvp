@@ -144,7 +144,11 @@ export function CreditPackageCard({ package: pkg, onPurchased }: CreditPackageCa
         >
           {isPurchasing ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <div className="bb-loading bb-loading-sm">
+                <span></span><span></span><span></span><span></span>
+                <span className="bb-center"></span>
+                <span></span><span></span><span></span><span></span>
+              </div>
               {t("processing", "Processing...")}
             </>
           ) : (

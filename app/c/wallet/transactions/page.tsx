@@ -149,9 +149,12 @@ export default function TransactionsPage() {
 
         {/* Transactions List */}
         {isLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#168BB0] mx-auto mb-4"></div>
-            <p className="text-zinc-500">{t("loading_transactions", "Loading transactions...")}</p>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="bb-loading">
+              <span></span><span></span><span></span><span></span>
+              <span className="bb-center"></span>
+              <span></span><span></span><span></span><span></span>
+            </div>
           </div>
         ) : transactions.length === 0 ? (
           <Card className="p-12 text-center">

@@ -75,7 +75,7 @@ export default function BillingClient({ initialBilling }: BillingClientProps) {
     <div className="space-y-6 relative">
       {isPending && (
         <div className="absolute inset-0 bg-white/50 dark:bg-zinc-950/50 z-50 flex items-center justify-center rounded-lg backdrop-blur-sm">
-          <Loader2 className="h-8 w-8 animate-spin text-[#168BB0]" />
+          <div className="bb-loading"></div>
         </div>
       )}
 

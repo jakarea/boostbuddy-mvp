@@ -14,14 +14,19 @@ export default async function DashboardPage() {
   const auth = await requireAuth();
   if (!auth.success) return null;
 
-  const response = await getClientProfilesData(auth.user.id);
-  const initialProfiles = (response.success ? response.data : []) as any[];
+  const [profilesRes, walletRes] = await Promise.all([
+    getClientProfilesData(auth.user.id),
+    import("@/app/actions/credits").then(m => m.getWalletSummaryAction())
+  ]);
+
+  const initialProfiles = (profilesRes.success ? profilesRes.data : []) as any[];
+  const creditsBalance = (walletRes.success && walletRes.balance !== undefined ? walletRes.balance : 0) as number;
   const duration = Date.now() - start;
 
   return (
     <Suspense fallback={<LoadingScreen />}>
       <ServerFetchTimeLogger pageName="/c/dashboard" fetchTimeMs={duration} />
-      <DashboardClient initialProfiles={initialProfiles} />
+      <DashboardClient initialProfiles={initialProfiles} creditsBalance={creditsBalance} />
     </Suspense>
   );
 }

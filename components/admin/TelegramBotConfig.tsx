@@ -139,7 +139,7 @@ export default function TelegramBotConfig({ initialConfig, flat = false }: Teleg
                 className="h-7 px-2 text-[11px] gap-1 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
                 onClick={handleTest} disabled={isPending}
               >
-                {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                {isPending ? <div className="bb-loading-sm"></div> : <Send className="h-3 w-3" />}
                 Test
               </Button>
               <Button size="sm" variant="ghost"
@@ -228,7 +228,7 @@ export default function TelegramBotConfig({ initialConfig, flat = false }: Teleg
               onClick={handleSave}
               disabled={isPending || !botToken.trim() || !chatId.trim()}
             >
-              {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              {isPending ? <div className="bb-loading-sm"></div> : <Check className="h-3.5 w-3.5" />}
               Save Bot
             </Button>
           </div>

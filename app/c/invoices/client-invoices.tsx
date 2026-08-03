@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useTransition } from "react";
+import React, { useState, useMemo, useTransition, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { InvoiceRecord, OrderRecord } from "@/app/a/invoices/invoices-client";
 import { ServiceRecord } from "@/app/a/services/services-client";
 import { getInvoiceDownloadUrlAction } from "@/app/actions/invoices";
@@ -9,8 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Pagination } from "@/components/ui/pagination";
-import { Receipt, Download, FileText, Printer, Globe } from "lucide-react";
+import { Receipt, Download, FileText, Printer, Globe, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/context/ToastContext";
 
@@ -25,6 +25,8 @@ export default function ClientInvoices({
 }) {
   const { t, i18n } = useTranslation("client_invoices");
   const { error } = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Modal states
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceRecord | null>(null);
@@ -32,8 +34,40 @@ export default function ClientInvoices({
   const [isPending, startTransition] = useTransition();
 
   // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1", 10));
+  const [searchTerm, setSearchTerm] = useState("");
   const itemsPerPage = 10;
+
+  // Navigation handlers
+  const goToPage = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', page.toString());
+    router.push(`/c/invoices?${params.toString()}`);
+    setCurrentPage(page);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      goToPage(currentPage + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      goToPage(currentPage - 1);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+
+  // Reset page when filters change
+  useEffect(() => {
+    if (searchTerm) {
+      setCurrentPage(1);
+    }
+  }, [searchTerm]);
 
   // Filter invoices for the client (already filtered by Server Action, just sort them)
   const clientInvoices = useMemo(() => {
@@ -41,13 +75,29 @@ export default function ClientInvoices({
       .sort((a, b) => new Date(b.uploaded_at || b.created_at).getTime() - new Date(a.uploaded_at || a.created_at).getTime());
   }, [initialInvoices]);
 
+  // Search filter
+  const filteredInvoices = useMemo(() => {
+    if (!searchTerm) return clientInvoices;
+    const term = searchTerm.toLowerCase();
+    return clientInvoices.filter((inv) => {
+      const fileName = inv.file_name.toLowerCase();
+      const id = inv.id.toLowerCase();
+      const orderId = inv.order_id?.toLowerCase() || "";
+      return (
+        fileName.includes(term) ||
+        id.includes(term) ||
+        orderId.includes(term)
+      );
+    });
+  }, [clientInvoices, searchTerm]);
+
   // Calculate paginated results
   const paginatedInvoices = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return clientInvoices.slice(startIndex, startIndex + itemsPerPage);
-  }, [clientInvoices, currentPage, itemsPerPage]);
+    return filteredInvoices.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredInvoices, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(clientInvoices.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
 
   const getOrderAmount = (orderId?: string | null) => {
     if (!orderId) return 0;
@@ -101,6 +151,37 @@ export default function ClientInvoices({
           {t("subtitle")}
         </p>
       </div>
+
+      {/* Search Bar */}
+      {clientInvoices.length > 0 && (
+        <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={t("search_placeholder", "Search invoices...")}
+                className="w-full pl-10 pr-10 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+              />
+              {searchTerm && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {searchTerm && (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                Found {filteredInvoices.length} result{filteredInvoices.length !== 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
         {clientInvoices.length === 0 ? (
@@ -248,14 +329,50 @@ export default function ClientInvoices({
       </Card>
 
       {/* Pagination */}
-      {clientInvoices.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          totalItems={clientInvoices.length}
-          itemsPerPage={itemsPerPage}
-        />
+      {filteredInvoices.length > 0 && (
+        <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+          <div className="text-sm text-zinc-600 dark:text-zinc-400">
+            {searchTerm
+              ? `Showing ${currentPage} of ${totalPages} pages (${filteredInvoices.length} filtered)`
+              : `Showing ${currentPage} of ${totalPages} pages (${filteredInvoices.length} invoices)`
+            }
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => goToPage(page)}
+                  className={`min-w-[40px] px-3 py-2 border rounded-lg ${
+                    currentPage === page
+                      ? 'bg-[#168BB0] text-white border-[#168BB0]'
+                      : 'hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:border-zinc-700'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Invoice Viewer Modal */}

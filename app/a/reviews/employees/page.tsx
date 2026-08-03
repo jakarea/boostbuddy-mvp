@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
@@ -36,6 +37,10 @@ import {
   Power,
   PauseCircle,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  X
 } from "lucide-react";
 import { formatDateShort } from "@/lib/dateUtils";
 
@@ -57,11 +62,73 @@ export default function AdminReviewsEmployeesPage() {
   const { t } = useTranslation("admin_reviews");
   const { success, error } = useToast();
   const { confirm } = useConfirm();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const [allEmployees, setAllEmployees] = useState<EmployeePerformance[]>([]);
   const [employees, setEmployees] = useState<EmployeePerformance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<"completed" | "skipped" | "recent">("completed");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [invitePending, startInviteTransition] = useTransition();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Pagination state
+  const ITEMS_PER_PAGE = 10;
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  const totalPages = Math.ceil(employees.length / ITEMS_PER_PAGE);
+
+  // Get sorted employees function
+  const getSortedEmployees = () => {
+    const sorted = [...employees];
+    switch (sortBy) {
+      case "completed":
+        return sorted.sort((a, b) => b.ordersCompleted - a.ordersCompleted);
+      case "skipped":
+        return sorted.sort((a, b) => b.ordersSkipped - a.ordersSkipped);
+      case "recent":
+        return sorted.sort((a, b) =>
+          new Date(b.lastActiveAt || 0).getTime() - new Date(a.lastActiveAt || 0).getTime()
+        );
+      default:
+        return sorted;
+    }
+  };
+
+  // Get current page items (sorted)
+  const getCurrentPageEmployees = () => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return getSortedEmployees().slice(startIndex, endIndex);
+  };
+
+  const currentEmployees = getCurrentPageEmployees();
+
+  // Full sorted list for display
+  const sortedEmployees = getSortedEmployees();
+
+  // Navigation handlers
+  const goToPage = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', page.toString());
+    router.push(`/a/reviews/employees?${params.toString()}`);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      goToPage(currentPage + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      goToPage(currentPage - 1);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
 
   const loadData = async () => {
     try {
@@ -82,6 +149,7 @@ export default function AdminReviewsEmployeesPage() {
           lastActiveAt: emp.last_active_at || emp.lastActiveAt,
           createdAt: emp.created_at || emp.createdAt,
         })) || [];
+        setAllEmployees(normalizedData);
         setEmployees(normalizedData);
       } else {
         error(result.error || "Failed to load employee data");
@@ -92,6 +160,28 @@ export default function AdminReviewsEmployeesPage() {
       setIsLoading(false);
     }
   };
+
+  // Apply search filter
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setEmployees(allEmployees);
+    } else {
+      const filtered = allEmployees.filter((employee) => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          employee.employeeName?.toLowerCase().includes(searchLower) ||
+          employee.employeeEmail?.toLowerCase().includes(searchLower)
+        );
+      });
+      setEmployees(filtered);
+      // Reset to page 1 when searching
+      const params = new URLSearchParams(searchParams.toString());
+      if (params.get('page') !== '1') {
+        params.set('page', '1');
+        router.push(`/a/reviews/employees?${params.toString()}`);
+      }
+    }
+  }, [searchTerm, allEmployees]);
 
   useEffect(() => {
     loadData();
@@ -175,22 +265,6 @@ export default function AdminReviewsEmployeesPage() {
     }
   };
 
-  const getSortedEmployees = () => {
-    const sorted = [...employees];
-    switch (sortBy) {
-      case "completed":
-        return sorted.sort((a, b) => b.ordersCompleted - a.ordersCompleted);
-      case "skipped":
-        return sorted.sort((a, b) => b.ordersSkipped - a.ordersSkipped);
-      case "recent":
-        return sorted.sort((a, b) =>
-          new Date(b.lastActiveAt || 0).getTime() - new Date(a.lastActiveAt || 0).getTime()
-        );
-      default:
-        return sorted;
-    }
-  };
-
   const getCompletionRate = (completed: number, skipped: number) => {
     const total = completed + skipped;
     if (total === 0) return "0%";
@@ -205,18 +279,24 @@ export default function AdminReviewsEmployeesPage() {
     return daysDiff <= 7; // Active in last 7 days
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#168BB0]"></div>
-      </div>
-    );
-  }
-
-  const sortedEmployees = getSortedEmployees();
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/50 dark:bg-zinc-950/50 z-50 flex items-center justify-center rounded-lg backdrop-blur-sm">
+          <div className="bb-loading">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span className="bb-center"></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -281,6 +361,35 @@ export default function AdminReviewsEmployeesPage() {
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by employee name or email..."
+              className="w-full pl-10 pr-10 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+            />
+            {searchTerm && (
+              <button
+                onClick={handleClearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {searchTerm && (
+            <div className="text-sm text-zinc-600 dark:text-zinc-400">
+              Found {employees.length} result{employees.length !== 1 ? 's' : ''}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Employees List */}
       {sortedEmployees.length === 0 ? (
         <Card className="p-12 text-center">
@@ -293,9 +402,9 @@ export default function AdminReviewsEmployeesPage() {
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sortedEmployees.map((employee) => (
-            <Card key={employee.id} className="p-4 hover:shadow-md transition-shadow">
+        <div className="grid grid-cols-1 gap-4">
+          {currentEmployees.map((employee) => (
+            <Card key={employee.id} className="p-6 hover:shadow-md transition-shadow">
               {/* Header */}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
@@ -452,6 +561,53 @@ export default function AdminReviewsEmployeesPage() {
         </div>
       )}
 
+      {/* Pagination Controls */}
+      {sortedEmployees.length > 0 && (
+        <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+          <div className="text-sm text-zinc-600 dark:text-zinc-400">
+            {searchTerm
+              ? `Showing ${currentPage} of ${totalPages} pages (${sortedEmployees.length} filtered from ${allEmployees.length} total)`
+              : `Showing ${currentPage} of ${totalPages} pages (${sortedEmployees.length} employees)`
+            }
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => goToPage(page)}
+                  className={`min-w-[40px] px-3 py-2 border rounded-lg ${
+                    currentPage === page
+                      ? 'bg-[#168BB0] text-white border-[#168BB0]'
+                      : 'hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:border-zinc-700'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Summary Stats */}
       {employees.length > 0 && (
         <Card className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
@@ -546,7 +702,7 @@ export default function AdminReviewsEmployeesPage() {
               <Button type="submit" disabled={invitePending}>
                 {invitePending ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <div className="bb-loading-sm inline-block"></div>
                     {t("manage.inviteDialog.sending", "Sending...")}
                   </>
                 ) : (

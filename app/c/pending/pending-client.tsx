@@ -30,7 +30,7 @@ export default function PendingClient({ email }: PendingClientProps) {
       <Card className="w-full max-w-md bg-zinc-950 border border-zinc-800 text-white shadow-xl shadow-black/40 relative overflow-hidden">
         {isPending && (
           <div className="absolute inset-0 bg-zinc-950/50 z-50 flex items-center justify-center backdrop-blur-sm">
-            <Loader2 className="h-8 w-8 animate-spin text-[#168BB0]" />
+            <div className="bb-loading"></div>
           </div>
         )}
         <CardHeader className="text-center pb-2">
@@ -85,7 +85,7 @@ export default function PendingClient({ email }: PendingClientProps) {
             disabled={isPending}
           >
             {isPending ? (
-              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+              <div className="bb-loading-sm mr-1.5"></div>
             ) : (
               <RefreshCw className="h-4 w-4 mr-1.5" />
             )}

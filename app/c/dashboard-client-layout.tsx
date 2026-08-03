@@ -65,13 +65,21 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }
 
   const navEntries: NavEntry[] = [
-    // 📂 OVERVIEW
+    // 📊 DASHBOARD
     {
-      id: "overview",
-      label: t("nav.overview", { defaultValue: "Overview" }),
+      id: "dashboard",
+      label: t("nav.dashboard", { defaultValue: "Dashboard" }),
       icon: LayoutDashboard,
+      href: "/c/dashboard",
+    },
+    // 📦 BOXES
+    {
+      id: "boxes",
+      label: t("nav.boxes", { defaultValue: "Boxes" }),
+      icon: Package,
       items: [
-        { href: "/c/dashboard", label: t("nav.dashboard", { defaultValue: "Dashboard" }), icon: LayoutDashboard },
+        { href: "/c/boxes", label: t("nav.my_boxes", { defaultValue: "My Boxes" }), icon: Package },
+        { href: "/c/boxes/buy", label: t("nav.buy_boxes", { defaultValue: "Buy Boxes" }), icon: ShoppingBag },
       ],
     },
     // 📂 SERVICES
@@ -80,11 +88,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       label: t("nav.services", { defaultValue: "Services" }),
       icon: ShoppingBag,
       items: [
-        { href: "/c/services/reviews/new-order", label: t("nav.new_order", { defaultValue: "New Order" }), icon: PlusCircle },
-        { href: "/c/services/reviews/orders", label: t("nav.my_orders", { defaultValue: "My Orders" }), icon: List },
-        { href: "/c/services/reviews", label: t("nav.services_overview", { defaultValue: "Overview" }), icon: Star },
-        { href: "/c/services/clocker", label: t("nav.clocker", { defaultValue: "Clocker" }), icon: Clock },
-        { href: "/c/services/prompt", label: t("nav.prompt_engine", { defaultValue: "Prompt Engine" }), icon: MessageSquare, soon: true },
+        { href: "/c/services/reviews", label: t("nav.services_overview", { defaultValue: "Reviews" }), icon: Star },
+        { href: "#", label: t("nav.clocker", { defaultValue: "Clocker" }), icon: Clock, soon: true },
+        { href: "#", label: t("nav.prompt_engine", { defaultValue: "Prompt Engine" }), icon: MessageSquare, soon: true },
       ],
     },
     // 📂 FINANCE & BILLING
@@ -121,7 +127,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       title={t("title")}
       subtitle={t("subtitle")}
       signOutLabel={t("sign_out")}
-      soonBadgeLabel={t("soon_badge", { defaultValue: "Soon" })}
+      soonBadgeLabel={t("soon_badge", { defaultValue: "Coming soon" })}
       mainMaxWidth="md:max-w-4xl lg:max-w-6xl"
     >
       {children}

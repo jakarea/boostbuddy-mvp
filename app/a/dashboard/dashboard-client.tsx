@@ -120,7 +120,17 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
       {/* Loading Overlay for Server Actions */}
       {isPending && (
         <div className="absolute inset-0 bg-white/50 dark:bg-zinc-950/50 z-50 flex items-center justify-center rounded-lg backdrop-blur-sm">
-          <Loader2 className="h-8 w-8 animate-spin text-[#168BB0]" />
+          <div className="bb-loading">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span className="bb-center"></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
         </div>
       )}
 

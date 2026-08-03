@@ -8,7 +8,6 @@ import {
   UserCog,
   Package,
   Inbox,
-  Check,
   Eye,
   FileText,
   History,
@@ -80,7 +79,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       icon: Eye,
       items: [
         { href: "/a/reviews/queue", label: t("nav.pending_queue", { defaultValue: "Pending Queue" }), icon: Inbox },
-        { href: "/a/reviews/verification", label: t("nav.verification", { defaultValue: "Verification" }), icon: Check },
         { href: "/a/reviews/employees", label: t("nav.employee_submissions", { defaultValue: "Employee Submissions" }), icon: UserCog },
         { href: "/a/reviews", label: t("nav.active_reviews", { defaultValue: "Active Reviews" }), icon: FileText },
         { href: "/a/reviews/history", label: t("nav.complete_history", { defaultValue: "Complete History" }), icon: History },

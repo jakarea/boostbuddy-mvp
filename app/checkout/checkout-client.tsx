@@ -128,7 +128,7 @@ export default function CheckoutClient({ services, profiles, userName }: Checkou
         {/* Loading Overlay */}
         {isPending && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-zinc-50/50 dark:bg-zinc-950/50 backdrop-blur-sm rounded-xl">
-            <Loader2 className="h-10 w-10 text-[#168BB0] animate-spin" />
+            <div className="bb-loading"></div>
             <span className="ml-3 font-semibold text-[#168BB0]">{t("overlay_loading")}</span>
           </div>
         )}

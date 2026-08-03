@@ -1,6 +1,7 @@
 "use client";
 
 import React, { memo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { ClientUser } from "./types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,8 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Pagination } from "@/components/ui/pagination";
-import { Search, UserPlus, Settings } from "lucide-react";
+import { Search, UserPlus, Settings, X, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ClientsListProps {
   paginatedClients: ClientUser[];
@@ -44,8 +44,34 @@ const ClientsList = memo(function ClientsList({
 }: ClientsListProps) {
   const { t } = useTranslation("admin_clients");
   const { t: tStatus } = useTranslation("status");
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
+
+  // Navigation handlers
+  const goToPage = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', page.toString());
+    router.push(`/a/clients?${params.toString()}`);
+    setCurrentPage(page);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      goToPage(currentPage + 1);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      goToPage(currentPage - 1);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
 
   const getStatusColor = (status: string) => {
     if (status === "ACTIVE") return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
@@ -119,30 +145,74 @@ const ClientsList = memo(function ClientsList({
         </Button>
       </div>
 
-      {/* Searching / Filtering Toolbar */}
-      <div className="flex gap-3 flex-wrap md:flex-nowrap">
-        {/* Search */}
-        <div className="relative flex-1">
-          <Input
-            placeholder={t("search_placeholder")}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-800 h-9 text-xs pl-9 text-zinc-800 dark:text-zinc-200 placeholder-zinc-400"
-          />
-          <Search className="h-4 w-4 text-zinc-400 absolute left-3 top-2.5" />
+      {/* Status Filter */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-sm text-zinc-600">
+          {t("filter_label", "Filter by status")}:
+        </span>
+        <div className="flex gap-1">
+          <Button
+            size="sm"
+            variant={statusFilter === "ALL" ? "default" : "outline"}
+            onClick={() => setStatusFilter("ALL")}
+            className="text-xs"
+          >
+            {t("filter_all", "All")}
+          </Button>
+          <Button
+            size="sm"
+            variant={statusFilter === "ACTIVE" ? "default" : "outline"}
+            onClick={() => setStatusFilter("ACTIVE")}
+            className="text-xs"
+          >
+            {t("filter_active", "Active")}
+          </Button>
+          <Button
+            size="sm"
+            variant={statusFilter === "PENDING" ? "default" : "outline"}
+            onClick={() => setStatusFilter("PENDING")}
+            className="text-xs"
+          >
+            {t("filter_pending", "Pending")}
+          </Button>
+          <Button
+            size="sm"
+            variant={statusFilter === "DEACTIVATED" ? "default" : "outline"}
+            onClick={() => setStatusFilter("DEACTIVATED")}
+            className="text-xs"
+          >
+            {t("filter_deactivated", "Deactivated")}
+          </Button>
         </div>
+      </div>
 
-        {/* Status Filter */}
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-9 border border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-md px-3 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#168BB0] cursor-pointer text-zinc-800 dark:text-zinc-200"
-        >
-          <option value="ALL">{t("filter_all")}</option>
-          <option value="ACTIVE">{t("filter_active")}</option>
-          <option value="PENDING">{t("filter_pending")}</option>
-          <option value="DEACTIVATED">{t("filter_deactivated")}</option>
-        </select>
+      {/* Search Bar */}
+      <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={t("search_placeholder", "Search by name or email...")}
+              className="w-full pl-10 pr-10 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+            />
+            {searchTerm && (
+              <button
+                onClick={handleClearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {searchTerm && (
+            <div className="text-sm text-zinc-600 dark:text-zinc-400">
+              Found {filteredClients.length} result{filteredClients.length !== 1 ? 's' : ''}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Desktop Table View */}
@@ -241,14 +311,52 @@ const ClientsList = memo(function ClientsList({
         ))}
       </div>
 
-      {/* Pagination */}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-        totalItems={filteredClients.length}
-        itemsPerPage={itemsPerPage}
-      />
+      {/* Pagination Controls */}
+      {filteredClients.length > 0 && (
+        <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+          <div className="text-sm text-zinc-600 dark:text-zinc-400">
+            {searchTerm
+              ? `Showing ${currentPage} of ${totalPages} pages (${filteredClients.length} filtered)`
+              : `Showing ${currentPage} of ${totalPages} pages (${filteredClients.length} clients)`
+            }
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => goToPage(page)}
+                  className={`min-w-[40px] px-3 py-2 border rounded-lg ${
+                    currentPage === page
+                      ? 'bg-[#168BB0] text-white border-[#168BB0]'
+                      : 'hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:border-zinc-700'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 });

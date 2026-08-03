@@ -26,8 +26,26 @@ export default function EmployeeClient({
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<"ADMIN" | "EMPLOYEE" | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState<"ACTIVE" | "PENDING" | "DEACTIVATED" | "ALL">("ALL");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1", 10));
   const itemsPerPage = 10;
+
+  // Navigation handlers
+  const goToPage = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', page.toString());
+    router.push(`/a/employees?${params.toString()}`);
+    setCurrentPage(page);
+  };
+
+  const goToNextPage = (totalPages: number) => {
+    if (currentPage < totalPages) goToPage(currentPage + 1);
+  };
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) goToPage(currentPage - 1);
+  };
+
+  const handleClearSearch = () => setSearchTerm("");
 
   // Edit/Details states
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeUser | null>(null);
@@ -70,6 +88,9 @@ export default function EmployeeClient({
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('page');
+    router.push(`/a/employees?${params.toString()}`);
   }, [searchTerm, roleFilter]);
 
   // Calculate paginated results
@@ -112,6 +133,12 @@ export default function EmployeeClient({
       filteredEmployees={filteredEmployees}
       itemsPerPage={itemsPerPage}
       i18nLanguage={i18n.language}
+      goToPage={goToPage}
+      goToNextPage={goToNextPage}
+      goToPrevPage={goToPrevPage}
+      handleClearSearch={handleClearSearch}
+      searchParams={searchParams}
+      router={router}
     />
   );
 }

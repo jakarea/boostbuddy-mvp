@@ -11,6 +11,7 @@ import { randomUUID } from "crypto";
 // ============================================
 
 export type OrderType = "REVIEW" | "COMMENT" | "COMMENT_WITH_PHOTO";
+export type ReactionType = "LIKE" | "LOVE" | "CARE" | "HAHA" | "WOW" | "SAD" | "ANGRY";
 
 // ============================================
 // HELPERS
@@ -54,6 +55,7 @@ export type ReviewOrderData = {
   orderType: OrderType;
   facebookUrl: string;
   quantity: number;
+  reactionType?: ReactionType; // Facebook reaction: LIKE, LOVE, CARE, HAHA, WOW, SAD, ANGRY
   // Review-specific fields
   targetRating?: "5_STAR" | "4_STAR" | "3_STAR" | "2_STAR" | "1_STAR";
   content?: string; // Review content or comment text
@@ -308,7 +310,8 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
       order_type: orderData.orderType,
       facebook_url: orderData.facebookUrl,
       quantity: orderData.quantity,
-      target_rating: orderData.targetRating || "5_STAR",
+      target_rating: "5_STAR", // Always default to 5_STAR - hidden from UI
+      reaction_type: orderData.reactionType || "LIKE", // Default to LIKE
       content: orderData.content || null,
       comment_text: orderData.commentText || null,
       photo_urls: orderData.photoUrls || null,

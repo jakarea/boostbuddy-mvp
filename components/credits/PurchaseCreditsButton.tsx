@@ -56,7 +56,7 @@ export function PurchaseCreditsButton({
     >
       {isPurchasing ? (
         <>
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <div className="bb-loading-sm"></div>
           {t("processing", "Processing...")}
         </>
       ) : (

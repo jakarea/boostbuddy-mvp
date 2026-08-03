@@ -55,14 +55,6 @@ export default function AdminReviewsPage() {
     loadStats();
   }, [error]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#168BB0]"></div>
-      </div>
-    );
-  }
-
   const statCards = [
     {
       title: t("stats.totalOrders", "Total Orders"),
@@ -126,20 +118,28 @@ export default function AdminReviewsPage() {
       color: "text-green-600 dark:text-green-400",
       bgColor: "bg-green-500/10 dark:bg-green-950/20",
       borderColor: "border-green-200"
-    },
-    {
-      title: t("actions.verification.title", "Verification Queue"),
-      description: t("actions.verification.description", "Review and verify completed submissions before client delivery"),
-      href: "/a/reviews/verification",
-      icon: CheckCircle,
-      color: "text-[#168BB0] dark:text-[#45B0D2]",
-      bgColor: "bg-[#168BB0]/10",
-      borderColor: "border-blue-200"
     }
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/50 dark:bg-zinc-950/50 z-50 flex items-center justify-center rounded-lg backdrop-blur-sm">
+          <div className="bb-loading">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span className="bb-center"></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -210,7 +210,7 @@ export default function AdminReviewsPage() {
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-3">
           {t("actions.title", "Quick Actions")}
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {actionCards.map((action) => {
             const Icon = action.icon;
             return (

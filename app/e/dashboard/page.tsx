@@ -212,7 +212,7 @@ export default function EmployeeDashboardPage() {
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h4 className="font-medium text-zinc-900 dark:text-zinc-100">{assignment.businessName}</h4>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{assignment.reviewType} - {assignment.targetRating.replace("_", " ")}</p>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{assignment.reviewType} {/* Rating - Hidden from UI */}</p>
                     <p className="text-xs text-zinc-400 dark:text-zinc-500">
                       {t("employee.assigned", "Assigned")}: {formatDateTime(assignment.assignedAt || assignment.createdAt)}
                     </p>
@@ -264,7 +264,7 @@ export default function EmployeeDashboardPage() {
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h4 className="font-medium text-zinc-900 dark:text-zinc-100">{order.businessName}</h4>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{order.reviewType} - {order.targetRating.replace("_", " ")}</p>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{order.reviewType} {/* Rating - Hidden from UI */}</p>
                     <p className="text-xs text-zinc-400 dark:text-zinc-500">{order.creditsConsumed} {t("credits.credits", "credits")}</p>
                   </div>
                   <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 text-xs rounded border border-purple-200 dark:border-purple-800">

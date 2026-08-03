@@ -9,6 +9,7 @@ import { getReviewsDashboardAction } from "@/app/actions/reviews";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDateShort } from "@/lib/dateUtils";
+import { Search, X } from "lucide-react";
 
 export default function ReviewsDashboardPage() {
   const { user } = useAuth();
@@ -16,6 +17,7 @@ export default function ReviewsDashboardPage() {
   const { error: toastError } = useToast();
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -40,6 +42,18 @@ export default function ReviewsDashboardPage() {
     loadData();
   }, [user]);
 
+  // Filter recent orders based on search
+  const filteredRecentOrders = dashboardData?.recentOrders?.filter((order: any) => {
+    if (!searchTerm.trim()) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      order.businessName?.toLowerCase().includes(searchLower) ||
+      order.facebookUrl?.toLowerCase().includes(searchLower) ||
+      order.reviewType?.toLowerCase().includes(searchLower) ||
+      order.id?.toLowerCase().includes(searchLower)
+    );
+  }) || [];
+
   if (loading) return <LoadingScreen />;
 
   if (!dashboardData) {
@@ -58,12 +72,20 @@ export default function ReviewsDashboardPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">{t("reviews.title", "Reviews Service")}</h1>
-        <Link
-          href="/c/services/reviews/new-order"
-          className="px-4 py-2 bg-[#168BB0] text-white rounded-lg hover:bg-[#0F7493]"
-        >
-          {t("reviews.createOrder", "Create New Order")}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/c/services/reviews/new-order"
+            className="px-4 py-2 bg-[#168BB0] text-white rounded-lg hover:bg-[#0F7493]"
+          >
+            {t("reviews.createOrder", "New Order")}
+          </Link>
+          <Link
+            href="/c/services/reviews/orders"
+            className="px-4 py-2 border border-[#168BB0] text-[#168BB0] rounded-lg hover:bg-[#168BB0]/10"
+          >
+            {t("reviews.myOrders", "My Orders")}
+          </Link>
+        </div>
       </div>
 
       {/* Credit Balance Card */}
@@ -84,6 +106,35 @@ export default function ReviewsDashboardPage() {
         ))}
       </div>
 
+      {/* Search Bar */}
+      <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search recent orders by business name, URL, or type..."
+              className="w-full pl-10 pr-10 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {searchTerm && (
+            <div className="text-sm text-zinc-600 dark:text-zinc-400">
+              Found {filteredRecentOrders.length} result{filteredRecentOrders.length !== 1 ? 's' : ''}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Recent Orders */}
       <div className="bg-white dark:bg-zinc-800 rounded-lg shadow">
         <div className="p-4 border-b dark:border-zinc-700">
@@ -97,7 +148,7 @@ export default function ReviewsDashboardPage() {
           </div>
         ) : (
           <div className="divide-y dark:divide-zinc-700">
-            {recentOrders.map((order: any) => (
+            {filteredRecentOrders.map((order: any) => (
               <Link
                 key={order.id}
                 href={`/c/services/reviews/orders/${order.id}`}
@@ -107,7 +158,7 @@ export default function ReviewsDashboardPage() {
                   <div>
                     <h4 className="font-medium">{order.businessName || order.facebookUrl || 'Order'}</h4>
                     <p className="text-sm text-zinc-500">
-                      {order.reviewType} - {order.targetRating?.replace("_", " ")}
+                      {order.reviewType} {/* Rating - Hidden from UI */}
                     </p>
                     <p className="text-xs text-zinc-400">
                       {formatDateShort(order.createdAt)}
