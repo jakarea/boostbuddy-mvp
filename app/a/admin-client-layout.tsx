@@ -51,14 +51,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const navEntries: NavEntry[] = [
-    // 📂 OVERVIEW
+    // 📂 DASHBOARD
     {
-      id: "overview",
-      label: t("nav.overview", { defaultValue: "Overview" }),
+      id: "dashboard",
+      label: t("nav.dashboard", { defaultValue: "Dashboard" }),
       icon: LayoutDashboard,
-      items: [
-        { href: "/a/dashboard", label: t("nav.dashboard", { defaultValue: "Dashboard" }), icon: LayoutDashboard },
-      ],
+      href: "/a/dashboard",
     },
     // 📂 OPERATIONS
     {

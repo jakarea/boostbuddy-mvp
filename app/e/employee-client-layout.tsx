@@ -41,14 +41,12 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
   }
 
   const navEntries: NavEntry[] = [
-    // 📂 WORKSPACE
+    // 📂 DASHBOARD
     {
-      id: "workspace",
-      label: t("nav.workspace", { defaultValue: "Workspace" }),
+      id: "dashboard",
+      label: t("nav.dashboard", { defaultValue: "Dashboard" }),
       icon: LayoutDashboard,
-      items: [
-        { href: "/e/dashboard", label: t("nav.dashboard", { defaultValue: "Dashboard" }), icon: LayoutDashboard },
-      ],
+      href: "/e/dashboard",
     },
     // 📂 TASKS & ORDERS
     {
