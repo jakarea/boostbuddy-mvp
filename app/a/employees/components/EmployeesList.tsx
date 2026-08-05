@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { EmployeeUser } from "./types";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ interface EmployeesListProps {
   router: ReturnType<typeof useRouter>;
 }
 
-export default function EmployeesList({
+const EmployeesList = memo(function EmployeesList({
   paginatedEmployees,
   onAddNew,
   onManage,
@@ -308,4 +308,6 @@ export default function EmployeesList({
       )}
     </div>
   );
-}
+});
+
+export default EmployeesList;

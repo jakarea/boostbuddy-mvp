@@ -62,9 +62,9 @@ export function convertDbNumbers<T extends Record<string, any>>(record: T): T {
   ];
 
   numericFields.forEach(field => {
-    if (field in converted && typeof (converted as any)[field] === 'string') {
-      const value = (converted as any)[field];
-      (converted as any)[field] = field.includes('amount') || field.includes('price') || field.includes('consumed')
+    if (field in converted && typeof converted[field] === 'string') {
+      const value = converted[field] as string;
+      (converted as Record<string, any>)[field] = field.includes('amount') || field.includes('price') || field.includes('consumed')
         ? parseFloat(value)
         : parseInt(value);
     }

@@ -15,7 +15,7 @@ export default async function EmployeePage() {
   if (!auth.success) return null;
 
   const response = await getEmployeeUsersData();
-  const initialEmployees = (response.success ? response.data : []) as any[];
+  const initialEmployees = response.success && response.data ? response.data : [];
   const duration = Date.now() - start;
 
   return (

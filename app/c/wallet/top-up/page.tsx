@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, Wallet } from "lucide-react";
 import Link from "next/link";
+import { devLog } from "@/lib/utils/devLog";
 
 export default function TopUpPage() {
   const { user } = useAuth();
@@ -23,18 +24,18 @@ export default function TopUpPage() {
   // Check for successful purchase and trigger fulfillment
   useEffect(() => {
     const sessionId = searchParams.get("session_id");
-    console.log("📍 [CLIENT#1] URL Session ID:", sessionId);
-    console.log("📍 [CLIENT#2] User:", user?.email);
-    console.log("📍 [CLIENT#3] isFulfilling:", isFulfilling);
+    devLog("📍 [CLIENT#1] URL Session ID:", sessionId);
+    devLog("📍 [CLIENT#2] User:", user?.email);
+    devLog("📍 [CLIENT#3] isFulfilling:", isFulfilling);
 
     if (sessionId && user && !isFulfilling) {
-      console.log("📍 [CLIENT#4] Starting fulfillment process...");
+      devLog("📍 [CLIENT#4] Starting fulfillment process...");
       setIsFulfilling(true);
 
       const fulfillAndRefresh = async () => {
         try {
-          console.log("📍 [CLIENT#5] Calling fulfillment API...");
-          console.log("📍 [CLIENT#6] Request body:", JSON.stringify({ sessionId }));
+          devLog("📍 [CLIENT#5] Calling fulfillment API...");
+          devLog("📍 [CLIENT#6] Request body:", JSON.stringify({ sessionId }));
 
           // Call fulfillment endpoint
           const response = await fetch('/api/fulfill-credits', {
@@ -43,29 +44,29 @@ export default function TopUpPage() {
             body: JSON.stringify({ sessionId })
           });
 
-          console.log("📍 [CLIENT#7] API response status:", response.status);
-          console.log("📍 [CLIENT#8] API response OK:", response.ok);
+          devLog("📍 [CLIENT#7] API response status:", response.status);
+          devLog("📍 [CLIENT#8] API response OK:", response.ok);
 
           const responseData = await response.json();
-          console.log("📍 [CLIENT#9] API response data:", responseData);
+          devLog("📍 [CLIENT#9] API response data:", responseData);
 
           if (response.ok) {
-            console.log("📍 [CLIENT#10] ✅ Fulfillment API success");
+            devLog("📍 [CLIENT#10] ✅ Fulfillment API success");
             success(t("credits.purchaseSuccess", "Credits purchased successfully!"));
 
             // Check database state after fulfillment
-            console.log("📍 [CLIENT#11] Checking database state...");
+            devLog("📍 [CLIENT#11] Checking database state...");
             setTimeout(async () => {
               const debugRes = await fetch('/api/debug-credits');
               const debugData = await debugRes.json();
-              console.log("📍 [CLIENT#12] 🗄️ Database state:", debugData);
+              devLog("📍 [CLIENT#12] 🗄️ Database state:", debugData);
             }, 1000);
           } else {
-            console.log("📍 [CLIENT#13] ❌ Fulfillment API failed");
+            devLog("📍 [CLIENT#13] ❌ Fulfillment API failed");
             console.error("📍 [CLIENT#14] Error data:", responseData);
 
             if (responseData.error?.includes('already fulfilled')) {
-              console.log("📍 [CLIENT#15] Already fulfilled");
+              devLog("📍 [CLIENT#15] Already fulfilled");
               success(t("credits.purchaseSuccess", "Credits purchased successfully!"));
             } else {
               error(responseData.error || "Failed to process purchase");
@@ -75,14 +76,14 @@ export default function TopUpPage() {
           console.error("📍 [CLIENT#20] ❌ Fulfillment error:", err);
           error("Failed to process purchase");
         } finally {
-          console.log("📍 [CLIENT#21] Fulfillment process complete");
+          devLog("📍 [CLIENT#21] Fulfillment process complete");
           setIsFulfilling(false);
         }
       };
 
       fulfillAndRefresh();
     } else {
-      console.log("📍 [CLIENT#22] Skipping fulfillment (sessionId:", !!sessionId, "user:", !!user, "isFulfilling:", isFulfilling, ")");
+      devLog("📍 [CLIENT#22] Skipping fulfillment (sessionId:", !!sessionId, "user:", !!user, "isFulfilling:", isFulfilling, ")");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, user]);

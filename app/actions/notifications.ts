@@ -149,16 +149,39 @@ async function loadUserChatId(
 
 /**
  * Sends a Telegram message. Never throws — logs errors and returns silently.
- * NOTE: Telegram notifications are currently disabled for development.
+ * NOTE: Now enabled for production use with multilingual support.
  */
 async function dispatchToTelegram(
   credentials: TelegramCredentials | null,
   subject: string,
   body: string
 ): Promise<void> {
-  // TELEGRAM NOTIFICATIONS DISABLED
-  console.info("[TELEGRAM] Notifications disabled - skipping delivery.");
-  return;
+  if (!credentials) {
+    console.warn("[TELEGRAM] No credentials configured - skipping delivery.");
+    return;
+  }
+
+  try {
+    const url = `https://api.telegram.org/bot${credentials.bot_token}/sendMessage`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: credentials.chat_id,
+        text: `*${subject}*\n\n${body}`,
+        parse_mode: "Markdown",
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("[TELEGRAM] API Error:", error?.description || "Unknown error");
+    } else {
+      console.log("[TELEGRAM] Message delivered successfully to:", credentials.chat_id);
+    }
+  } catch (error) {
+    console.error("[TELEGRAM] Delivery failed:", error);
+  }
 }
 
 // ── Public actions ───────────────────────────────────────────────────
@@ -187,10 +210,12 @@ export async function getNotificationsAction() {
 }
 
 /**
- * Sends a notification via the primary channel, then:
- * 1. Dispatches to the admin's global Telegram (if configured).
- * 2. Dispatches to the recipient's personal Telegram (if they configured one).
- * 3. Stores notification in database with priority and user reference
+ * Sends a notification via the primary channel with smart routing.
+ * Automatically routes based on recipient role:
+ * - Admin: All admins receive same notification
+ * - Employee: Single group notification (if configured)
+ * - Client: Individual personal notification
+ *
  * All deliveries are logged to notification_logs.
  */
 export async function sendNotificationAction(
@@ -207,13 +232,15 @@ export async function sendNotificationAction(
 
     // Resolve recipient email to user_id for proper user filtering
     let userId: string | null = null;
+    let userRole: string | null = null;
     try {
       const { data: userRecord } = await supabaseAdmin
         .from("users")
-        .select("id")
+        .select("id, role")
         .eq("email", recipient)
         .maybeSingle();
       userId = userRecord?.id || null;
+      userRole = userRecord?.role || null;
     } catch (error) {
       console.warn("[NOTIFICATION] Could not resolve user_id:", error);
     }
@@ -221,20 +248,28 @@ export async function sendNotificationAction(
     // Set default priority if not provided
     const notificationPriority = priority || getDefaultPriority(type);
 
-    // 1. Admin-level Telegram delivery (global admin channel)
-    const adminCreds = await loadAdminTelegramCredentials(supabaseAdmin);
-    await dispatchToTelegram(adminCreds, subject, body);
+    // Smart Telegram routing based on user role
+    if (channel === "TELEGRAM") {
+      const { routeTelegramNotificationAction } = await import("./telegram-routing");
 
-    // 2. Per-user personal Telegram delivery (uses admin's bot, user's chat ID)
-    const botToken = await loadAdminBotToken(supabaseAdmin);
-    if (botToken) {
-      const userChatId = await loadUserChatId(supabaseAdmin, recipient);
-      if (userChatId) {
-        await dispatchToTelegram({ bot_token: botToken, chat_id: userChatId }, subject, body);
-      }
+      let targetUserType: "ADMIN" | "EMPLOYEE" | "CLIENT" = "CLIENT";
+      if (userRole === "ADMIN") targetUserType = "ADMIN";
+      else if (userRole === "EMPLOYEE") targetUserType = "EMPLOYEE";
+
+      const telegramResult = await routeTelegramNotificationAction(
+        targetUserType,
+        subject,
+        body,
+        recipient, // Required for CLIENT notifications
+        type,
+        notificationPriority,
+        relatedOrderId
+      );
+
+      console.log(`[NOTIFICATION] Telegram routing: ${targetUserType} → ${telegramResult.method} (${telegramResult.delivered} delivered)`);
     }
 
-    // 3. Log the notification with enhanced fields for priority system
+    // Log the notification with enhanced fields for priority system
     const { error } = await supabaseAdmin
       .from("notification_logs")
       .insert({
@@ -254,7 +289,7 @@ export async function sendNotificationAction(
       throw error;
     }
 
-    // 4. Trigger Realtime for HIGH priority notifications
+    // Trigger Realtime for HIGH priority notifications
     if (notificationPriority === "HIGH" && userId) {
       await triggerRealtimeNotification({
         userId,

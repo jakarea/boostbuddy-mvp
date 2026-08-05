@@ -25,9 +25,9 @@ export default async function CheckoutPage() {
 
   return (
     <Suspense fallback={<LoadingScreen />}>
-      <CheckoutClient 
-        services={services as any[]} 
-        profiles={(profiles || []) as any[]} 
+      <CheckoutClient
+        services={services || []}
+        profiles={(profiles || [])}
         userName={user.user_metadata?.name || user.email || ""}
       />
     </Suspense>

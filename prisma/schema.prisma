@@ -10,12 +10,11 @@ datasource db {
 model User {
   id           String           @id @default(uuid())
   email        String           @unique
-  passwordHash String
   name         String
   role         String           // "ADMIN", "CLIENT", or "EMPLOYEE"
+  status       String           @default("PENDING") // "PENDING", "ACTIVE", "DEACTIVATED"
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
-  isActive     Boolean          @default(true)
 
   // Credits & Employee System
   creditsBalance     Int       @default(0)  // Cached credits balance
@@ -37,6 +36,7 @@ model User {
   employeeStats             EmployeeStats?
   notifications             Notification[]
   notificationLogs           NotificationLog[]
+  userTelegramConfig        UserTelegramConfig?
 }
 
 model BillingInfo {
@@ -60,12 +60,12 @@ model Service {
   name                     String
   description              String
   price                    Float
-  durationDays             Int
-  isActive                 Boolean  @default(true)
-  requiresManualAssignment Boolean  @default(true)
+  durationDays             Int      @map("duration_days")
+  isActive                 Boolean  @default(true) @map("is_active")
+  requiresManualAssignment Boolean  @default(true) @map("requires_manual_assignment")
   instructions             String   // Client-visible instructions on how to use/assign
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
   orders                   Order[]
   profiles                 ProfileAccount[]
 }
@@ -136,26 +136,26 @@ model CreditPackage {
   id              String   @id @default(uuid())
   name            String
   description     String?
-  creditsAmount   Int      // Number of credits in this package
+  creditsAmount   Int      @map("credits_amount")  // Number of credits in this package
   price           Float    // EUR price for the package
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 }
 
 model CreditTransaction {
   id              String   @id @default(uuid())
-  userId          String
+  userId          String   @map("user_id")
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   amount          Int      // Positive for purchases, negative for spending
-  balanceAfter    Int      // Running balance after this transaction
+  balanceAfter    Int      @map("balance_after")  // Running balance after this transaction
   type            String   // "PURCHASE", "SPEND", "REFUND", "ADMIN_ADJUST"
   description     String   // Human-readable description
-  referenceId     String?  // Optional link to order/review
+  referenceId     String?  @map("reference_id")  // Optional link to order/review
   metadata        String?  // JSON for additional context
 
-  createdAt       DateTime @default(now())
+  createdAt       DateTime @default(now()) @map("created_at")
 
   @@index([userId])
   @@index([createdAt])
@@ -167,39 +167,45 @@ model CreditTransaction {
 
 model ReviewOrder {
   id                    String   @id @default(uuid())
-  userId                String   // Client who created the order
+  userId                String   @map("user_id")   // Client who created the order
   user                  User     @relation("ReviewOrderClient", fields: [userId], references: [id], onDelete: Cascade)
 
   // Business Details
-  businessName          String
-  businessUrl           String?
+  businessName          String   @map("business_name")
+  facebookUrl           String?  @map("facebook_url")   // Facebook URL for the review
+
+  // Order Details
+  orderType             String   @map("order_type")     // "REVIEW", "COMMENT", "COMMENT_WITH_PHOTO"
+  quantity              Int      // Number of reviews/comments
 
   // Review Details
-  reviewType            String   // "GOOGLE", "TRUSTPILOT", "YELP", etc.
-  targetRating          String   @default("5_STAR")   // "5_STAR", "4_STAR", "3_STAR", etc.
-  reactionType          String   @default("LIKE")     // "LIKE", "LOVE", "CARE", "HAHA", "WOW", "SAD", "ANGRY"
-  reviewContent         String   // The actual review text to post
-  reviewInstructions    String?  // Additional instructions from client
-  proofOfCompletion     String?  // Employee submission proof
+  reviewType            String   @map("review_type")   // "GOOGLE", "TRUSTPILOT", "YELP", etc.
+  targetRating          String   @map("target_rating") @default("5_STAR")   // "5_STAR", "4_STAR", "3_STAR", etc.
+  reactionType          String   @map("reaction_type") @default("LIKE")     // "LIKE", "LOVE", "CARE", "HAHA", "WOW", "SAD", "ANGRY"
+  reviewContent         String?  @map("review_content")   // The actual review text to post
+  reviewInstructions    String?  @map("review_instructions")  // Additional instructions from client
+  commentText           String?  @map("comment_text")   // Comment text for COMMENT types
+  photoUrls             String?  @map("photo_urls")     // JSON array of photo URLs
+  proofOfCompletion     String?  @map("proof_of_completion")  // Employee submission proof
 
   // Credits & Status
-  creditsConsumed       Int      // Credits used for this order
+  creditsConsumed       Int      @map("credits_consumed") // Credits used for this order
   status                String   // "PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"
 
   // Employee Assignment
-  assignedEmployeeId    String?
+  assignedEmployeeId    String?  @map("assigned_employee_id")
   assignedEmployee      User?    @relation("ReviewOrderEmployee", fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
-  assignedAt            DateTime? // When order was assigned to employee
+  assignedAt            DateTime? @map("assigned_at") // When order was assigned to employee
 
   // Timestamps
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  completedAt           DateTime?
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  completedAt           DateTime? @map("completed_at")
 
   // Admin Verification
-  adminVerificationStatus String?  // "PENDING", "APPROVED", "REJECTED" - Set by admin after employee completes review
-  adminVerifiedAt          DateTime? // When admin approved/rejected the review
-  rejectionReason          String?   // Reason for rejection (visible to all employees)
+  adminVerificationStatus String?  @map("admin_verification_status") // "PENDING", "APPROVED", "REJECTED"
+  adminVerifiedAt          DateTime? @map("admin_verified_at")
+  rejectionReason          String?   @map("rejection_reason") // Reason for rejection
 
   @@index([status])
   @@index([assignedEmployeeId])
@@ -283,4 +289,64 @@ model NotificationLog {
   @@index([priority, createdAt(sort: Desc)])
   @@index([userId, isRead, createdAt(sort: Desc)])
   @@index([userId, priority, createdAt(sort: Desc)])
+}
+
+// ============================================
+// REVIEW CREDIT PRICING
+// ============================================
+
+model ReviewCreditPricing {
+  id              String   @id @default(uuid())
+  orderType       String   @map("order_type")   // "REVIEW", "COMMENT", "COMMENT_WITH_PHOTO"
+  creditsPerUnit  Int      @map("credits_per_unit")
+  isActive        Boolean  @map("is_active") @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([orderType])
+  @@index([isActive])
+}
+
+// ============================================
+// TELEGRAM GROUP CONFIGS
+// ============================================
+
+model TelegramGroupConfig {
+  id              String   @id @default(uuid())
+  groupName       String   @map("group_name")
+  groupChatId     String   @map("group_chat_id")
+  groupType       String   @map("group_type")   // "ADMIN" or "EMPLOYEE"
+  isActive        Boolean  @map("is_active") @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([groupType])
+  @@index([isActive])
+}
+
+// ============================================
+// APP SETTINGS
+// ============================================
+
+model AppSetting {
+  id      String   @id @default(uuid())
+  key     String   @unique
+  value   String   // JSON string for flexible settings
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+// ============================================
+// USER TELEGRAM CONFIGS
+// ============================================
+
+model UserTelegramConfig {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatId    String   @map("chat_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId])
 }

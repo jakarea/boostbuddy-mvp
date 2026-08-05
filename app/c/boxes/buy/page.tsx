@@ -24,11 +24,11 @@ export default async function BuyBoxesPage() {
     getClientProfilesData(auth.user.id)
   ]);
 
-  const orders = (ordersRes.success ? ordersRes.data : []) as any[];
-  const activeServices = services.filter(s => s.is_active);
+  const orders = ordersRes.success && ordersRes.data ? ordersRes.data : [];
+  const activeServices = services.filter((s: { is_active?: boolean }) => s.is_active);
   const billingInfo = billingRes.success ? billingRes.data : null;
-  const invoices = (invoicesRes.success && invoicesRes.data ? invoicesRes.data : []) as any[];
-  const profiles = (profilesRes.success ? profilesRes.data : []) as any[];
+  const invoices = invoicesRes.success && invoicesRes.data ? invoicesRes.data : [];
+  const profiles = profilesRes.success && profilesRes.data ? profilesRes.data : [];
 
   return (
     <Suspense fallback={<LoadingScreen />}>

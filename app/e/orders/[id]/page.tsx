@@ -52,8 +52,8 @@ export default function EmployeeOrderDetailPage() {
             createdAt: raw.createdAt || raw.created_at,
             updatedAt: raw.updatedAt || raw.updated_at,
             proofOfCompletion: raw.proofOfCompletion || raw.proof_of_completion,
-            clientName: raw.clientName || raw.client_name || (raw.users as any)?.name,
-            clientEmail: raw.clientEmail || raw.client_email || (raw.users as any)?.email,
+            clientName: raw.clientName || raw.client_name || (raw.users as { name?: string } | null)?.name || '',
+            clientEmail: raw.clientEmail || raw.client_email || (raw.users as { email?: string } | null)?.email || '',
           };
           setOrder(normalized);
         } else {

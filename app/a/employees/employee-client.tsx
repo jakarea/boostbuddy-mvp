@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useTranslation } from "react-i18next";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 import { EmployeeUser } from "./components/types";
 import EmployeesList from "./components/EmployeesList";
 
@@ -24,6 +25,7 @@ export default function EmployeeClient({
 
   // Search/Filter states
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [roleFilter, setRoleFilter] = useState<"ADMIN" | "EMPLOYEE" | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState<"ACTIVE" | "PENDING" | "DEACTIVATED" | "ALL">("ALL");
   const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1", 10));

@@ -33,6 +33,8 @@ export function ClientPerformanceLogger() {
 
   // Log on every route change (including query params)
   useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+
     if (isFirstRender.current) {
       // Initial Page Load (Hard refresh)
       const navEntry = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
@@ -56,7 +58,7 @@ export function ClientPerformanceLogger() {
       setTimeout(() => {
         const loadTime = Date.now() - window.__linkClickTime!;
         const url = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : "");
-        
+
         console.log(
           `%c[Navigation] %c${url} %cClick to fully render took: %c${loadTime}ms`,
           "color: #888; font-weight: bold",
@@ -64,7 +66,7 @@ export function ClientPerformanceLogger() {
           "color: inherit",
           `color: ${loadTime > 500 ? 'red' : 'green'}; font-weight: bold; font-size: 14px;`
         );
-        
+
         // Reset so we don't log it again for non-link changes
         window.__linkClickTime = undefined;
       }, 0);

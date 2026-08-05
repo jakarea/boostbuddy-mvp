@@ -26,6 +26,7 @@ export default function UserTelegramConfig() {
   const [showGuide, setShowGuide] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [validationWarning, setValidationWarning] = useState<string | null>(null);
 
   useEffect(() => {
     startTransition(async () => {
@@ -43,6 +44,41 @@ export default function UserTelegramConfig() {
     });
   }, []);
 
+  // Client-side validation to provide immediate feedback
+  const validateChatIdInput = (value: string): string | null => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    // Check for negative numbers (group Chat IDs)
+    if (trimmed.startsWith('-')) {
+      return "Group Chat IDs (starting with -) cannot be used for personal notifications";
+    }
+
+    // Check for very long numbers (likely not personal)
+    if (trimmed.length > 15) {
+      return "Chat ID seems too long. Please verify your personal Chat ID";
+    }
+
+    // Check if it contains only numbers (valid format)
+    if (!/^\d+$/.test(trimmed)) {
+      return "Chat ID should contain only numbers";
+    }
+
+    // Check for common bot ID patterns
+    if (trimmed.length >= 7 && trimmed.length <= 10) {
+      return "⚠️ This could be a bot ID. Verify with @userinfobot first";
+    }
+
+    return null;
+  };
+
+  const handleChatIdChange = (value: string) => {
+    setChatId(value);
+    const warning = validateChatIdInput(value);
+    setValidationWarning(warning);
+    setFeedback(null); // Clear previous feedback when input changes
+  };
+
   const handleSave = () => {
     setFeedback(null);
     startTransition(async () => {
@@ -50,9 +86,10 @@ export default function UserTelegramConfig() {
       if (res.success) {
         setSavedChatId(chatId);
         setIsEditing(false);
-        setFeedback({ ok: true, msg: t("telegram_save_success") });
+        setValidationWarning(null);
+        setFeedback({ ok: true, msg: t("telegram_save_success", { defaultValue: "Chat ID saved successfully!" }) });
       } else {
-        setFeedback({ ok: false, msg: res.error ?? t("telegram_save_failed") });
+        setFeedback({ ok: false, msg: res.error ?? t("telegram_save_failed", { defaultValue: "Failed to save Chat ID" }) });
       }
     });
   };
@@ -147,13 +184,24 @@ export default function UserTelegramConfig() {
           <div className="space-y-1.5">
             <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{t("telegram_chat_id")}</Label>
             <div className="flex items-center gap-2">
-              <Input
-                value={chatId}
-                onChange={(e) => setChatId(e.target.value)}
-                placeholder={t("telegram_placeholder")}
-                className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 h-9 text-xs flex-1"
-              />
-              <Button size="sm" className="bg-[#168BB0] hover:bg-[#0F7493] text-white h-9 px-3 text-xs" onClick={handleSave} disabled={isPending || !chatId.trim()}>
+              <div className="flex-1 space-y-1">
+                <Input
+                  value={chatId}
+                  onChange={(e) => handleChatIdChange(e.target.value)}
+                  placeholder={t("telegram_placeholder")}
+                  className={cn(
+                    "bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 h-9 text-xs",
+                    validationWarning && "border-amber-500 focus:border-amber-500"
+                  )}
+                />
+                {validationWarning && (
+                  <div className="flex items-start gap-1 text-[10px] text-amber-600 dark:text-amber-400">
+                    <HelpCircle className="h-3 w-3 shrink-0 mt-0.5" />
+                    <span>{validationWarning}</span>
+                  </div>
+                )}
+              </div>
+              <Button size="sm" className="bg-[#168BB0] hover:bg-[#0F7493] text-white h-9 px-3 text-xs" onClick={handleSave} disabled={isPending || !chatId.trim() || !!validationWarning}>
                 {isPending ? <div className="bb-loading-sm"></div> : t("telegram_save")}
               </Button>
               <Button size="sm" variant="ghost" className="h-9 px-2 text-zinc-400 hover:text-red-500 cursor-pointer" onClick={() => setIsEditing(false)}>
@@ -197,8 +245,30 @@ export default function UserTelegramConfig() {
                 t("telegram_guide_step1", { username: "your_admin_bot" })
               )}
             </p>
-            <p className="leading-relaxed">{t("telegram_guide_step2")}</p>
-            <p className="leading-relaxed">{t("telegram_guide_step3")}</p>
+
+            {/* Enhanced guide with bot ID warning */}
+            <div className="bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30 rounded-lg p-3 space-y-2">
+              <p className="leading-relaxed font-semibold text-amber-700 dark:text-amber-300">
+                ⚠️ {t("telegram_guide_important", { defaultValue: "IMPORTANT: Get YOUR Personal Chat ID" })}
+              </p>
+              <p className="leading-relaxed">
+                {t("telegram_guide_bot_warning", { defaultValue: "Do NOT enter the Bot's ID. Your Chat ID should be a personal number you get from @userinfobot." })}
+              </p>
+            </div>
+
+            <p className="leading-relaxed font-semibold">{t("telegram_guide_step2_title", { defaultValue: "Step 1: Get your Chat ID" })}</p>
+            <p className="leading-relaxed">
+              {t("telegram_guide_step2", { defaultValue: "1. Open Telegram and search for @userinfobot" })}
+            </p>
+            <p className="leading-relaxed">
+              {t("telegram_guide_step2b", { defaultValue: "2. Click /start button" })}
+            </p>
+            <p className="leading-relaxed">
+              {t("telegram_guide_step2c", { defaultValue: "3. Copy the numeric Chat ID you receive (your personal ID, NOT the bot's ID)" })}
+            </p>
+
+            <p className="leading-relaxed font-semibold">{t("telegram_guide_step3_title", { defaultValue: "Step 2: Start the bot" })}</p>
+            <p className="leading-relaxed">{t("telegram_guide_step3", { defaultValue: "Search for the bot above and click /start to allow notifications" })}</p>
           </div>
           <div className="mt-4 flex justify-end">
             <Button size="sm" className="bg-[#168BB0] hover:bg-[#0F7493] text-white" onClick={() => setShowGuide(false)}>

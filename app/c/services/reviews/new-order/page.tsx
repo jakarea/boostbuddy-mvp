@@ -13,6 +13,7 @@ import {
 import { LoadingScreen } from "@/components/LoadingScreen";
 import PhotoUpload from "@/components/ui/PhotoUpload";
 import { REACTIONS, type ReactionType } from "@/lib/reactionUtils";
+import { devLog } from "@/lib/utils/devLog";
 
 type OrderType = "REVIEW" | "COMMENT" | "COMMENT_WITH_PHOTO";
 const RATINGS = ["5_STAR", "4_STAR", "3_STAR", "2_STAR", "1_STAR"] as const;
@@ -72,11 +73,13 @@ export default function NewReviewOrderPage() {
         const pricingResults = await Promise.all(pricingPromises);
 
         if (pricingResults.every(r => r.success)) {
-          const newPricing: Record<OrderType, number> = {} as any;
+          const newPricing: Partial<Record<OrderType, number>> = {};
           pricingResults.forEach((result, index) => {
-            newPricing[orderTypes[index]] = result.cost;
+            if (result.cost !== undefined) {
+              newPricing[orderTypes[index]] = result.cost;
+            }
           });
-          setCreditPricing(newPricing);
+          setCreditPricing(newPricing as Record<OrderType, number>);
         }
       } catch (err) {
         error("Failed to load pricing information");
@@ -123,9 +126,9 @@ export default function NewReviewOrderPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log("🚀 [CLIENT] Starting order submission...");
-    console.log("📋 [CLIENT] Form data:", JSON.stringify(formData, null, 2));
-    console.log("💰 [CLIENT] Credit validation:", validation);
+    devLog("🚀 [CLIENT] Starting order submission...");
+    devLog("📋 [CLIENT] Form data:", JSON.stringify(formData, null, 2));
+    devLog("💰 [CLIENT] Credit validation:", validation);
 
     // Clear previous errors
     const newErrors: typeof fieldErrors = {};
@@ -164,7 +167,7 @@ export default function NewReviewOrderPage() {
       return;
     }
 
-    console.log("✅ [CLIENT] Validation passed, submitting order...");
+    devLog("✅ [CLIENT] Validation passed, submitting order...");
     setSubmitting(true);
 
     try {
@@ -179,12 +182,12 @@ export default function NewReviewOrderPage() {
         photoUrls: formData.photoUrls
       });
 
-      console.log("📥 [CLIENT] Order creation result:", result);
-      console.log("📥 [CLIENT] Result success:", result.success);
-      console.log("📥 [CLIENT] Result error:", (result as any).error);
+      devLog("📥 [CLIENT] Order creation result:", result);
+      devLog("📥 [CLIENT] Result success:", result.success);
+      devLog("📥 [CLIENT] Result error:", (result as any).error);
 
       if (result.success && 'orderId' in result) {
-        console.log("✅ [CLIENT] Order created successfully:", result.orderId);
+        devLog("✅ [CLIENT] Order created successfully:", result.orderId);
         success(
           `Order created successfully! ${validation?.requiredCredits || 0} credits deducted.`
         );

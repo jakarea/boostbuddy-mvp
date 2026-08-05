@@ -155,9 +155,10 @@ export async function validateCreditsForOrderAction(orderData: ReviewOrderData) 
       return { success: false, error: "Invalid order type" };
     }
 
-    // Validate Facebook URL (accepts both facebook.com and fb.com)
+    // Sanitize and validate Facebook URL (accepts both facebook.com and fb.com)
+    const sanitizedUrl = orderData.facebookUrl.trim();
     const facebookUrlRegex = /^https?:\/\/(www\.)?(facebook|fb)\.com\/.+/i;
-    if (!facebookUrlRegex.test(orderData.facebookUrl)) {
+    if (!facebookUrlRegex.test(sanitizedUrl)) {
       return { success: false, error: "invalid_facebook_url" };
     }
 
@@ -165,6 +166,13 @@ export async function validateCreditsForOrderAction(orderData: ReviewOrderData) 
     const quantity = orderData.quantity || 1;
     if (quantity < 1 || quantity > 100) {
       return { success: false, error: "Quantity must be between 1 and 100" };
+    }
+
+    // Sanitize comment text to prevent XSS
+    if (orderData.commentText) {
+      orderData.commentText = orderData.commentText.trim();
+      // Remove any HTML tags
+      orderData.commentText = orderData.commentText.replace(/<[^>]*>/g, '');
     }
 
     // Type-specific validations

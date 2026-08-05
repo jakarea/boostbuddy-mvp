@@ -13,14 +13,14 @@ export default async function AdminDashboardPage() {
   if (!auth.success) return null;
 
   const response = await getAdminDashboardStatsData();
-  const stats = (response.success ? response.data : {
+  const stats = response.success && response.data ? response.data : {
     activeClientsCount: 0,
     pendingClientsCount: 0,
     pendingClients: [],
     availableProfilesCount: 0,
     expiringProfilesCount: 0,
     expiringProfiles: [],
-  }) as any;
+  };
 
   return (
     <Suspense fallback={<LoadingScreen />}>

@@ -12,16 +12,15 @@ export type ClientUser = {
 
 export type BillingInfo = {
   id?: string;
-  client_id: string;
-  billing_type: "INDIVIDUAL" | "COMPANY";
+  userId: string;
+  billingType: "INDIVIDUAL" | "COMPANY";
   country: string;
   name: string;
   address: string;
   city: string;
-  postal_code: string;
-  vat_number?: string | null;
-  fiscal_code?: string | null;
-  sdi_code?: string | null;
-  created_at?: string;
-  updated_at?: string;
+  postalCode: string;
+  vatNumber?: string | null;
+  fiscalCode?: string | null;
+  sdiCode?: string | null;
+  updatedAt?: string;
 };

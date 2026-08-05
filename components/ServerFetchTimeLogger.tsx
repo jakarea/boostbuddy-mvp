@@ -2,14 +2,16 @@
 
 import { useEffect } from "react";
 
-export function ServerFetchTimeLogger({ 
-  pageName, 
-  fetchTimeMs 
-}: { 
-  pageName: string; 
-  fetchTimeMs: number 
+export function ServerFetchTimeLogger({
+  pageName,
+  fetchTimeMs
+}: {
+  pageName: string;
+  fetchTimeMs: number
 }) {
   useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+
     console.log(
       `%c[Performance] %c${pageName} %cserver data fetch took: %c${fetchTimeMs}ms`,
       "color: #888; font-weight: bold",

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 import { getReviewsDashboardAction } from "@/app/actions/reviews";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -18,6 +19,7 @@ export default function ReviewsDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   useEffect(() => {
     if (!user) return;
@@ -44,8 +46,8 @@ export default function ReviewsDashboardPage() {
 
   // Filter recent orders based on search
   const filteredRecentOrders = dashboardData?.recentOrders?.filter((order: any) => {
-    if (!searchTerm.trim()) return true;
-    const searchLower = searchTerm.toLowerCase();
+    if (!debouncedSearchTerm.trim()) return true;
+    const searchLower = debouncedSearchTerm.toLowerCase();
     return (
       order.businessName?.toLowerCase().includes(searchLower) ||
       order.facebookUrl?.toLowerCase().includes(searchLower) ||

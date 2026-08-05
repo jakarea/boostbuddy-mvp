@@ -23,7 +23,7 @@ export default async function DashboardInvoicesPage() {
       : Promise.resolve({ data: null }),
   ]);
 
-  const initialInvoices = (response.success ? response.data : []) as any[];
+  const initialInvoices = response.success && response.data ? response.data : [];
   const orders = ordersRes.data || [];
 
   return (

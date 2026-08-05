@@ -106,15 +106,16 @@ export default function CreditsAdminClient({
     try {
       setIsLoading(true);
       const { togglePackageStatusAction } = await import("@/app/actions/credits");
-      const res = await togglePackageStatusAction(pkg.id);
+      const res = await togglePackageStatusAction(pkg.id) as any;
 
-      if (res.success) {
-        success(res.data.isActive ? "Package activated" : "Package deactivated");
-        setPackages(packages.map(p => p.id === pkg.id ? { ...p, isActive: res.data.isActive } : p));
-        loadData();
-      } else {
+      if (!res.success || !res.data) {
         error(res.error || "Failed to toggle package");
+        return;
       }
+
+      success(res.data.isActive ? "Package activated" : "Package deactivated");
+      setPackages(packages.map(p => p.id === pkg.id ? { ...p, isActive: res.data.isActive } : p));
+      loadData();
     } catch (err) {
       error("Failed to toggle package");
     } finally {

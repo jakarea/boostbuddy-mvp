@@ -12,7 +12,7 @@ export async function getServicesAction() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("services")
-    .select("*")
+    .select("id, name, description, price, duration_days, is_active, requires_manual_assignment, instructions")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -28,14 +28,39 @@ export async function upsertServiceAction(formData: FormData, serviceId?: string
     const auth = await requireAuth({ role: 'ADMIN' });
     if (!auth.success) return auth;
 
+    // Extract and validate form data
+    const name = formData.get("name") as string;
+    const description = formData.get("description") as string;
+    const priceValue = formData.get("price") as string;
+    const durationValue = formData.get("durationDays") as string;
+    const instructions = formData.get("instructions") as string;
+
+    // Validate required fields
+    if (!name || !description || !priceValue || !durationValue) {
+      return { success: false, error: "All required fields must be provided" };
+    }
+
+    // Validate and parse numeric values with proper error handling
+    const price = parseFloat(priceValue);
+    const duration_days = parseInt(durationValue, 10);
+
+    // Check for NaN and validate ranges
+    if (isNaN(price) || price <= 0) {
+      return { success: false, error: "Price must be a positive number" };
+    }
+
+    if (isNaN(duration_days) || duration_days <= 0 || duration_days > 3650) {
+      return { success: false, error: "Duration must be between 1 and 3650 days" };
+    }
+
     const payload = {
-      name: formData.get("name") as string,
-      description: formData.get("description") as string,
-      price: parseFloat(formData.get("price") as string),
-      duration_days: parseInt(formData.get("durationDays") as string, 10),
+      name: name.trim(),
+      description: description.trim(),
+      price,
+      duration_days,
       is_active: formData.get("isActive") === "true",
       requires_manual_assignment: formData.get("requiresManualAssignment") === "true",
-      instructions: formData.get("instructions") as string,
+      instructions: instructions?.trim() || "",
     };
 
     const supabaseAdmin = createAdminClient();

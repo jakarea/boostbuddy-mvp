@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import Swal from "sweetalert2";
+import { showConfirm } from "@/lib/utils/swal";
 import { unassignProfileAction, deleteProfileAction } from "@/app/actions/profiles";
 import { ProfileAccountRecord, ActiveClient } from "./components/types";
 import ProfilesList from "./components/ProfilesList";
@@ -87,7 +87,7 @@ export default function ProfilesContent({
   }, [filteredProfiles, currentPage, itemsPerPage]);
 
   const handleUnassignProfile = async (pid: string) => {
-    const result = await Swal.fire({
+    const result = await showConfirm({
       title: t("are_you_sure", { defaultValue: "Are you sure?" }),
       text: t("alert_release_text"),
       icon: "warning",
@@ -96,7 +96,7 @@ export default function ProfilesContent({
       cancelButtonColor: "#d33",
       confirmButtonText: t("yes", { defaultValue: "Yes" })
     });
-    
+
     if (result.isConfirmed) {
       startTransition(async () => {
         await unassignProfileAction(pid);
@@ -106,7 +106,7 @@ export default function ProfilesContent({
   };
 
   const handleDeleteProfile = async (pid: string) => {
-    const result = await Swal.fire({
+    const result = await showConfirm({
       title: t("are_you_sure", { defaultValue: "Are you sure?" }),
       text: t("alert_delete_text"),
       icon: "warning",

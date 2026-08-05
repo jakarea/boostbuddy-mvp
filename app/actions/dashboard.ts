@@ -29,7 +29,7 @@ export async function getClientProfilesAction() {
       // Fallback query if relation doesn't exist yet (SQL migration not run)
       const { data: fallbackData, error: fallbackError } = await supabase
         .from("profile_accounts")
-        .select("*")
+        .select("id, profile_name, account_email, status, ixbrowser_profile_id, ixbrowser_group, assignment_date, expiration_date, service_id, admin_notes, client_notes")
         .eq("assigned_client_id", auth.user.id)
         .neq("status", "AVAILABLE")
         .order("assignment_date", { ascending: false });

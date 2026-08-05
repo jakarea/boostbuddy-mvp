@@ -7,6 +7,9 @@ export const metadata = {
   title: "Service Plans - Admin",
 };
 
+// Services rarely change - cache for 5 minutes
+export const revalidate = 300;
+
 export default async function ServicesPage() {
   const initialServices = await getServicesAction();
 

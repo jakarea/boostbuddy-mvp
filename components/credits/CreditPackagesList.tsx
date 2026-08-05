@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { CreditPackageCard } from "./CreditPackageCard";
 
@@ -8,7 +9,7 @@ interface CreditPackagesListProps {
   onPurchased?: () => void;
 }
 
-export function CreditPackagesList({ packages, onPurchased }: CreditPackagesListProps) {
+export const CreditPackagesList = memo(function CreditPackagesList({ packages, onPurchased }: CreditPackagesListProps) {
   const { t } = useTranslation("credits");
 
   if (packages.length === 0) {
@@ -34,4 +35,4 @@ export function CreditPackagesList({ packages, onPurchased }: CreditPackagesList
       ))}
     </div>
   );
-}
+});

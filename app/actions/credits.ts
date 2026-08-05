@@ -380,8 +380,8 @@ export async function fulfillCreditsPurchase(sessionId: string) {
       .limit(1);
 
     if (existing && existing.length > 0) {
-      console.log("📍 [LOG#47] Session already fulfilled");
-      return;
+      console.log("📍 [LOG#47] Session already fulfilled - returning success to prevent webhook retries");
+      return;  // Proper idempotency: silent return is OK for webhook fulfillment function
     }
 
     // Create order record
@@ -431,7 +431,20 @@ export async function fulfillCreditsPurchase(sessionId: string) {
     const currentBalance = user?.credits_balance || 0;
     const newBalance = currentBalance + creditsAmount;
 
-    // Create credit transaction
+    // Update user balance with optimistic concurrency control to prevent race conditions
+    const { data: updateResult, error: balanceError } = await supabase
+      .from("users")
+      .update({ credits_balance: newBalance })
+      .eq("id", userId)
+      .eq("credits_balance", currentBalance)  // Only update if balance hasn't changed
+      .select("credits_balance")
+      .single();
+
+    if (balanceError || !updateResult) {
+      throw new Error(`Failed to update credit balance: ${balanceError?.message || 'Unknown error'}. The balance may have been modified by another transaction.`);
+    }
+
+    // Create credit transaction AFTER successful balance update
     await supabase
       .from("credit_transactions")
       .insert({
@@ -442,12 +455,6 @@ export async function fulfillCreditsPurchase(sessionId: string) {
         description: `Purchased ${creditsAmount} credits`,
         reference_id: order.id,
       });
-
-    // Update user balance
-    await supabase
-      .from("users")
-      .update({ credits_balance: newBalance })
-      .eq("id", userId);
 
     // Send notifications
     try {

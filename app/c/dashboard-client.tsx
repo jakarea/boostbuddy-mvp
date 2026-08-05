@@ -13,8 +13,9 @@ import {
   ShoppingBag, PlusCircle, Settings, Receipt
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import Swal from "sweetalert2";
 import { useToast } from "@/context/ToastContext";
+import { showConfirm } from "@/lib/utils/swal";
+import { StatCardSkeleton } from "@/components/ui/skeleton-card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getServicesAction } from "@/app/actions/services";
@@ -133,6 +134,7 @@ export default function DashboardClient({ initialProfiles, creditsBalance = 0 }:
   const [selectedServiceId, setSelectedServiceId] = useState<string>("");
   const [prorationDetails, setProrationDetails] = useState<{ credit: number; finalPrice: number; targetPrice: number } | null>(null);
   const [calculatingProration, setCalculatingProration] = useState(false);
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
 
   // Fetch active services list
   useEffect(() => {
@@ -201,7 +203,7 @@ export default function DashboardClient({ initialProfiles, creditsBalance = 0 }:
   };
 
   const handleRequestChange = async (profileId: string) => {
-    const result = await Swal.fire({
+    const result = await showConfirm({
       title: t("are_you_sure", { defaultValue: "Are you sure?" }),
       text: t("alert_req_change_text"),
       icon: "warning",
@@ -279,8 +281,11 @@ export default function DashboardClient({ initialProfiles, creditsBalance = 0 }:
         </div>
       </div>
 
-      {/* Account Summary Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 sm:gap-4">
+      {/* Account Summary Statistics - Show skeleton during loading */}
+      {isLoadingProfiles ? (
+        <StatCardSkeleton count={6} />
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 sm:gap-4">
         <div className="bg-white dark:bg-zinc-800 rounded-lg p-3 sm:p-4 shadow-sm border border-zinc-200 dark:border-zinc-700">
           <div className="text-xs text-zinc-500 mb-1">{t("stats.total", { defaultValue: "Total Profiles" })}</div>
           <div className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-50">{accountStats.total}</div>
@@ -306,6 +311,7 @@ export default function DashboardClient({ initialProfiles, creditsBalance = 0 }:
           <div className="text-2xl sm:text-3xl font-bold text-white">{creditsBalance}</div>
         </div>
       </div>
+      )}
     </div>
   );
 }

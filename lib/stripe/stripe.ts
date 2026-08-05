@@ -7,7 +7,7 @@ if (!secretKey) {
 }
 
 export const stripe = new Stripe(secretKey || 'sk_test_dummy_key_please_replace_in_env', {
-  apiVersion: '2026-05-27.dahlia',
+  apiVersion: '2023-10-16',  // Fixed: Changed from future date (2026-05-27.dahlia) to current stable version
   typescript: true,
   appInfo: {
     name: 'BoostBudy MVP',

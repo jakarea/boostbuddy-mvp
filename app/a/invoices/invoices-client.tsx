@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useMemo, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import Swal from "sweetalert2";
 import { useToast } from "@/context/ToastContext";
+import { showConfirm } from "@/lib/utils/swal";
 import { uploadInvoiceAction, deleteInvoiceAction, getInvoiceDownloadUrlAction } from "@/app/actions/invoices";
 import { ServiceRecord } from "@/app/a/services/services-client";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { devLog } from "@/lib/utils/devLog";
 import {
   Receipt, Plus, ArrowLeft, Upload, FileText,
   Calendar, Check, AlertTriangle, ShieldCheck, Trash, ChevronsUpDown,
@@ -160,14 +161,14 @@ export default function InvoicesClient({
     if (periodEnd) formData.append("periodEnd", periodEnd);
 
     startTransition(async () => {
-      console.log("🚀 [CLIENT] Starting invoice upload...");
-      console.log("📄 [CLIENT] File:", selectedFile?.name, selectedFile?.size);
-      console.log("👤 [CLIENT] Client ID:", selectedClientId);
-      console.log("📦 [CLIENT] Order ID:", selectedOrderId);
+      devLog("🚀 [CLIENT] Starting invoice upload...");
+      devLog("📄 [CLIENT] File:", selectedFile?.name, selectedFile?.size);
+      devLog("👤 [CLIENT] Client ID:", selectedClientId);
+      devLog("📦 [CLIENT] Order ID:", selectedOrderId);
 
       const result = await uploadInvoiceAction(formData);
 
-      console.log("📥 [CLIENT] Upload result:", result);
+      devLog("📥 [CLIENT] Upload result:", result);
 
       if (result.success) {
         setUploadSuccess(true);
@@ -586,7 +587,7 @@ export default function InvoicesClient({
   }
 
   const handleDeleteInvoice = async (inv: InvoiceRecord) => {
-    const result = await Swal.fire({
+    const result = await showConfirm({
       title: t("are_you_sure", { defaultValue: "Are you sure?" }),
       text: t("alert_delete_text"),
       icon: "warning",

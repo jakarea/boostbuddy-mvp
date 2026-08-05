@@ -18,6 +18,9 @@ import {
   getEmployeeReviewOrdersAction,
   acceptOrderAction,
   skipOrderAction,
+} from "@/app/actions/employee";
+import { devLog } from "@/lib/utils/devLog";
+import {
   completeReviewAction,
   toggleAvailabilityAction
 } from "@/app/actions/employee";
@@ -146,8 +149,8 @@ export default function EmployeeReviewsPage() {
       const result = await getEmployeeReviewOrdersAction();
 
       if (result.success) {
-        const data = (result as any).data;
-        const normalizedOrders = (data.orders as any[])?.map(order => ({
+        const data = result.data as { orders: any[] };
+        const normalizedOrders = data.orders?.map(order => ({
           id: order.id,
           businessName: order.business_name || order.businessName,
           businessUrl: order.business_url || order.businessUrl,
@@ -249,7 +252,7 @@ export default function EmployeeReviewsPage() {
   };
 
   const handleCompleteReview = async () => {
-    console.log("Complete review button clicked, proof length:", proofOfCompletion.length);
+    devLog("Complete review button clicked, proof length:", proofOfCompletion.length);
 
     if (!proofOfCompletion || proofOfCompletion.trim().length === 0) {
       console.error("Validation failed: empty proof");
@@ -263,13 +266,13 @@ export default function EmployeeReviewsPage() {
       return;
     }
 
-    console.log("Starting completion for order:", completingOrderId);
+    devLog("Starting completion for order:", completingOrderId);
     setIsSubmittingCompletion(true);
 
     const result = await completeReviewAction(completingOrderId, proofOfCompletion);
     setIsSubmittingCompletion(false);
 
-    console.log("Completion result:", result);
+    devLog("Completion result:", result);
 
     if (result.success) {
       success("Review marked as complete and submitted for verification");
@@ -787,7 +790,7 @@ export default function EmployeeReviewsPage() {
             <textarea
               value={proofOfCompletion}
               onChange={(e) => {
-                console.log("Proof input changed:", e.target.value);
+                devLog("Proof input changed:", e.target.value);
                 setProofOfCompletion(e.target.value);
               }}
               placeholder="Describe how you completed the review and provide any proof..."
@@ -798,7 +801,7 @@ export default function EmployeeReviewsPage() {
             <div className="flex gap-3">
               <Button
                 onClick={(e) => {
-                  console.log("Submit button clicked, proof length:", proofOfCompletion.length);
+                  devLog("Submit button clicked, proof length:", proofOfCompletion.length);
                   handleCompleteReview();
                   e.preventDefault();
                 }}
@@ -811,7 +814,7 @@ export default function EmployeeReviewsPage() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  console.log("Cancel clicked");
+                  devLog("Cancel clicked");
                   setShowCompleteModal(false);
                   setProofOfCompletion("");
                   setCompletingOrderId(null);

@@ -17,6 +17,14 @@ export async function getUserTelegramConfigAction(): Promise<{
     const auth = await requireAuth();
     if (!auth.success) return auth;
 
+    // Restrict Telegram configuration to clients and admins only
+    if (auth.user.role === "EMPLOYEE") {
+      return {
+        success: false,
+        error: "Telegram configuration is not available for employees. Employees receive notifications through the configured employee group."
+      };
+    }
+
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("user_telegram_configs")
@@ -33,7 +41,7 @@ export async function getUserTelegramConfigAction(): Promise<{
   }
 }
 
-/** Save (upsert) the current user's personal Telegram chat ID */
+/** Save (upsert) the current user's personal Telegram chat ID with comprehensive bot ID validation */
 export async function saveUserTelegramConfigAction(chatId: string): Promise<{
   success: boolean;
   error?: string;
@@ -42,36 +50,234 @@ export async function saveUserTelegramConfigAction(chatId: string): Promise<{
     const auth = await requireAuth();
     if (!auth.success) return auth;
 
+    // Restrict Telegram configuration to clients and admins only
+    if (auth.user.role === "EMPLOYEE") {
+      return {
+        success: false,
+        error: "Telegram configuration is not available for employees. Employees receive notifications through the configured employee group."
+      };
+    }
+
     const supabase = await createClient();
     const trimmed = chatId.trim();
     if (!trimmed) return { success: false, error: "Chat ID is required." };
 
-    // Check if user accidentally entered the Bot's ID instead of their personal User Chat ID
+    // Get bot token for validation
     const { data: setting } = await supabase
       .from("app_settings")
       .select("value")
       .eq("key", "telegram_bot")
       .maybeSingle();
 
-    const botToken = (setting?.value as any)?.bot_token ?? process.env.TELEGRAM_BOT_TOKEN;
-    if (botToken) {
-      const botId = botToken.split(":")[0]?.trim();
-      if (botId && trimmed === botId) {
-        return {
-          success: false,
-          error: "The entered ID is the Telegram Bot's ID, not your personal User Chat ID. Please get your personal Chat ID from @userinfobot or @GetMyChatID_Bot.",
-        };
-      }
+    // Type-safe access to app_settings value
+    const appSettings = setting?.value ? JSON.parse(setting.value as string) as { bot_token?: string } : null;
+    const botToken = appSettings?.bot_token ?? process.env.TELEGRAM_BOT_TOKEN;
+    if (!botToken) {
+      return {
+        success: false,
+        error: "Telegram bot is not configured. Please contact your administrator to set up Telegram first."
+      };
     }
 
+    // Extract bot ID from token
+    const botId = botToken.split(":")[0]?.trim();
+
+    // Multiple validation checks to prevent bot ID from being saved
+    const validationResult = await validateChatIdNotBot(trimmed, botId, botToken);
+    if (!validationResult.isValid) {
+      return {
+        success: false,
+        error: validationResult.error || "The Chat ID appears to be a bot ID. Please enter your personal Telegram Chat ID from @userinfobot or @GetMyChatID_Bot."
+      };
+    }
+
+    // Additional safety: verify the Chat ID by attempting to get chat info
+    const apiValidationResult = await validateChatIdViaAPI(trimmed, botToken);
+    if (!apiValidationResult.isValid) {
+      return {
+        success: false,
+        error: apiValidationResult.error || "Invalid Chat ID. Please verify your personal Telegram Chat ID."
+      };
+    }
+
+    // If all validations passed, save the Chat ID
     const { error } = await supabase
       .from("user_telegram_configs")
       .upsert({ user_id: auth.user.id, chat_id: trimmed }, { onConflict: "user_id" });
 
     if (error) throw error;
+
+    console.log(`[TELEGRAM CONFIG] Chat ID validated and saved for user ${auth.user.email}`);
     return { success: true };
+
   } catch (err: any) {
     return { success: false, error: err?.message ?? "Failed to save config" };
+  }
+}
+
+/**
+ * Comprehensive validation to ensure Chat ID is not a bot ID
+ */
+async function validateChatIdNotBot(
+  chatId: string,
+  configuredBotId: string,
+  botToken: string
+): Promise<{ isValid: boolean; error?: string }> {
+  const errors: string[] = [];
+
+  // Check 1: Direct match with configured bot ID
+  if (chatId === configuredBotId) {
+    return {
+      isValid: false,
+      error: "The entered ID is the Telegram Bot's ID. Please get your personal Chat ID from @userinfobot."
+    };
+  }
+
+  // Check 2: Bot ID patterns
+  // Bot IDs are typically 7-10 digits, personal Chat IDs can vary more
+  const botIdPattern = /^\d{7,10}$/;
+  if (botIdPattern.test(chatId) && chatId === configuredBotId) {
+    return {
+      isValid: false,
+      error: "This appears to be a bot ID format. Please enter your personal Chat ID."
+    };
+  }
+
+  // Check 3: Negative numbers (indicates groups/channels, not personal user)
+  if (chatId.startsWith('-')) {
+    return {
+      isValid: false,
+      error: "Group Chat IDs (starting with -) cannot be used for personal notifications. Please enter your personal user Chat ID."
+    };
+  }
+
+  // Check 4: Very large numbers (likely not personal)
+  const numericId = parseInt(chatId.replace(/[^0-9]/g, ''));
+  if (numericId > 2147483647) { // Max int32
+    return {
+      isValid: false,
+      error: "Invalid Chat ID format. Personal Chat IDs should be smaller numbers."
+    };
+  }
+
+  // Check 5: Common bot ID ranges (Telegram bot IDs typically start with specific ranges)
+  // This is a heuristic check
+  if (chatId.length >= 7 && chatId.length <= 10 && /^\d+$/.test(chatId)) {
+    // Could be a bot ID, need API verification
+    const botCheckResult = await checkIfBotViaAPI(chatId, botToken);
+    if (!botCheckResult.isValid) {
+      return botCheckResult;
+    }
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Use Telegram API to check if a Chat ID belongs to a bot
+ */
+async function checkIfBotViaAPI(
+  chatId: string,
+  botToken: string
+): Promise<{ isValid: boolean; error?: string }> {
+  try {
+    // Use getChat API to check if the Chat ID is valid and not a bot
+    const response = await fetch(
+      `https://api.telegram.org/bot${botToken}/getChat?chat_id=${chatId}`
+    );
+
+    if (!response.ok) {
+      // If API call fails, it might be an invalid Chat ID
+      const body = await response.json();
+      return {
+        isValid: false,
+        error: `Invalid Chat ID: ${body?.description || "Unknown error"}`
+      };
+    }
+
+    const body = await response.json();
+
+    if (!body.ok) {
+      return {
+        isValid: false,
+        error: `Invalid Chat ID: ${body.description || "Could not verify Chat ID"}`
+      };
+    }
+
+    // Check if the chat is a bot
+    if (body.result?.type === 'bot' || body.result?.type === 'private' && body.result?.username?.endsWith('bot')) {
+      return {
+        isValid: false,
+        error: "This Chat ID belongs to a bot account. Please enter your personal user Chat ID from @userinfobot."
+      };
+    }
+
+    return { isValid: true };
+
+  } catch (error) {
+    // If API check fails, we'll allow it but warn in logs
+    console.warn('[TELEGRAM VALIDATION] API check failed, allowing Chat ID:', error);
+    return { isValid: true };
+  }
+}
+
+/**
+ * Validate Chat ID by attempting to get basic info
+ */
+async function validateChatIdViaAPI(
+  chatId: string,
+  botToken: string
+): Promise<{ isValid: boolean; error?: string }> {
+  try {
+    // Try to get chat info to verify the Chat ID is valid
+    const response = await fetch(
+      `https://api.telegram.org/bot${botToken}/getChat?chat_id=${chatId}`
+    );
+
+    if (!response.ok) {
+      const body = await response.json();
+      const desc = body?.description || "";
+
+      // Specific error messages for invalid Chat IDs
+      if (desc.includes('chat not found') || desc.includes('invalid') || desc.includes('bot was blocked')) {
+        return {
+          isValid: false,
+          error: `Invalid Chat ID: ${desc}. Please get your personal Chat ID from @userinfobot.`
+        };
+      }
+
+      return {
+        isValid: false,
+        error: `Could not verify Chat ID: ${desc}`
+      };
+    }
+
+    const body = await response.json();
+
+    if (!body.ok) {
+      return {
+        isValid: false,
+        error: `Chat ID verification failed: ${body.description || "Unknown error"}`
+      };
+    }
+
+    // Additional validation: ensure it's a personal chat
+    const chatType = body.result?.type;
+    if (chatType === 'channel' || chatType === 'supergroup' || chatType === 'group') {
+      return {
+        isValid: false,
+        error: `Group/Channel Chat IDs cannot be used for personal notifications. Please enter your personal user Chat ID.`
+      };
+    }
+
+    return { isValid: true };
+
+  } catch (error) {
+    console.error('[TELEGRAM VALIDATION] API validation error:', error);
+    return {
+      isValid: false,
+      error: "Could not validate Chat ID. Please verify you entered the correct personal Chat ID."
+    };
   }
 }
 
@@ -83,6 +289,14 @@ export async function deleteUserTelegramConfigAction(): Promise<{
   try {
     const auth = await requireAuth();
     if (!auth.success) return auth;
+
+    // Restrict Telegram configuration to clients and admins only
+    if (auth.user.role === "EMPLOYEE") {
+      return {
+        success: false,
+        error: "Telegram configuration is not available for employees. Employees receive notifications through the configured employee group."
+      };
+    }
 
     const supabase = await createClient();
     const { error } = await supabase
@@ -106,9 +320,13 @@ export async function sendUserTelegramTestAction(): Promise<{
     const auth = await requireAuth();
     if (!auth.success) return auth;
 
-    // TELEGRAM NOTIFICATIONS DISABLED
-    console.info("[TELEGRAM] User test notifications disabled - skipping API call.");
-    return { success: true };
+    // Restrict Telegram configuration to clients and admins only
+    if (auth.user.role === "EMPLOYEE") {
+      return {
+        success: false,
+        error: "Telegram configuration is not available for employees. Employees receive notifications through the configured employee group."
+      };
+    }
 
     if (!auth.success) {
       return { success: false, error: "Authentication failed" };
@@ -133,7 +351,8 @@ export async function sendUserTelegramTestAction(): Promise<{
       .eq("key", "telegram_bot")
       .maybeSingle();
 
-    const botToken = (setting?.value as any)?.bot_token ?? process.env.TELEGRAM_BOT_TOKEN;
+    const appSettings = setting?.value ? JSON.parse(setting.value as string) as { bot_token?: string } : null;
+    const botToken = appSettings?.bot_token ?? process.env.TELEGRAM_BOT_TOKEN;
     if (!botToken) return { success: false, error: "Admin Telegram bot is not configured yet." };
 
     const botId = botToken.split(":")[0]?.trim();
@@ -190,13 +409,18 @@ export async function getTelegramBotUsernameAction(): Promise<{
     const auth = await requireAuth();
     if (!auth.success) return { success: false, error: "Unauthorized" };
 
-    // TELEGRAM NOTIFICATIONS DISABLED
-    console.info("[TELEGRAM] Bot username lookup disabled - returning success.");
-    return { success: true, username: "BoostBuddy Bot" };
+    // Restrict Telegram configuration to clients and admins only
+    if (auth.user.role === "EMPLOYEE") {
+      return {
+        success: false,
+        error: "Telegram configuration is not available for employees. Employees receive notifications through the configured employee group."
+      };
+    }
 
     const supabase = await createClient();
     const { data: setting } = await supabase.from("app_settings").select("value").eq("key", "telegram_bot").maybeSingle();
-    const botToken = (setting?.value as any)?.bot_token ?? process.env.TELEGRAM_BOT_TOKEN;
+    const appSettings = setting?.value ? JSON.parse(setting.value as string) as { bot_token?: string } : null;
+    const botToken = appSettings?.bot_token ?? process.env.TELEGRAM_BOT_TOKEN;
     if (!botToken) return { success: true };
 
     const res = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);

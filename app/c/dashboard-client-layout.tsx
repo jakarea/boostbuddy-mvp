@@ -115,7 +115,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       items: [
         { href: "/c/notifications", label: t("nav.notifications", { defaultValue: "Notifications" }), icon: Bell },
         { href: "/c/settings", label: t("nav.settings", { defaultValue: "Settings" }), icon: Settings },
-        { href: "/c/docs", label: t("nav.documentation", { defaultValue: "Documentation" }), icon: BookOpen },
       ],
     },
   ];

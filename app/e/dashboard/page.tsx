@@ -52,12 +52,12 @@ export default function EmployeeDashboardPage() {
         const result = await getEmployeeDashboardDataAction();
 
         if (result.success) {
-          const data = (result as any).data;
+          const data = result.data as { stats: any; availableOrders: any[]; currentAssignments: any[] };
           setStats(data.stats);
           setAvailableOrders(data.availableOrders);
           setCurrentAssignments(data.currentAssignments);
         } else {
-          console.error('Failed to load dashboard data:', (result as any).error);
+          console.error('Failed to load dashboard data:', result.error);
           error(t("load_dashboard_failed", "Failed to load dashboard data"));
         }
       } catch (err) {
@@ -84,8 +84,8 @@ export default function EmployeeDashboardPage() {
       // Reload data with single batched action
       const dashboardResult = await getEmployeeDashboardDataAction();
 
-      if (dashboardResult.success) {
-        const data = (dashboardResult as any).data;
+      if (dashboardResult.success && dashboardResult.data) {
+        const data = dashboardResult.data;
         setStats(data.stats);
         setAvailableOrders(data.availableOrders);
         setCurrentAssignments(data.currentAssignments);
@@ -115,8 +115,8 @@ export default function EmployeeDashboardPage() {
       // Reload data with single batched action
       const dashboardResult = await getEmployeeDashboardDataAction();
 
-      if (dashboardResult.success) {
-        const data = (dashboardResult as any).data;
+      if (dashboardResult.success && dashboardResult.data) {
+        const data = dashboardResult.data;
         setStats(data.stats);
         setAvailableOrders(data.availableOrders);
         setCurrentAssignments(data.currentAssignments);

@@ -19,8 +19,8 @@ export default async function DashboardPage() {
     import("@/app/actions/credits").then(m => m.getWalletSummaryAction())
   ]);
 
-  const initialProfiles = (profilesRes.success ? profilesRes.data : []) as any[];
-  const creditsBalance = (walletRes.success && walletRes.balance !== undefined ? walletRes.balance : 0) as number;
+  const initialProfiles = profilesRes.success && profilesRes.data ? profilesRes.data : [];
+  const creditsBalance = walletRes.success && walletRes.balance !== undefined ? walletRes.balance : 0;
   const duration = Date.now() - start;
 
   return (

@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Bell, CheckCircle, Inbox, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import UserTelegramConfig from "@/components/UserTelegramConfig";
 
 export interface NotificationLogDTO {
   id: string;
@@ -93,27 +92,20 @@ export default function EmployeeNotificationsClient({ initialLogs }: EmployeeNot
 
   return (
     <div className="space-y-6">
-      {/* Unified header + Telegram config card */}
+      {/* Unified header card */}
       <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-zinc-100 dark:divide-zinc-800">
-
-          {/* Left: Page info */}
-          <div className="flex items-start gap-3 p-4">
-            <div className="p-1.5 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 shrink-0 mt-0.5">
-              <Bell className="h-4 w-4" />
-            </div>
-            <div>
-              <h1 className="text-sm font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
-                {t("title", { defaultValue: "Notifications" })}
-              </h1>
-              <p className="text-[10px] text-zinc-400 mt-0.5 leading-relaxed">
-                {t("subtitle", { defaultValue: "Stay updated on your assigned orders and activities." })}
-              </p>
-            </div>
+        <div className="flex items-start gap-3 p-4">
+          <div className="p-1.5 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 shrink-0 mt-0.5">
+            <Bell className="h-4 w-4" />
           </div>
-
-          {/* Right: Personal Telegram config card */}
-          <UserTelegramConfig />
+          <div className="flex-1">
+            <h1 className="text-sm font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
+              {t("title", { defaultValue: "Notifications" })}
+            </h1>
+            <p className="text-[10px] text-zinc-400 mt-0.5 leading-relaxed">
+              {t("subtitle", { defaultValue: "Stay updated on your assigned orders and activities. Employee notifications are managed by your admin." })}
+            </p>
+          </div>
         </div>
       </div>
 

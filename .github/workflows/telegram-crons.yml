@@ -1,0 +1,192 @@
+# GitHub Actions Workflow for Telegram Notification Cron Jobs
+# This provides free, reliable cron job execution for Vercel free tier deployments
+
+name: Telegram Notification Crons
+
+on:
+  # Scheduled triggers
+  schedule:
+    # Retry failed notifications every 5 minutes
+    - cron: '*/5 * * * *'
+    # Verify Telegram groups every hour
+    - cron: '0 * * * *'
+    # Cleanup old notifications daily at 2 AM UTC
+    - cron: '0 2 * * *'
+    # Send daily summary at 9 AM UTC
+    - cron: '0 9 * * *'
+
+  # Manual trigger (for testing)
+  workflow_dispatch:
+    inputs:
+      job_type:
+        description: 'Job type to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - retry-failed
+          - verify-groups
+          - cleanup
+          - daily-summary
+
+jobs:
+  # Job 1: Retry Failed Notifications
+  retry-failed-notifications:
+    name: Retry Failed Telegram Notifications
+    runs-on: ubuntu-latest
+    # Only run on schedule every 5 minutes or when manually triggered with this job type
+    if: |
+      github.event.schedule == '*/5 * * * *' ||
+      (github.event_name == 'workflow_dispatch' &&
+       (github.event.inputs.job_type == 'all' || github.event.inputs.job_type == 'retry-failed'))
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Retry Failed Notifications
+        run: |
+          echo "Starting failed notification retry..."
+          response=$(curl -s -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.APP_URL }}/api/cron/retry-failed-notifications")
+
+          echo "Response: $response"
+
+          # Parse response and exit with error if failed
+          if echo "$response" | grep -q '"success":true'; then
+            echo "✅ Retry job completed successfully"
+          else
+            echo "❌ Retry job failed"
+            exit 1
+          fi
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Failed notification retry job failed!"
+          # You could add additional error notification here
+
+  # Job 2: Verify Telegram Groups
+  verify-telegram-groups:
+    name: Verify Telegram Group Accessibility
+    runs-on: ubuntu-latest
+    # Only run every hour or when manually triggered
+    if: |
+      github.event.schedule == '0 * * * *' ||
+      (github.event_name == 'workflow_dispatch' &&
+       (github.event.inputs.job_type == 'all' || github.event.inputs.job_type == 'verify-groups'))
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Telegram Groups
+        run: |
+          echo "Starting Telegram group verification..."
+          response=$(curl -s -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.APP_URL }}/api/cron/verify-telegram-groups")
+
+          echo "Response: $response"
+
+          # Parse response
+          if echo "$response" | grep -q '"success":true'; then
+            groups_checked=$(echo "$response" | grep -o '"groups_checked":[0-9]*' | cut -d: -f2)
+            groups_accessible=$(echo "$response" | grep -o '"groups_accessible":[0-9]*' | cut -d: -f2)
+            groups_disabled=$(echo "$response" | grep -o '"groups_disabled":[0-9]*' | cut -d: -f2)
+
+            echo "✅ Group verification completed"
+            echo "   Groups checked: $groups_checked"
+            echo "   Groups accessible: $groups_accessible"
+            echo "   Groups disabled: $groups_disabled"
+          else
+            echo "❌ Group verification failed"
+            exit 1
+          fi
+
+  # Job 3: Cleanup Old Notifications
+  cleanup-notifications:
+    name: Cleanup Old Notification Logs
+    runs-on: ubuntu-latest
+    # Only run daily at 2 AM or when manually triggered
+    if: |
+      github.event.schedule == '0 2 * * *' ||
+      (github.event_name == 'workflow_dispatch' &&
+       (github.event.inputs.job_type == 'all' || github.event.inputs.job_type == 'cleanup'))
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cleanup Old Notifications
+        run: |
+          echo "Starting notification cleanup..."
+          response=$(curl -s -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.APP_URL }}/api/cron/cleanup-notifications")
+
+          echo "Response: $response"
+
+          if echo "$response" | grep -q '"success":true'; then
+            deleted=$(echo "$response" | grep -o '"deleted":[0-9]*' | cut -d: -f2)
+            echo "✅ Cleanup completed: $deleted notifications deleted"
+          else
+            echo "❌ Cleanup failed"
+            exit 1
+          fi
+
+  # Job 4: Daily Summary
+  daily-summary:
+    name: Send Daily Notification Summary
+    runs-on: ubuntu-latest
+    # Only run daily at 9 AM or when manually triggered
+    if: |
+      github.event.schedule == '0 9 * * *' ||
+      (github.event_name == 'workflow_dispatch' &&
+       (github.event.inputs.job_type == 'all' || github.event.inputs.job_type == 'daily-summary'))
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Send Daily Summary
+        run: |
+          echo "Generating daily notification summary..."
+          response=$(curl -s -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.APP_URL }}/api/cron/daily-summary")
+
+          echo "Response: $response"
+
+          if echo "$response" | grep -q '"success":true'; then
+            echo "✅ Daily summary sent successfully"
+          else
+            echo "❌ Daily summary failed"
+            exit 1
+          fi
+
+  # Job 5: Health Check (runs with every job)
+  health-check:
+    name: System Health Check
+    runs-on: ubuntu-latest
+    # Run with all scheduled jobs
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Check Application Health
+        run: |
+          echo "Checking application health..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.APP_URL }}")
+
+          if [ "$response" = "200" ]; then
+            echo "✅ Application is healthy"
+          else
+            echo "❌ Application health check failed (HTTP $response)"
+            exit 1
+          fi

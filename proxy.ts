@@ -37,7 +37,7 @@ async function resolveRole(user: AuthUser, supabase: any): Promise<Role | undefi
       return userData.role as Role;
     }
   } catch (error) {
-    console.warn('[PROXY] Failed to fetch role from users table:', error);
+    console.warn('[MIDDLEWARE] Failed to fetch role from users table:', error);
   }
 
   // Fallback to JWT metadata if database query fails

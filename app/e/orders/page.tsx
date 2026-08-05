@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 import { getEmployeeOrderHistoryAction } from "@/app/actions/employee";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -25,6 +26,7 @@ export default function EmployeeOrderHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<typeof STATUS_FILTERS[number]>("");
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   // Pagination state
   const ITEMS_PER_PAGE = 10;
@@ -93,8 +95,8 @@ export default function EmployeeOrderHistoryPage() {
     }
 
     // Apply search filter
-    if (searchTerm.trim()) {
-      const searchLower = searchTerm.toLowerCase();
+    if (debouncedSearchTerm.trim()) {
+      const searchLower = debouncedSearchTerm.toLowerCase();
       filtered = filtered.filter(order => {
         return (
           order.businessName?.toLowerCase().includes(searchLower) ||
@@ -127,7 +129,7 @@ export default function EmployeeOrderHistoryPage() {
       <div className="flex gap-3 flex-wrap">
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as any)}
+          onChange={(e) => setStatusFilter(e.target.value as typeof STATUS_FILTERS[number])}
           className="px-3 py-2 border rounded-lg dark:bg-zinc-800 dark:border-zinc-700"
           aria-label={t("employee.allStatuses", "All Statuses")}
         >

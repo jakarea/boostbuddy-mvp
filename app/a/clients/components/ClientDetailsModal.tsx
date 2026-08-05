@@ -101,7 +101,7 @@ export default function ClientDetailsModal({
   useEffect(() => {
     if (billingInfo) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setBillingType(billingInfo.billing_type as "INDIVIDUAL" | "COMPANY");
+      setBillingType(billingInfo.billingType as "INDIVIDUAL" | "COMPANY");
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCountry(billingInfo.country);
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -111,13 +111,13 @@ export default function ClientDetailsModal({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCity(billingInfo.city);
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPostalCode(billingInfo.postal_code);
+      setPostalCode(billingInfo.postalCode);
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setVatNumber(billingInfo.vat_number || "");
+      setVatNumber(billingInfo.vatNumber || "");
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFiscalCode(billingInfo.fiscal_code || "");
+      setFiscalCode(billingInfo.fiscalCode || "");
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSdiCode(billingInfo.sdi_code || "");
+      setSdiCode(billingInfo.sdiCode || "");
     } else {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setBillingType("INDIVIDUAL");

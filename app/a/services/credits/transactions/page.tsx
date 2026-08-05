@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, List, Search, Filter, Download, RefreshCw, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { formatDateTime } from "@/lib/dateUtils";
+import { devLog } from "@/lib/utils/devLog";
 
 export default function AdminTransactionsPage() {
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function AdminTransactionsPage() {
 
   const loadTransactions = async () => {
     try {
-      console.log("🔍 [UI] Loading transactions with filters:", filters);
+      devLog("🔍 [UI] Loading transactions with filters:", filters);
       setIsLoading(true);
       const { getAllCreditTransactionsAction } = await import("@/app/actions/credits");
 
@@ -41,14 +42,14 @@ export default function AdminTransactionsPage() {
       if (filters.dateFrom) filterData.dateFrom = filters.dateFrom;
       if (filters.dateTo) filterData.dateTo = filters.dateTo;
 
-      console.log("🔍 [UI] Calling getAllCreditTransactionsAction with:", filterData);
+      devLog("🔍 [UI] Calling getAllCreditTransactionsAction with:", filterData);
       const res = await getAllCreditTransactionsAction(
         Object.keys(filterData).length > 0 ? filterData : undefined
       );
-      console.log("🔍 [UI] Response:", res);
+      devLog("🔍 [UI] Response:", res);
 
       if (res.success && res.data) {
-        console.log("🔍 [UI] Setting transactions:", res.data.length, "items");
+        devLog("🔍 [UI] Setting transactions:", res.data.length, "items");
         // Normalize data from snake_case to camelCase
         const normalized = res.data.map((tr: any) => ({
           id: tr.id,
@@ -61,7 +62,7 @@ export default function AdminTransactionsPage() {
           metadata: tr.metadata,
           createdAt: tr.created_at
         }));
-        console.log("🔍 [UI] Normalized transactions:", normalized.length, "items");
+        devLog("🔍 [UI] Normalized transactions:", normalized.length, "items");
         setTransactions(normalized);
       } else {
         console.error("🔍 [UI] Failed to load:", res);

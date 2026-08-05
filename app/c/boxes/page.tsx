@@ -15,7 +15,7 @@ export default async function BoxesPage() {
   if (!auth.success) return null;
 
   const response = await getClientProfilesData(auth.user.id);
-  const initialBoxes = (response.success ? response.data : []) as any[];
+  const initialBoxes = response.success && response.data ? response.data : [];
   const duration = Date.now() - start;
 
   return (

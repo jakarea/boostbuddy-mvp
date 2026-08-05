@@ -12,7 +12,7 @@ export async function getClientBillingAction() {
 
     const { data, error } = await supabase
       .from("billing_info")
-      .select("*")
+      .select("id, user_id, billing_type, country, name, address, city, postal_code, vat_number, fiscal_code, sdi_code")
       .eq("user_id", auth.user.id)
       .single();
 

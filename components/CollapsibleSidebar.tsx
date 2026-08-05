@@ -164,6 +164,7 @@ export function CollapsibleSidebar({
               key={entry.id}
               href={entry.href}
               className="w-full"
+              prefetch={entry.href === "/c/dashboard" || entry.href === "/a/dashboard" ? true : false}
               onClick={mobile ? () => setSidebarOpen(false) : undefined}
             >
               <span
@@ -217,6 +218,9 @@ export function CollapsibleSidebar({
                   const active = isChildActive(child.href);
                   return (
                     <Link
+                      key={child.href}
+                      href={child.href}
+                      prefetch={child.href === "/c/dashboard" ? true : false}
                       key={child.href + child.label}
                       href={child.href}
                       className="w-full"

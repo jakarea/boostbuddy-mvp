@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Coins, ShoppingCart, CheckCircle2, Star } from "lucide-react";
+import { devLog } from "@/lib/utils/devLog";
 
 interface CreditPackageCardProps {
   package: any;
@@ -26,20 +27,20 @@ export function CreditPackageCard({ package: pkg, onPurchased }: CreditPackageCa
   const handlePurchase = async () => {
     try {
       setIsPurchasing(true);
-      console.log("📍 [CLIENT#1] Starting purchase for package:", safePackage.name);
-      console.log("📍 [CLIENT#2] Package ID:", safePackage.id);
+      devLog("📍 [CLIENT#1] Starting purchase for package:", safePackage.name);
+      devLog("📍 [CLIENT#2] Package ID:", safePackage.id);
 
       const { purchaseCreditsAction } = await import("@/app/actions/credits");
       const res = await purchaseCreditsAction(safePackage.id);
 
-      console.log("📍 [CLIENT#3] Purchase response:", res);
+      devLog("📍 [CLIENT#3] Purchase response:", res);
 
       if (res.success && res.url) {
         // Redirect to Stripe checkout
-        console.log("📍 [CLIENT#4] Redirecting to Stripe:", res.url);
+        devLog("📍 [CLIENT#4] Redirecting to Stripe:", res.url);
         window.location.href = res.url;
       } else {
-        console.log("📍 [CLIENT#5] Purchase failed with error:", res.error);
+        devLog("📍 [CLIENT#5] Purchase failed with error:", res.error);
         error(res.error || t("failed_to_initiate_purchase", "Failed to initiate purchase"));
       }
     } catch (err) {

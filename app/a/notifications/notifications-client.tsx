@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, CheckCircle, ShieldAlert, RefreshCw, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Mail, CheckCircle, ShieldAlert, RefreshCw, Search, X, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import TelegramBotConfig from "@/components/admin/TelegramBotConfig";
+import TelegramGroupManager from "@/components/TelegramGroupManager";
 import type { TelegramConfig } from "@/app/actions/telegram";
 import { getNotificationsAction } from "@/app/actions/notifications";
 import { createClient } from "@/lib/supabase/client";
@@ -169,6 +170,22 @@ export default function NotificationsClient({ initialLogs, telegramConfig }: Not
           <TelegramBotConfig initialConfig={telegramConfig} flat />
         </div>
       </div>
+
+      {/* Telegram Group Management Card */}
+      <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-extrabold flex items-center gap-2">
+            <Users className="h-4 w-4 text-[#168BB0]" />
+            Telegram Group Configuration
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Configure team notification groups for employees and admins. All employee notifications go to the configured employee group.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-2">
+          <TelegramGroupManager />
+        </CardContent>
+      </Card>
 
       {/* Search Bar */}
       <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">

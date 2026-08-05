@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
@@ -9,6 +9,67 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, ArrowDownLeft, RefreshCw, Eye } from "lucide-react";
 import { formatDateShort, formatTime } from "@/lib/dateUtils";
+
+interface Transaction {
+  id: string;
+  type: string;
+  amount: number;
+  description: string;
+  createdAt: string;
+  balanceAfter?: number;
+}
+
+interface TransactionRowProps {
+  transaction: Transaction;
+  compact: boolean;
+  getTransactionIcon: (type: string) => React.ReactNode;
+  getBadgeColor: (type: string) => string;
+  formatAmount: (amount: number) => string;
+  t: (key: string, defaultValue?: string, params?: any) => string;
+}
+
+const TransactionRow = memo(function TransactionRow({
+  transaction,
+  compact,
+  getTransactionIcon,
+  getBadgeColor,
+  formatAmount,
+  t,
+}: TransactionRowProps) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+          {getTransactionIcon(transaction.type)}
+        </div>
+        <div>
+          <h4 className={`font-medium ${compact ? 'text-sm' : ''}`}>
+            {transaction.description}
+          </h4>
+          <p className="text-xs text-zinc-500">
+            {formatDateShort(transaction.createdAt)} {
+              !compact && t("at_time", " at {{time}}", { time: formatTime(transaction.createdAt) })
+            }
+          </p>
+        </div>
+      </div>
+
+      <div className="text-right">
+        <div className={`font-bold ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+          {formatAmount(transaction.amount)}
+        </div>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${getBadgeColor(transaction.type)}`}>
+          {transaction.type.replace("_", " ")}
+        </span>
+        {transaction.balanceAfter !== undefined && !compact && (
+          <p className="text-xs text-zinc-500 mt-1">
+            {t("balance_label", "Balance: {{balance}}", { balance: transaction.balanceAfter })}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+});
 
 interface CreditsHistoryProps {
   userId?: string;
@@ -113,37 +174,14 @@ export function CreditsHistory({
     <div className="space-y-3">
       {transactions.map((transaction) => (
         <Card key={transaction.id} className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
-                {getTransactionIcon(transaction.type)}
-              </div>
-              <div>
-                <h4 className={`font-medium ${compact ? 'text-sm' : ''}`}>
-                  {transaction.description}
-                </h4>
-                <p className="text-xs text-zinc-500">
-                  {formatDateShort(transaction.createdAt)} {
-                    !compact && t("at_time", " at {{time}}", { time: formatTime(transaction.createdAt) })
-                  }
-                </p>
-              </div>
-            </div>
-
-            <div className="text-right">
-              <div className={`font-bold ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatAmount(transaction.amount)}
-              </div>
-              <Badge className={getBadgeColor(transaction.type)}>
-                {transaction.type.replace("_", " ")}
-              </Badge>
-              {transaction.balanceAfter !== undefined && !compact && (
-                <p className="text-xs text-zinc-500 mt-1">
-                  {t("balance_label", "Balance: {{balance}}", { balance: transaction.balanceAfter })}
-                </p>
-              )}
-            </div>
-          </div>
+          <TransactionRow
+            transaction={transaction}
+            compact={compact}
+            getTransactionIcon={getTransactionIcon}
+            getBadgeColor={getBadgeColor}
+            formatAmount={formatAmount}
+            t={t}
+          />
         </Card>
       ))}
 

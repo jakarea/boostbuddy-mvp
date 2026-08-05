@@ -12,8 +12,8 @@ import {
   ShieldCheck, Mail, Server, MessageCircle, AlertCircle
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import Swal from "sweetalert2";
 import { useToast } from "@/context/ToastContext";
+import { showConfirm } from "@/lib/utils/swal";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getServicesAction } from "@/app/actions/services";
@@ -200,7 +200,7 @@ export default function BoxesClient({ initialBoxes }: { initialBoxes: BoxAccount
   };
 
   const handleRequestChange = async (boxId: string) => {
-    const result = await Swal.fire({
+    const result = await showConfirm({
       title: t("are_you_sure", { defaultValue: "Are you sure?" }),
       text: t("alert_req_change_text", { defaultValue: "This will request a profile change." }),
       icon: "warning",

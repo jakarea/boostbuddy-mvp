@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useMemo, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import Swal from "sweetalert2";
 import { useToast } from "@/context/ToastContext";
+import { showConfirm } from "@/lib/utils/swal";
 import { upsertServiceAction, deleteServiceAction } from "@/app/actions/services";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -116,7 +116,7 @@ export default function ServicesClient({ initialServices }: { initialServices: S
   };
 
   const handleDelete = async (id: string) => {
-    const result = await Swal.fire({
+    const result = await showConfirm({
       title: t("are_you_sure", { defaultValue: "Are you sure?" }),
       text: t('alert_delete_text'),
       icon: "warning",
