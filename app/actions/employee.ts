@@ -59,17 +59,33 @@ export async function createEmployeeAction(data: CreateEmployeeData) {
       return { success: false, error: "Name, email, and password are required" };
     }
 
-    if (data.password.length < 6) {
+    if (data.password.length < 12) {
       console.log("❌ [EMPLOYEE] Password too short");
-      return { success: false, error: "Password must be at least 6 characters" };
+      return { success: false, error: "Password must be at least 12 characters" };
+    }
+
+    // Check password complexity
+    const hasUpperCase = /[A-Z]/.test(data.password);
+    const hasLowerCase = /[a-z]/.test(data.password);
+    const hasNumber = /[0-9]/.test(data.password);
+    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(data.password);
+
+    if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecialChar) {
+      console.log("❌ [EMPLOYEE] Password complexity insufficient");
+      return { success: false, error: "Password must contain uppercase, lowercase, number, and special character" };
     }
 
     const supabaseAdmin = await createAdminClient();
 
-    // Check if user with this email already exists
+    // Check if user with this email already exists - OPTIMIZED: Direct query instead of O(N) lookup
     console.log("🔍 [EMPLOYEE] Checking for existing users...");
-    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
-    const userExists = existingUser?.users?.some(u => u.email === data.email);
+    const { data: existingUser } = await supabaseAdmin
+      .from("users")
+      .select("id")
+      .eq("email", data.email)
+      .limit(1);
+
+    const userExists = existingUser && existingUser.length > 0;
 
     if (userExists) {
       console.log("❌ [EMPLOYEE] User already exists:", data.email);
@@ -445,7 +461,9 @@ export async function acceptOrderAction(orderId: string) {
           "✅ Review Order Accepted",
           `You have been assigned a new review order. Please complete it within the specified time.`,
           "TELEGRAM",
-          "EMPLOYEE_ORDER_ASSIGNED"
+          "EMPLOYEE_ORDER_ASSIGNED",
+          "HIGH",  // Priority: Employee accepted work, real-time confirmation
+          orderId   // Related order ID for context
         );
         console.log("✅ [EMPLOYEE] Employee notification sent");
       } catch (notifError) {
@@ -550,7 +568,9 @@ export async function skipOrderAction(orderId: string, reason: string) {
         "📝 Review Order Skipped",
         `You have skipped a review order. Reason: ${reason}`,
         "TELEGRAM",
-        "EMPLOYEE_ORDER_SKIPPED"
+        "EMPLOYEE_ORDER_SKIPPED",
+        "MEDIUM",  // Priority: Employee action, not time-sensitive
+        orderId   // Related order ID for context
       );
     } catch (notifError) {
       console.warn("Failed to send notification:", notifError);
@@ -648,7 +668,9 @@ export async function submitCompletedReviewAction(orderId: string, proof: string
         "🎉 Review Completed Successfully",
         `Your review has been submitted successfully and marked as complete.`,
         "TELEGRAM",
-        "EMPLOYEE_REVIEW_COMPLETED"
+        "EMPLOYEE_REVIEW_COMPLETED",
+        "HIGH",  // Priority: Major milestone, real-time confirmation
+        orderId   // Related order ID for context
       );
     } catch (notifError) {
       console.warn("Failed to send notification:", notifError);
@@ -663,7 +685,9 @@ export async function submitCompletedReviewAction(orderId: string, proof: string
           "✅ Review Completed",
           `Your review for ${businessName} has been completed and is ready to view!`,
           "TELEGRAM",
-          "REVIEWS_REVIEW_COMPLETED"
+          "REVIEWS_REVIEW_COMPLETED",
+          "MEDIUM",  // Priority: Good news, but not time-sensitive
+          orderId   // Related order ID for context
         );
       } catch (clientNotifError) {
         console.warn("Failed to send client notification:", clientNotifError);
@@ -696,7 +720,7 @@ export async function getEmployeeStatsAction(employeeId?: string) {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("employee_stats")
-      .select("*")
+      .select("id, user_id, is_available, orders_completed, orders_skipped, last_active_at")
       .eq("user_id", targetUserId)
       .single();
 

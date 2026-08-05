@@ -11,6 +11,7 @@ import {
   isUserActive,
 } from "@/lib/auth/pure-functions-client";
 import { createClient } from "@/lib/supabase/client";
+import { devLog } from "@/lib/utils/devLog";
 
 const LOG_PREFIX = "[AUTH-CONTEXT]";
 
@@ -21,12 +22,12 @@ export function AuthProvider({ children, initialUser = null }: { children: React
   const [user, setUser] = useState<AuthUser | null>(initialUser);
   const [error, setError] = useState<string | null>(null);
 
-  console.log(`${LOG_PREFIX} Provider initializing... Initial user:`, initialUser?.email || "none");
+  devLog(`${LOG_PREFIX} Provider initializing... Initial user:`, initialUser?.email || "none");
 
   // Sync state when initialUser prop changes from server (e.g. after Server Action redirect)
   useEffect(() => {
     if (initialUser?.id !== user?.id) {
-      console.log(`${LOG_PREFIX} initialUser prop changed, updating state...`);
+      devLog(`${LOG_PREFIX} initialUser prop changed, updating state...`);
       if (initialUser) {
         setUser(initialUser);
         setState("AUTHENTICATED");
@@ -47,17 +48,17 @@ export function AuthProvider({ children, initialUser = null }: { children: React
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.group(`${LOG_PREFIX} Auth state changed`);
-        console.log("Event:", event);
+        devLog("Event:", event);
 
         if (!isMounted) {
-          console.log("Component unmounted, skipping update");
+          devLog("Component unmounted, skipping update");
           console.groupEnd();
           return;
         }
 
         // Skip INITIAL_SESSION — server already provided initialUser
         if (event === 'INITIAL_SESSION') {
-          console.log(`${LOG_PREFIX} Skipping INITIAL_SESSION, relying on server state`);
+          devLog(`${LOG_PREFIX} Skipping INITIAL_SESSION, relying on server state`);
           console.groupEnd();
           return;
         }
@@ -66,14 +67,14 @@ export function AuthProvider({ children, initialUser = null }: { children: React
         // server action's router.push() and cause a "unexpected response" race condition.
         // The server action + router.push() already handle navigation on login.
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          console.log(`${LOG_PREFIX} Skipping ${event} event — server action handles this redirect`);
+          devLog(`${LOG_PREFIX} Skipping ${event} event — server action handles this redirect`);
           console.groupEnd();
           return;
         }
 
         // Only handle SIGNED_OUT to clear client state
         if (event === 'SIGNED_OUT') {
-          console.log(`${LOG_PREFIX} User signed out, clearing state`);
+          devLog(`${LOG_PREFIX} User signed out, clearing state`);
           setUser(null);
           setState("UNAUTHENTICATED");
           setError(null);
@@ -86,7 +87,7 @@ export function AuthProvider({ children, initialUser = null }: { children: React
           const { data: { user } } = await supabase.auth.getUser();
 
           if (user) {
-            console.log(`${LOG_PREFIX} User updated via event:`, user.email);
+            devLog(`${LOG_PREFIX} User updated via event:`, user.email);
             const basicUser: AuthUser = {
               id: user.id,
               email: user.email || '',
@@ -129,14 +130,14 @@ export function AuthProvider({ children, initialUser = null }: { children: React
     setState("LOADING");
 
     try {
-      console.log("Step 1: Calling signInUser with:", email);
+      devLog("Step 1: Calling signInUser with:", email);
       await signInUserUtil(email, password);
 
-      console.log("Step 2: Getting current session...");
+      devLog("Step 2: Getting current session...");
       const session = await getCurrentSession();
 
       if (session?.user) {
-        console.log("Step 3: ✅ Sign in complete");
+        devLog("Step 3: ✅ Sign in complete");
         // Create basic user from Supabase auth data
         const basicUser: AuthUser = {
           id: session.user.id,
@@ -171,14 +172,14 @@ export function AuthProvider({ children, initialUser = null }: { children: React
     setState("LOADING");
 
     try {
-      console.log("Step 1: Creating Supabase auth user with:", email);
+      devLog("Step 1: Creating Supabase auth user with:", email);
       const authUser = await signUpUserUtil(email, password, name);
 
       if (!authUser?.id) {
         throw new Error("No user ID returned from signup");
       }
 
-      console.log("Step 2: ✅ Sign up complete (profile will be created by server)");
+      devLog("Step 2: ✅ Sign up complete (profile will be created by server)");
       // Create basic user from Supabase auth data
       // Note: User profile in database will be created by server-side action
       const basicUser: AuthUser = {
@@ -209,10 +210,10 @@ export function AuthProvider({ children, initialUser = null }: { children: React
     console.group(`${LOG_PREFIX} Sign out action`);
 
     try {
-      console.log("Step 1: Signing out...");
+      devLog("Step 1: Signing out...");
       await signOutUserUtil();
 
-      console.log("Step 2: ✅ Clearing user state");
+      devLog("Step 2: ✅ Clearing user state");
       setUser(null);
       setState("UNAUTHENTICATED");
       setError(null);

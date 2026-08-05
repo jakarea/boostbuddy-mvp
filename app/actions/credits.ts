@@ -40,16 +40,20 @@ export async function getCreditPackagesAdminAction() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("credit_packages")
-      .select("*")
+      .select("id, name, description, price, credits_amount, is_active")
       .order("credits_amount", { ascending: true });
 
     if (error) throw error;
 
-    // Convert price from string to number for proper calculations
+    // Transform snake_case to camelCase and convert values
     const packages = data?.map(pkg => ({
-      ...pkg,
+      id: pkg.id,
+      name: pkg.name,
+      description: pkg.description,
       price: typeof pkg.price === 'string' ? parseFloat(pkg.price) : pkg.price,
-      creditsAmount: typeof pkg.credits_amount === 'string' ? parseInt(pkg.credits_amount) : pkg.credits_amount
+      creditsAmount: typeof pkg.credits_amount === 'string' ? parseInt(pkg.credits_amount) : pkg.credits_amount,
+      isActive: pkg.is_active,
+      createdAt: pkg.created_at || new Date().toISOString()
     })) || [];
 
     return { success: true, data: packages };
@@ -69,17 +73,21 @@ export async function getActiveCreditPackagesAction() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("credit_packages")
-      .select("*")
+      .select("id, name, description, price, credits_amount, is_active")
       .eq("is_active", true)
       .order("credits_amount", { ascending: true });
 
     if (error) throw error;
 
-    // Convert price from string to number for proper calculations
+    // Transform snake_case to camelCase and convert values
     const packages = data?.map(pkg => ({
-      ...pkg,
+      id: pkg.id,
+      name: pkg.name,
+      description: pkg.description,
       price: typeof pkg.price === 'string' ? parseFloat(pkg.price) : pkg.price,
-      creditsAmount: typeof pkg.credits_amount === 'string' ? parseInt(pkg.credits_amount) : pkg.credits_amount
+      creditsAmount: typeof pkg.credits_amount === 'string' ? parseInt(pkg.credits_amount) : pkg.credits_amount,
+      isActive: pkg.is_active,
+      createdAt: pkg.created_at || new Date().toISOString()
     })) || [];
 
     return { success: true, data: packages };
@@ -244,7 +252,7 @@ export async function purchaseCreditsAction(packageId: string) {
     const supabase = await createClient();
     const { data: package_, error: packageError } = await supabase
       .from("credit_packages")
-      .select("*")
+      .select("id, name, description, price, credits_amount, is_active")
       .eq("id", packageId)
       .eq("is_active", true)
       .single();
@@ -449,7 +457,9 @@ export async function fulfillCreditsPurchase(sessionId: string) {
         "💰 Credits Purchased Successfully",
         `You have purchased ${creditsAmount} credits. Your new balance is ${newBalance} credits.`,
         "TELEGRAM",
-        "REVIEWS_CREDITS_PURCHASED"
+        "REVIEWS_CREDITS_PURCHASED",
+        "MEDIUM",  // Priority: Purchase confirmation, not urgent
+        null      // No related order ID for credit purchases
       );
     } catch (notifError) {
       console.warn("📍 [LOG#49] Failed to send notification:", notifError);
@@ -532,7 +542,7 @@ export async function getCreditsHistoryAction(userId?: string, limit: number = 2
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("credit_transactions")
-      .select("*")
+      .select("id, user_id, amount, balance_after, type, description, reference_id, created_at")
       .eq("user_id", targetUserId)
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -629,17 +639,21 @@ export async function getAllCreditTransactionsAction(filters?: {
     console.log("🔍 [TRANSACTIONS] Querying credit_transactions table...");
     let query = supabase
       .from("credit_transactions")
-      .select("*")
+      .select("id, user_id, amount, balance_after, type, description, reference_id, created_at")
       .order("created_at", { ascending: false });
 
     if (filters?.userSearch) {
       console.log("🔍 [TRANSACTIONS] Filtering by user search:", filters.userSearch);
       // Get user IDs that match the search first
       const trimmed = filters.userSearch.trim();
+
+      // Sanitize input to prevent PostgREST filter manipulation
+      const sanitized = trimmed.replace(/[,\.\(\)%\\]/g, '');
+
       const { data: users } = await supabase
         .from("users")
         .select("id")
-        .or(`name.ilike.%${trimmed}%,email.ilike.%${trimmed}%`)
+        .or(`name.ilike.%${sanitized}%,email.ilike.%${sanitized}%`)
         .limit(100);
 
       const userIds = users?.map(u => u.id) || [];
@@ -746,13 +760,20 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
 
     if (transactionError) throw transactionError;
 
-    // Update user balance
-    const { error: updateError } = await supabase
+    // Update user balance with optimistic concurrency control to prevent race conditions
+    // If balance has changed since we read it, the update will affect 0 rows
+    const { data: updateResult, error: updateError } = await supabase
       .from("users")
       .update({ credits_balance: newBalance })
-      .eq("id", data.userId);
+      .eq("id", data.userId)
+      .eq("credits_balance", currentBalance);
 
     if (updateError) throw updateError;
+
+    // Check if update failed due to concurrent modification
+    if (!updateResult || updateResult.length === 0) {
+      return { success: false, error: "Credit balance changed during adjustment. Please try again." };
+    }
 
     // Send notification to user
     const { sendNotificationAction } = await import("./notifications");
@@ -765,7 +786,9 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
       notificationTitle,
       `Your credits balance has been adjusted by ${data.amount > 0 ? '+' : ''}${data.amount} credits. Reason: ${data.reason}. New balance: ${newBalance} credits.`,
       "TELEGRAM",
-      "REVIEWS_CREDITS_ADJUSTED"
+      "REVIEWS_CREDITS_ADJUSTED",
+      "HIGH",   // Priority: Financial adjustment requiring immediate attention
+      null      // No related order ID for admin adjustments
     );
 
     revalidatePath("/a/services/credits");
@@ -794,32 +817,41 @@ export async function getCreditsOverviewAction() {
 
     const supabase = await createClient();
 
-    // Get total credits sold
-    const { data: purchases } = await supabase
-      .from("credit_transactions")
-      .select("amount")
-      .eq("type", "PURCHASE");
+    // Parallelize all 4 independent queries for better performance
+    const [
+      purchases,
+      spends,
+      activePackagesResult,
+      totalTransactionsResult
+    ] = await Promise.all([
+      // Get total credits sold
+      supabase
+        .from("credit_transactions")
+        .select("amount")
+        .eq("type", "PURCHASE"),
 
-    const totalCreditsSold = purchases?.reduce((sum, t) => sum + t.amount, 0) || 0;
+      // Get total credits consumed
+      supabase
+        .from("credit_transactions")
+        .select("amount")
+        .eq("type", "SPEND"),
 
-    // Get total credits consumed
-    const { data: spends } = await supabase
-      .from("credit_transactions")
-      .select("amount")
-      .eq("type", "SPEND");
+      // Get active packages count
+      supabase
+        .from("credit_packages")
+        .select("*", { count: "exact", head: true })
+        .eq("is_active", true),
 
-    const totalCreditsConsumed = spends?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
+      // Get total transactions
+      supabase
+        .from("credit_transactions")
+        .select("*", { count: "exact", head: true })
+    ]);
 
-    // Get active packages count
-    const { count: activePackages } = await supabase
-      .from("credit_packages")
-      .select("*", { count: "exact", head: true })
-      .eq("is_active", true);
-
-    // Get total transactions
-    const { count: totalTransactions } = await supabase
-      .from("credit_transactions")
-      .select("*", { count: "exact", head: true });
+    const totalCreditsSold = purchases?.data?.reduce((sum, t) => sum + t.amount, 0) || 0;
+    const totalCreditsConsumed = spends?.data?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
+    const activePackages = activePackagesResult?.count || 0;
+    const totalTransactions = totalTransactionsResult?.count || 0;
 
     return {
       success: true,
@@ -852,11 +884,13 @@ export async function searchUsersForCreditsAction(query: string) {
 
     // Use ILIKE only on text columns (name, email) - NOT on UUID id column
     // PostgreSQL doesn't support ILIKE on UUID types
+    // Sanitize input to prevent PostgREST filter manipulation
+    const sanitized = trimmed.replace(/[,\.\(\)%\\]/g, '');
     const { data, error } = await supabase
       .from("users")
       .select("id, name, email, credits_balance")
       .eq("role", "CLIENT")
-      .or(`name.ilike.%${trimmed}%,email.ilike.%${trimmed}%`)
+      .or(`name.ilike.%${sanitized}%,email.ilike.%${sanitized}%`)
       .order("name", { ascending: true })
       .limit(20);
 

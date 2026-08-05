@@ -15,6 +15,9 @@ export type ReviewOrderFilter = {
   employeeId?: string;
   dateFrom?: string;
   dateTo?: string;
+  page?: number;
+  pageSize?: number;
+  searchTerm?: string;
 };
 
 export type ReviewOrderData = {
@@ -38,6 +41,7 @@ export type AdminAssignmentData = {
 /**
  * Get all review orders (admin only)
  * Includes skip information from employees
+ * Now supports server-side pagination and search
  */
 export async function getAllReviewOrdersAction(filters?: ReviewOrderFilter) {
   try {
@@ -45,10 +49,37 @@ export async function getAllReviewOrdersAction(filters?: ReviewOrderFilter) {
     if (!auth.success) return auth;
 
     const supabase = await createClient();
+    const page = filters?.page || 1;
+    const pageSize = filters?.pageSize || 20;
+    const startIndex = (page - 1) * pageSize;
+
+    // Build count query
+    let countQuery = supabase
+      .from("review_orders")
+      .select("id", { count: "exact", head: true });
+
+    if (filters?.status) {
+      countQuery = countQuery.eq("status", filters.status);
+    }
+
+    if (filters?.employeeId) {
+      countQuery = countQuery.eq("assigned_employee_id", filters.employeeId);
+    }
+
+    // Add search to count query if provided
+    if (filters?.searchTerm && filters.searchTerm.trim()) {
+      const searchLower = filters.searchTerm.trim().toLowerCase();
+      // Sanitize input to prevent PostgREST filter manipulation
+      const sanitized = searchLower.replace(/[,\.\(\)%\\]/g, '');
+      countQuery = countQuery.or(`business_name.ilike.%${sanitized}%,id.ilike.%${sanitized}%`);
+    }
+
+    // Build the main query with pagination
     let query = supabase
       .from("review_orders")
       .select("*, users:user_id(name, email), employees:assigned_employee_id(name, email)")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .range(startIndex, startIndex + pageSize - 1);
 
     if (filters?.status) {
       query = query.eq("status", filters.status);
@@ -58,11 +89,24 @@ export async function getAllReviewOrdersAction(filters?: ReviewOrderFilter) {
       query = query.eq("assigned_employee_id", filters.employeeId);
     }
 
-    const { data: orders, error } = await query;
+    // Add search filter if provided
+    if (filters?.searchTerm && filters.searchTerm.trim()) {
+      const searchLower = filters.searchTerm.trim().toLowerCase();
+      // Sanitize input to prevent PostgREST filter manipulation
+      const sanitized = searchLower.replace(/[,\.\(\)%\\]/g, '');
+      query = query.or(`business_name.ilike.%${sanitized}%,id.ilike.%${sanitized}%`);
+    }
 
+    // Parallelize count and data queries (independent operations)
+    const [
+      { count: totalCount, error: countError },
+      { data: orders, error }
+    ] = await Promise.all([countQuery, query]);
+
+    if (countError) throw countError;
     if (error) throw error;
 
-    // Get skip information for all orders
+    // Get skip information for the current page orders only
     const orderIds = orders?.map(o => o.id) || [];
     let skipsMap = new Map<string, any[]>();
 
@@ -117,9 +161,18 @@ export async function getAllReviewOrdersAction(filters?: ReviewOrderFilter) {
       return normalizedOrder;
     }) || [];
 
-    console.log("🔍 [ADMIN ORDERS] Returning", ordersWithSkips.length, "orders with normalized fields");
+    console.log("🔍 [ADMIN ORDERS] Returning", ordersWithSkips.length, "orders (page", page, "of", Math.ceil((totalCount || 0) / pageSize), ")");
 
-    return { success: true, data: ordersWithSkips };
+    return {
+      success: true,
+      data: ordersWithSkips,
+      pagination: {
+        page,
+        pageSize,
+        totalCount: totalCount || 0,
+        totalPages: Math.ceil((totalCount || 0) / pageSize)
+      }
+    };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -143,11 +196,11 @@ export async function assignReviewToEmployeeAction(data: AdminAssignmentData) {
       .eq("id", data.orderId)
       .single();
 
-    if (!order || order.status !== "PENDING") {
+    if (!order || (order as any).status !== "PENDING") {
       return { success: false, error: "Order not found or must be PENDING" };
     }
 
-    const clientEmail = (order.users as any)?.email || null;
+    const clientEmail = ((order as any).users as any)?.email || null;
 
     // Check employee availability
     const { data: employee } = await supabase
@@ -155,16 +208,16 @@ export async function assignReviewToEmployeeAction(data: AdminAssignmentData) {
       .select("id, email, accepting_orders")
       .eq("id", data.employeeId)
       .eq("role", "EMPLOYEE")
-      .eq("is_active", true)
+      .eq("status", "ACTIVE")
       .single();
 
-    if (!employee || !employee.accepting_orders) {
+    if (!employee || !(employee as any).accepting_orders) {
       return { success: false, error: "Employee not found or not accepting orders" };
     }
 
     // Assign order
-    const { error: assignError } = await supabase
-      .from("review_orders")
+    const { error: assignError } = await (supabase
+      .from("review_orders") as any)
       .update({
         assigned_employee_id: data.employeeId,
         status: "IN_PROGRESS",
@@ -175,8 +228,8 @@ export async function assignReviewToEmployeeAction(data: AdminAssignmentData) {
     if (assignError) throw assignError;
 
     // Update employee last active
-    await supabase
-      .from("employee_stats")
+    await (supabase
+      .from("employee_stats") as any)
       .update({ last_active_at: now })
       .eq("user_id", data.employeeId);
 
@@ -184,11 +237,13 @@ export async function assignReviewToEmployeeAction(data: AdminAssignmentData) {
     try {
       const { sendNotificationAction } = await import("./notifications");
       await sendNotificationAction(
-        employee.email || data.employeeId,
+        (employee as any)?.email || data.employeeId,
         "📝 New Review Order Assigned",
-        `You have been assigned a review order for ${order.business_name}. Check your dashboard for details.`,
+        `You have been assigned a review order for ${(order as any).business_name}. Check your dashboard for details.`,
         "TELEGRAM",
-        "REVIEWS_ORDER_ASSIGNED"
+        "REVIEWS_ORDER_ASSIGNED",
+        "HIGH",  // Priority: Real-time notification for employees
+        orderId   // Related order ID for context
       );
     } catch (notifError) {
       console.warn("Failed to send notification:", notifError);
@@ -201,9 +256,11 @@ export async function assignReviewToEmployeeAction(data: AdminAssignmentData) {
         await sendNotificationAction(
           clientEmail,
           "🔄 Your Review Order Is In Progress",
-          `Your review order for ${order.business_name} has been assigned to our team and is now being worked on.`,
+          `Your review order for ${(order as any).business_name} has been assigned to our team and is now being worked on.`,
           "TELEGRAM",
-          "REVIEWS_ORDER_IN_PROGRESS"
+          "REVIEWS_ORDER_IN_PROGRESS",
+          "HIGH",  // Priority: Real-time update for clients
+          orderId   // Related order ID for context
         );
       } catch (notifError) {
         console.warn("Failed to send client notification:", notifError);
@@ -239,13 +296,13 @@ export async function cancelReviewOrderAction(orderId: string, reason: string) {
       .from("review_orders")
       .select("id, user_id, status, credits_consumed, business_name, assigned_employee_id, users:user_id(email), employees:assigned_employee_id(email)")
       .eq("id", orderId)
-      .single();
+      .single() as any;
 
     if (!order) {
       return { success: false, error: "Order not found" };
     }
 
-    if (order.status === "CANCELLED") {
+    if ((order as any).status === "CANCELLED") {
       return { success: false, error: "Order already cancelled" };
     }
 
@@ -253,18 +310,18 @@ export async function cancelReviewOrderAction(orderId: string, reason: string) {
     const employeeEmail = (order.employees as any)?.email || null;
 
     // Refund credits if not completed
-    if (order.status !== "COMPLETED") {
+    if ((order as any).status !== "COMPLETED") {
       const { data: user } = await supabase
         .from("users")
         .select("credits_balance, email")
-        .eq("id", order.user_id)
-        .single();
+        .eq("id", (order as any).user_id)
+        .single() as any;
 
       if (!user) {
         return { success: false, error: "User not found" };
       }
 
-      const newBalance = (user.credits_balance || 0) + order.credits_consumed;
+      const newBalance = (user.credits_balance || 0) + (order as any).credits_consumed;
 
       // Create refund transaction
       await supabase.from("credit_transactions").insert({
@@ -299,7 +356,9 @@ export async function cancelReviewOrderAction(orderId: string, reason: string) {
           "💰 Order Cancelled - Credits Refunded",
           `Your review order for ${order.business_name} has been cancelled and ${order.credits_consumed} credits have been refunded to your balance.`,
           "TELEGRAM",
-          "REVIEWS_ORDER_CANCELLED"
+          "REVIEWS_ORDER_CANCELLED",
+          "HIGH",  // Priority: Financial impact - real-time notification
+          orderId   // Related order ID for context
         );
       } catch (notifError) {
         console.warn("Failed to send notification:", notifError);
@@ -314,7 +373,9 @@ export async function cancelReviewOrderAction(orderId: string, reason: string) {
             "❌ Assigned Order Cancelled",
             `The review order for ${order.business_name} that was assigned to you has been cancelled by the admin. Reason: ${reason}`,
             "TELEGRAM",
-            "EMPLOYEE_ORDER_CANCELLED"
+            "EMPLOYEE_ORDER_CANCELLED",
+            "HIGH",  // Priority: Immediate impact on employee work
+            orderId   // Related order ID for context
           );
         } catch (notifError) {
           console.warn("Failed to send employee notification:", notifError);
@@ -392,21 +453,72 @@ export async function getAvailableEmployeesAction() {
 
 /**
  * Get employee performance overview (admin only)
+ * Now supports server-side pagination
  */
-export async function getEmployeePerformanceAction() {
+export async function getEmployeePerformanceAction(filters?: { page?: number; pageSize?: number; searchTerm?: string }) {
   try {
     const auth = await requireAuth({ role: 'ADMIN' });
     if (!auth.success) return auth;
 
     const supabase = await createClient();
-    const { data, error } = await supabase
+    const page = filters?.page || 1;
+    const pageSize = filters?.pageSize || 20;
+    const startIndex = (page - 1) * pageSize;
+
+    // Get total count with optional search
+    let countQuery = supabase
+      .from("employee_stats")
+      .select("user_id", { count: "exact", head: true });
+
+    if (filters?.searchTerm && filters.searchTerm.trim()) {
+      const searchLower = filters.searchTerm.trim().toLowerCase();
+      // We'll need to join with users for search, so let's do it differently
+      // Sanitize input to prevent PostgREST filter manipulation
+      const sanitized = searchLower.replace(/[,\.\(\)%\\]/g, '');
+      const { count } = await supabase
+        .from("users")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "EMPLOYEE")
+        .or(`name.ilike.%${sanitized}%,email.ilike.%${sanitized}%`);
+      return { success: true, count, pagination: { page, pageSize, totalCount: count || 0, totalPages: Math.ceil((count || 0) / pageSize) } };
+    }
+
+    const { count: totalCount, error: countError } = await countQuery;
+
+    if (countError) throw countError;
+
+    // Build the main query with pagination
+    let query = supabase
       .from("employee_stats")
       .select("*, users:user_id(name, email, is_active, accepting_orders)")
       .order("orders_completed", { ascending: false })
-      .order("last_active_at", { ascending: false });
+      .order("last_active_at", { ascending: false })
+      .range(startIndex, startIndex + pageSize - 1);
+
+    // Add search filter if provided
+    if (filters?.searchTerm && filters.searchTerm.trim()) {
+      const searchLower = filters.searchTerm.trim().toLowerCase();
+      // Sanitize input to prevent PostgREST filter manipulation
+      const sanitized = searchLower.replace(/[,\.\(\)%\\]/g, '');
+      query = query.or(`users.name.ilike.%${sanitized}%,users.email.ilike.%${sanitized}%`);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
-    return { success: true, data };
+
+    console.log("👥 [EMPLOYEE PERF] Returning", data?.length, "employees (page", page, "of", Math.ceil((totalCount || 0) / pageSize), ")");
+
+    return {
+      success: true,
+      data,
+      pagination: {
+        page,
+        pageSize,
+        totalCount: totalCount || 0,
+        totalPages: Math.ceil((totalCount || 0) / pageSize)
+      }
+    };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -516,7 +628,9 @@ export async function verifyCompletedReviewAction(orderId: string, approved: boo
           ? `Your review for ${order.business_name} has been approved by our quality team.`
           : `Your review for ${order.business_name} did not meet our quality standards. Please revise and resubmit.`,
         "TELEGRAM",
-        "REVIEWS_REVIEW_VERIFIED"
+        "REVIEWS_REVIEW_VERIFIED",
+        "HIGH",  // Priority: Time-sensitive decision notification
+        orderId   // Related order ID for context
       );
     } catch (notifError) {
       console.warn("Failed to send notification:", notifError);
@@ -533,7 +647,9 @@ export async function verifyCompletedReviewAction(orderId: string, approved: boo
             ? `Your submitted review for ${order.business_name} has been approved by the admin. Great work!`
             : `Your submitted review for ${order.business_name} was rejected and returned to the queue. Reason: ${rejectionReason || "Not specified"}`,
           "TELEGRAM",
-          approved ? "EMPLOYEE_REVIEW_APPROVED" : "EMPLOYEE_REVIEW_REJECTED"
+          approved ? "EMPLOYEE_REVIEW_APPROVED" : "EMPLOYEE_REVIEW_REJECTED",
+          "HIGH",  // Priority: Time-sensitive for employee performance
+          orderId   // Related order ID for context
         );
       } catch (notifError) {
         console.warn("Failed to send employee notification:", notifError);

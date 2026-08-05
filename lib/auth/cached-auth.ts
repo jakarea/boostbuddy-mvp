@@ -14,7 +14,9 @@ export type CachedUser = {
 /**
  * Request-level cache for user data.
  * Uses Supabase only - no local database.
+ *
  * React's cache() ensures this function is only called once per request.
+ * Auth data is NEVER cached across requests for security reasons.
  */
 export const getCachedUser = cache(async (): Promise<CachedUser | null> => {
   const supabase = await createClient();

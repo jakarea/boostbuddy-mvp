@@ -42,17 +42,33 @@ export async function createClientAction(data: CreateClientData) {
       return { success: false, error: "Name, email, and password are required" };
     }
 
-    if (data.password.length < 6) {
+    if (data.password.length < 12) {
       console.log("❌ [CLIENT] Password too short");
-      return { success: false, error: "Password must be at least 6 characters" };
+      return { success: false, error: "Password must be at least 12 characters long." };
+    }
+
+    // Check password complexity
+    const hasUpperCase = /[A-Z]/.test(data.password);
+    const hasLowerCase = /[a-z]/.test(data.password);
+    const hasNumber = /[0-9]/.test(data.password);
+    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(data.password);
+
+    if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecialChar) {
+      console.log("❌ [CLIENT] Password complexity insufficient");
+      return { success: false, error: "Password must contain uppercase, lowercase, number, and special character." };
     }
 
     const supabaseAdmin = await createAdminClient();
 
-    // Check if user with this email already exists
+    // Check if user with this email already exists - OPTIMIZED: Direct query instead of O(N) lookup
     console.log("🔍 [CLIENT] Checking for existing users...");
-    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
-    const userExists = existingUser?.users?.some(u => u.email === data.email);
+    const { data: existingUser } = await supabaseAdmin
+      .from("users")
+      .select("id")
+      .eq("email", data.email)
+      .limit(1);
+
+    const userExists = existingUser && existingUser.length > 0;
 
     if (userExists) {
       console.log("❌ [CLIENT] User already exists:", data.email);
@@ -144,7 +160,8 @@ export async function createClientAction(data: CreateClientData) {
           "🎉 Your BoostBuddy Account is Ready!",
           `Hello ${data.name},\n\nYour ${role.toLowerCase()} account has been created and is ready to use!\n\nYou can log in immediately at: https://boostbuddy.it${dashboardUrl}\n\nYour credentials:\n📧 Email: ${data.email}\n🔑 Password: [The password you set]\n\nWelcome to BoostBuddy!`,
           "TELEGRAM",
-          "SYSTEM"
+          "SYSTEM",
+          "HIGH"
         );
       } catch (notifError) {
         console.log("⚠️ [CLIENT] Failed to send notification (non-blocking):", notifError);
@@ -280,7 +297,7 @@ export async function getClientsAction() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("users")
-    .select("*")
+    .select("id, email, name, role, status, created_at")
     .eq("role", "CLIENT")
     .order("created_at", { ascending: false });
 
@@ -322,7 +339,7 @@ export async function getBillingInfoAction(userId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("billing_info")
-    .select("*")
+    .select("id, user_id, billing_type, country, name, address, city, postal_code, vat_number, fiscal_code, sdi_code")
     .eq("user_id", userId)
     .single();
 
@@ -330,7 +347,22 @@ export async function getBillingInfoAction(userId: string) {
     console.error("Failed to fetch billing info:", error);
     throw new Error("Failed to fetch billing info");
   }
-  return data || null;
+
+  // Transform snake_case to camelCase
+  if (!data) return null;
+  return {
+    id: data.id,
+    userId: data.user_id,
+    billingType: data.billing_type,
+    country: data.country,
+    name: data.name,
+    address: data.address,
+    city: data.city,
+    postalCode: data.postal_code,
+    vatNumber: data.vat_number,
+    fiscalCode: data.fiscal_code,
+    sdiCode: data.sdi_code,
+  };
 }
 
 export async function updateBillingInfoAction(userId: string, billingData: any) {
@@ -399,7 +431,8 @@ export async function updateClientStatusAction(userId: string, status: string) {
           "🎉 Account Approved!",
           `Hello ${clientUser.name || "Client"},\n\nYour BoostBuddy account registration has been approved by the administrator!\n\nYou can now log into your account at https://boostbuddy.it`,
           "TELEGRAM",
-          "SYSTEM"
+          "SYSTEM",
+          "HIGH"
         );
       } catch (err) {
         console.error("Failed to send approval telegram notification:", err);
@@ -463,7 +496,8 @@ export async function approveClientAndVerifyEmailAction(userId: string) {
           "🎉 Account Approved & Email Verified!",
           `Hello ${clientUser.name || "Client"},\n\nYour BoostBuddy account registration has been approved by the administrator and your email is verified!\n\nYou can now log into your account at https://boostbuddy.it`,
           "TELEGRAM",
-          "SYSTEM"
+          "SYSTEM",
+          "HIGH"
         );
       } catch (err) {
         console.error("Failed to send approval telegram notification:", err);

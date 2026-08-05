@@ -138,13 +138,15 @@ export async function fulfillOrder(
         const { data: userRecord } = await supabaseAdmin.from("users").select("email").eq("id", userId).single();
 
         const { sendNotificationAction } = await import("./notifications");
-        
+
         await sendNotificationAction(
           userRecord?.email || userId,
           "Account Renewed/Upgraded",
           `Profile account ${profileId} has been successfully renewed/upgraded.`,
           "TELEGRAM",
-          "RENEWAL"
+          "RENEWAL",
+          "MEDIUM",
+          profileId
         );
       }
     }

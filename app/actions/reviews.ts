@@ -362,7 +362,9 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
           `📝 New ${orderData.orderType} Order Created`,
           `Your ${orderData.orderType.toLowerCase()} order for ${orderData.quantity} unit${orderData.quantity > 1 ? 's' : ''} has been created. ${requiredCredits} credits have been deducted.`,
           "TELEGRAM",
-          "REVIEWS_ORDER_CREATED"
+          "REVIEWS_ORDER_CREATED",
+          "MEDIUM",
+          orderId
         );
       } catch (notifError: any) {
         // Silently ignore notification errors - they shouldn't block order creation
@@ -382,7 +384,9 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
         await broadcastToEmployeesAction(
           `🔔 New ${orderData.orderType} Order Available`,
           `A new ${orderData.orderType.toLowerCase()} order for ${orderData.quantity} unit${orderData.quantity > 1 ? 's' : ''} is ready to process.`,
-          "EMPLOYEE_NEW_ORDER_AVAILABLE"
+          "EMPLOYEE_NEW_ORDER_AVAILABLE",
+          "HIGH",
+          orderId
         );
       } catch (broadcastError) {
         console.warn("Failed to broadcast new order to employees:", broadcastError);
@@ -422,7 +426,7 @@ export async function getClientReviewOrdersAction(filters?: ReviewOrderFilter) {
     const supabase = await createClient();
     let query = supabase
       .from("review_orders")
-      .select("*")
+      .select("id, user_id, status, target_rating, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, rejection_reason, client_feedback, content, comment_text, photo_urls, created_at, updated_at")
       .eq("user_id", auth.user.id)
       .order("created_at", { ascending: false });
 
@@ -484,7 +488,7 @@ export async function getReviewOrderDetailAction(orderId: string) {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("review_orders")
-      .select("*")
+      .select("id, user_id, status, target_rating, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, rejection_reason, client_feedback, content, comment_text, photo_urls, created_at, updated_at")
       .eq("id", orderId)
       .eq("user_id", auth.user.id)
       .single();
@@ -562,7 +566,9 @@ export async function submitClientFeedbackAction(orderId: string, feedback: "HAP
         `${emoji} Client Feedback Received`,
         `Client has submitted feedback "${feedback}" on order ${orderId}.`,
         "TELEGRAM",
-        "REVIEWS_CLIENT_FEEDBACK"
+        "REVIEWS_CLIENT_FEEDBACK",
+        "MEDIUM",
+        orderId
       );
     } catch (notifError) {
       console.warn("Failed to send feedback notification:", notifError);

@@ -21,6 +21,7 @@ model User {
   creditsBalance     Int       @default(0)  // Cached credits balance
   acceptingOrders    Boolean   @default(true)  // Employee availability toggle
   telegramChatId     String?   // Telegram Chat ID for notifications
+  preferredLanguage  String    @default("en")  // Preferred notification language: "en" or "it"
 
   // Existing Relations
   billingInfo         BillingInfo?
@@ -35,6 +36,7 @@ model User {
   skippedReviews            SkippedReview[]
   employeeStats             EmployeeStats?
   notifications             Notification[]
+  notificationLogs           NotificationLog[]
 }
 
 model BillingInfo {
@@ -259,4 +261,26 @@ model Notification {
 
   @@index([userId, isRead])
   @@index([createdAt])
+}
+
+model NotificationLog {
+  id              String   @id @default(uuid())
+  recipient       String
+  subject         String
+  body            String?
+  type            String
+  channel         String   @default("EMAIL")
+  status          String   @default("SENT")
+  priority        String   @default("MEDIUM") // "HIGH", "MEDIUM", "LOW"
+  isRead          Boolean  @default(false)
+  userId          String?  @db.Uuid
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relatedOrderId  String?
+  createdAt       DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+  @@index([priority, createdAt(sort: Desc)])
+  @@index([userId, isRead, createdAt(sort: Desc)])
+  @@index([userId, priority, createdAt(sort: Desc)])
 }

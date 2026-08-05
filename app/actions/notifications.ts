@@ -14,6 +14,55 @@ interface TelegramCredentials {
 // ── Private helpers ──────────────────────────────────────────────────
 
 /**
+ * Determines default priority based on notification type
+ */
+function getDefaultPriority(type: string): "HIGH" | "MEDIUM" | "LOW" {
+  const HIGH_PRIORITY_TYPES = [
+    "CREDITS_ADJUSTED",
+    "ORDER_ASSIGNED",
+    "ORDER_CANCELLED",
+    "ORDER_ACCEPTED",
+    "REVIEW_APPROVED",
+    "REVIEW_REJECTED",
+    "ORDER_IN_PROGRESS"
+  ];
+
+  const LOW_PRIORITY_TYPES = [
+    "SYSTEM",
+    "INFO",
+    "WEEKLY_SUMMARY",
+    "MAINTENANCE"
+  ];
+
+  if (HIGH_PRIORITY_TYPES.includes(type)) return "HIGH";
+  if (LOW_PRIORITY_TYPES.includes(type)) return "LOW";
+  return "MEDIUM";
+}
+
+/**
+ * Triggers Realtime notification for HIGH priority events
+ * Uses Supabase Realtime to push instant updates to connected clients
+ */
+async function triggerRealtimeNotification(notification: {
+  userId: string;
+  recipient: string;
+  subject: string;
+  body: string;
+  type: string;
+  priority: string;
+  relatedOrderId?: string | null;
+}) {
+  try {
+    // Supabase Realtime automatically pushes database INSERT events
+    // The subscription on the client side will handle the rest
+    // We just need to ensure the notification is stored with priority = HIGH
+    console.log("[REALTIME] HIGH priority notification triggered for user:", notification.userId);
+  } catch (error) {
+    console.warn("[REALTIME] Failed to trigger notification:", error);
+  }
+}
+
+/**
  * Loads admin-level Telegram credentials (DB config > env vars).
  * Returns null when neither source is configured.
  */
@@ -122,7 +171,7 @@ export async function getNotificationsAction() {
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
       .from("notification_logs")
-      .select("*")
+      .select("id, recipient, subject, body, type, channel, status, priority, is_read, created_at, user_id, related_order_id")
       .order("created_at", { ascending: false });
 
     if (error && error.code !== "PGRST204") {
@@ -141,6 +190,7 @@ export async function getNotificationsAction() {
  * Sends a notification via the primary channel, then:
  * 1. Dispatches to the admin's global Telegram (if configured).
  * 2. Dispatches to the recipient's personal Telegram (if they configured one).
+ * 3. Stores notification in database with priority and user reference
  * All deliveries are logged to notification_logs.
  */
 export async function sendNotificationAction(
@@ -148,10 +198,28 @@ export async function sendNotificationAction(
   subject: string,
   body: string,
   channel: "EMAIL" | "TELEGRAM",
-  type: string
+  type: string,
+  priority?: "HIGH" | "MEDIUM" | "LOW",
+  relatedOrderId?: string
 ) {
   try {
     const supabaseAdmin = createAdminClient();
+
+    // Resolve recipient email to user_id for proper user filtering
+    let userId: string | null = null;
+    try {
+      const { data: userRecord } = await supabaseAdmin
+        .from("users")
+        .select("id")
+        .eq("email", recipient)
+        .maybeSingle();
+      userId = userRecord?.id || null;
+    } catch (error) {
+      console.warn("[NOTIFICATION] Could not resolve user_id:", error);
+    }
+
+    // Set default priority if not provided
+    const notificationPriority = priority || getDefaultPriority(type);
 
     // 1. Admin-level Telegram delivery (global admin channel)
     const adminCreds = await loadAdminTelegramCredentials(supabaseAdmin);
@@ -166,17 +234,40 @@ export async function sendNotificationAction(
       }
     }
 
-    // 3. Log the notification (primary channel record)
+    // 3. Log the notification with enhanced fields for priority system
     const { error } = await supabaseAdmin
       .from("notification_logs")
-      .insert({ recipient, subject, body, type, channel, status: "SENT" });
+      .insert({
+        recipient,
+        subject,
+        body,
+        type,
+        channel,
+        status: "SENT",
+        priority: notificationPriority,
+        user_id: userId,
+        related_order_id: relatedOrderId || null
+      });
 
     if (error) {
       if (error.code === "42P01") return { success: true, note: "Table not created yet" };
       throw error;
     }
 
-    return { success: true };
+    // 4. Trigger Realtime for HIGH priority notifications
+    if (notificationPriority === "HIGH" && userId) {
+      await triggerRealtimeNotification({
+        userId,
+        recipient,
+        subject,
+        body,
+        type,
+        priority: notificationPriority,
+        relatedOrderId: relatedOrderId
+      });
+    }
+
+    return { success: true, priority: notificationPriority };
   } catch (error: any) {
     console.error("Failed to process notification:", error);
     return { success: false, error: error?.message || "Failed to process notification" };
@@ -191,8 +282,8 @@ export async function getClientNotificationsAction() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("notification_logs")
-      .select("*")
-      .eq("recipient", auth.user.email)
+      .select("id, recipient, subject, body, type, channel, status, priority, is_read, created_at, related_order_id")
+      .eq("user_id", auth.user.id)  // Use user_id for more efficient filtering
       .order("created_at", { ascending: false });
     if (error && error.code !== "PGRST204" && error.code !== "42P01") throw error;
     return { success: true, data: data || [] };
@@ -211,7 +302,9 @@ export async function getClientNotificationsAction() {
 export async function broadcastToEmployeesAction(
   subject: string,
   body: string,
-  type: string
+  type: string,
+  priority: 'HIGH' | 'MEDIUM' | 'LOW' = 'MEDIUM',
+  relatedOrderId?: string
 ): Promise<{ success: boolean; sent: number; error?: string }> {
   try {
     let emails: string[] = [];
@@ -221,7 +314,7 @@ export async function broadcastToEmployeesAction(
       .from("users")
       .select("email")
       .eq("role", "EMPLOYEE")
-      .eq("is_active", true)
+      .eq("status", "ACTIVE")
       .eq("accepting_orders", true);
 
     if (error) throw error;
@@ -230,7 +323,7 @@ export async function broadcastToEmployeesAction(
     let sent = 0;
     for (const email of emails) {
       try {
-        await sendNotificationAction(email, subject, body, "TELEGRAM", type);
+        await sendNotificationAction(email, subject, body, "TELEGRAM", type, priority, relatedOrderId);
         sent++;
       } catch (recipientError) {
         // Per-recipient isolation: keep going even if one delivery fails.
@@ -241,6 +334,117 @@ export async function broadcastToEmployeesAction(
     return { success: true, sent };
   } catch (error: any) {
     return { success: false, sent: 0, error: error?.message || "Failed to broadcast to employees" };
+  }
+}
+
+/**
+ * Mark a notification as read by the current user
+ */
+export async function markNotificationAsReadAction(notificationId: string) {
+  try {
+    const auth = await requireAuth();
+    if (!auth.success) return auth;
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("notification_logs")
+      .update({ is_read: true })
+      .eq("id", notificationId)
+      .eq("user_id", auth.user.id);  // Security: only mark own notifications
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to mark notification as read" };
+  }
+}
+
+/**
+ * Mark all notifications as read for the current user
+ */
+export async function markAllNotificationsAsReadAction() {
+  try {
+    const auth = await requireAuth();
+    if (!auth.success) return auth;
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("notification_logs")
+      .update({ is_read: true })
+      .eq("user_id", auth.user.id)
+      .eq("is_read", false);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to mark all notifications as read" };
+  }
+}
+
+/**
+ * Get unread notification count for the current user
+ */
+export async function getUnreadNotificationCountAction() {
+  try {
+    const auth = await requireAuth();
+    if (!auth.success) return { success: false, error: "Unauthorized" };
+
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("notification_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", auth.user.id)
+      .eq("is_read", false);
+
+    if (error) throw error;
+    return { success: true, count: data || 0 };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to get unread count" };
+  }
+}
+
+/**
+ * Get notifications filtered by priority
+ */
+export async function getNotificationsByPriorityAction(priority: "HIGH" | "MEDIUM" | "LOW") {
+  try {
+    const auth = await requireAuth();
+    if (!auth.success) return auth;
+
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("notification_logs")
+      .select("id, recipient, subject, body, type, channel, status, priority, is_read, created_at, related_order_id")
+      .eq("user_id", auth.user.id)
+      .eq("priority", priority)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return { success: true, data: data || [] };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to fetch notifications" };
+  }
+}
+
+/**
+ * Delete a notification for the current user
+ */
+export async function deleteNotificationAction(notificationId: string) {
+  try {
+    const auth = await requireAuth();
+    if (!auth.success) return auth;
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("notification_logs")
+      .delete()
+      .eq("id", notificationId)
+      .eq("user_id", auth.user.id);  // Security: only delete own notifications
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to delete notification" };
   }
 }
 

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { checkRateLimit, RateLimitPresets, getClientIp } from "@/lib/rate-limit";
 
 const LOG_PREFIX = "[AUTH-ACTIONS]";
 
@@ -26,6 +27,19 @@ export async function signInAction(prevState: AuthState | undefined, formData: F
     console.groupEnd();
     return { success: false, error: "Email and password are required." };
   }
+
+  // Apply rate limiting to prevent brute force attacks
+  const headersList = await headers();
+  const clientIp = getClientIp(headersList);
+  const rateLimitCheck = checkRateLimit(`auth:${clientIp}`, RateLimitPresets.AUTH);
+
+  if (!rateLimitCheck.allowed) {
+    console.log("❌ Rate limit exceeded for IP:", clientIp);
+    console.groupEnd();
+    return { success: false, error: rateLimitCheck.error || "Too many login attempts. Please try again later." };
+  }
+
+  console.log("Rate limit check passed for IP:", clientIp, "Remaining attempts:", rateLimitCheck.remaining);
 
   console.log("Step 1: Signing in with email:", email);
   const supabase = await createClient();
@@ -134,11 +148,36 @@ export async function signUpAction(prevState: AuthState | undefined, formData: F
     return { success: false, error: "Passwords do not match." };
   }
 
-  if (password.length < 6) {
+  if (password.length < 12) {
     console.log("❌ Password too short");
     console.groupEnd();
-    return { success: false, error: "Password must be at least 6 characters long." };
+    return { success: false, error: "Password must be at least 12 characters long." };
   }
+
+  // Check password complexity
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+
+  if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecialChar) {
+    console.log("❌ Password complexity insufficient");
+    console.groupEnd();
+    return { success: false, error: "Password must contain uppercase, lowercase, number, and special character." };
+  }
+
+  // Apply rate limiting to prevent account creation spam
+  const headersList = await headers();
+  const clientIp = getClientIp(headersList);
+  const rateLimitCheck = checkRateLimit(`signup:${clientIp}`, RateLimitPresets.AUTH);
+
+  if (!rateLimitCheck.allowed) {
+    console.log("❌ Rate limit exceeded for IP:", clientIp);
+    console.groupEnd();
+    return { success: false, error: rateLimitCheck.error || "Too many signup attempts. Please try again later." };
+  }
+
+  console.log("Rate limit check passed for IP:", clientIp, "Remaining attempts:", rateLimitCheck.remaining);
 
   // Create Supabase auth user (triggers database profile creation via handle_new_user)
   console.log("Step 2: Creating Supabase auth user:", email);
@@ -164,14 +203,10 @@ export async function signUpAction(prevState: AuthState | undefined, formData: F
     return { success: false, error: "Sign up failed: no user ID" };
   }
 
-  console.log("Step 3: ✅ Sign up complete, trigger will create profile automatically");
-  console.log("Step 4: Waiting for profile creation trigger to complete...");
+  console.log("Step 3: ✅ Sign up complete, verifying profile creation...");
 
-  // Wait a brief moment for trigger to execute
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  // Verify profile was created
-  console.log("Step 5: Verifying profile creation...");
+  // Verify profile was created (trigger is guaranteed to execute first)
+  console.log("Step 4: Verifying profile creation...");
   const { data: profile, error: profileCheckError } = await supabase
     .from("users")
     .select("id, role, status")
@@ -184,7 +219,7 @@ export async function signUpAction(prevState: AuthState | undefined, formData: F
     return { success: false, error: "Failed to create user profile. Please try again." };
   }
 
-  console.log("Step 6: ✅ Profile verified, role:", profile.role, "status:", profile.status);
+  console.log("Step 5: ✅ Profile verified, role:", profile.role, "status:", profile.status);
 
   // Sign out user immediately so they must verify email and get admin approval
   await supabase.auth.signOut();
@@ -197,7 +232,8 @@ export async function signUpAction(prevState: AuthState | undefined, formData: F
       "🆕 New User Registration Pending Approval",
       `A new client has registered on BoostBuddy:\n\n👤 *Name:* ${name}\n📧 *Email:* ${email}\n\nPlease review and approve this client in the Admin Dashboard.`,
       "TELEGRAM",
-      "SYSTEM"
+      "SYSTEM",
+      "HIGH"
     );
   } catch (err) {
     console.error("Failed to dispatch admin telegram notification:", err);
@@ -237,6 +273,19 @@ export async function resetPasswordAction(
     console.groupEnd();
     return { success: false, error: "Email is required." };
   }
+
+  // Apply strict rate limiting to prevent email spam
+  const headersList = await headers();
+  const clientIp = getClientIp(headersList);
+  const rateLimitCheck = checkRateLimit(`reset:${clientIp}`, RateLimitPresets.PASSWORD_RESET);
+
+  if (!rateLimitCheck.allowed) {
+    console.log("❌ Rate limit exceeded for IP:", clientIp);
+    console.groupEnd();
+    return { success: false, error: rateLimitCheck.error || "Too many password reset attempts. Please try again later." };
+  }
+
+  console.log("Rate limit check passed for IP:", clientIp, "Remaining attempts:", rateLimitCheck.remaining);
 
   console.log("Step 1: Sending password reset email to:", email);
   const supabase = await createClient();
@@ -297,10 +346,22 @@ export async function updatePasswordAction(
     return { success: false, error: "Passwords do not match." };
   }
 
-  if (password.length < 6) {
+  if (password.length < 12) {
     console.log("❌ Password too short");
     console.groupEnd();
-    return { success: false, error: "Password must be at least 6 characters long." };
+    return { success: false, error: "Password must be at least 12 characters long." };
+  }
+
+  // Check password complexity
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+
+  if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecialChar) {
+    console.log("❌ Password complexity insufficient");
+    console.groupEnd();
+    return { success: false, error: "Password must contain uppercase, lowercase, number, and special character." };
   }
 
   console.log("Step 2: Updating password for user:", user.email);
