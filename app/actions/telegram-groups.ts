@@ -63,7 +63,7 @@ COMMENT ON COLUMN telegram_group_configs.group_type IS 'Type of group: ADMIN, EM
 /**
  * Load admin bot token for sending messages
  */
-async function loadAdminBotToken(): Promise<string | null> {
+export async function loadAdminBotToken(): Promise<string | null> {
   const supabaseAdmin = createAdminClient();
 
   try {
@@ -85,7 +85,7 @@ async function loadAdminBotToken(): Promise<string | null> {
 /**
  * Send message to a specific Telegram group
  */
-async function sendToGroup(
+export async function sendToGroup(
   botToken: string,
   groupChatId: string,
   subject: string,
