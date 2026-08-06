@@ -67,7 +67,7 @@ export async function loadAdminBotToken(): Promise<string | null> {
   const supabaseAdmin = createAdminClient();
 
   try {
-    const { data: setting } = await supabaseAdmin
+    const { data: setting } = await (supabaseAdmin as any)
       .from("app_settings")
       .select("value")
       .eq("key", "telegram_bot")
@@ -235,7 +235,7 @@ export async function addTelegramGroupAction(formData: FormData): Promise<{
     }
 
     // Save group configuration
-    const { error } = await supabaseAdmin
+    const { error } = await (supabaseAdmin as any)
       .from("telegram_group_configs")
       .insert({
         group_name: groupName,
@@ -277,7 +277,7 @@ export async function updateTelegramGroupAction(
     }
 
     const supabaseAdmin = createAdminClient();
-    const { error } = await supabaseAdmin
+    const { error } = await (supabaseAdmin as any)
       .from("telegram_group_configs")
       .update({
         group_name: groupName,
@@ -373,7 +373,7 @@ export async function sendToEmployeeGroupAction(
 
     // Log the group notification
     const supabaseAdmin = createAdminClient();
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from("notification_logs")
       .insert({
         recipient: "EMPLOYEE_GROUP",
@@ -448,7 +448,7 @@ export async function testTelegramGroupAction(groupId: string): Promise<{
     if (!auth.success) return { success: false, error: "Unauthorized" };
 
     const supabaseAdmin = createAdminClient();
-    const { data: group } = await supabaseAdmin
+    const { data: group } = await (supabaseAdmin as any)
       .from("telegram_group_configs")
       .select("*")
       .eq("id", groupId)
@@ -499,7 +499,7 @@ export async function verifyAllGroupsAction(): Promise<{
     if (!auth.success) return { success: false, error: "Unauthorized" };
 
     const supabaseAdmin = createAdminClient();
-    const { data: groups } = await supabaseAdmin
+    const { data: groups } = await (supabaseAdmin as any)
       .from("telegram_group_configs")
       .select("*")
       .eq("is_active", true);
@@ -536,7 +536,7 @@ export async function verifyAllGroupsAction(): Promise<{
 
       // Auto-disable groups that failed
       if (!testResult.success) {
-        await supabase
+        await (supabase as any)
           .from("telegram_group_configs")
           .update({ is_active: false })
           .eq("id", group.id);
@@ -583,7 +583,7 @@ export async function broadcastToEmployeeGroupAction(
 
     // Log the notification
     const supabaseAdmin = createAdminClient();
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from("notification_logs")
       .insert({
         recipient: "ALL_EMPLOYEES",

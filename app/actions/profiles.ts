@@ -98,13 +98,13 @@ export async function upsertProfileAction(formData: FormData, profileId?: string
     let error;
 
     if (profileId) {
-      const { error: updateError } = await supabaseAdmin
+      const { error: updateError } = await (supabaseAdmin as any)
         .from("profile_accounts")
         .update(payload)
         .eq("id", profileId);
       error = updateError;
     } else {
-      const { error: insertError } = await supabaseAdmin
+      const { error: insertError } = await (supabaseAdmin as any)
         .from("profile_accounts")
         .insert({ ...payload, status: 'AVAILABLE' });
       error = insertError;
@@ -137,7 +137,7 @@ export async function assignProfileAction(profileId: string, clientId: string, e
     };
 
     const supabaseAdmin = createAdminClient();
-    const { error } = await supabaseAdmin
+    const { error } = await (supabaseAdmin as any)
       .from("profile_accounts")
       .update(payload)
       .eq("id", profileId);
@@ -169,7 +169,7 @@ export async function unassignProfileAction(profileId: string) {
     };
 
     const supabaseAdmin = createAdminClient();
-    const { error } = await supabaseAdmin
+    const { error } = await (supabaseAdmin as any)
       .from("profile_accounts")
       .update(payload)
       .eq("id", profileId);

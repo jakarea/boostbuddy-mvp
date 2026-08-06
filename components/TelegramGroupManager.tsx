@@ -82,7 +82,7 @@ export default function TelegramGroupManager() {
   const [formData, setFormData] = useState({
     group_name: "",
     group_chat_id: "",
-    group_type: "EMPLOYEE" as const,
+    group_type: "EMPLOYEE" as "ADMIN" | "EMPLOYEE" | "CLIENT_SUPPORT" | "BILLING",
     is_active: true,
   });
 

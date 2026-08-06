@@ -24,7 +24,7 @@ BoostBuddy MVP is a client account management platform built with Next.js 16 (Ap
 ### Stack
 - **Frontend**: React 19, TypeScript, Tailwind CSS 4
 - **Backend**: Next.js 16 (Server Actions pattern), Node.js
-- **Database**: SQLite + better-sqlite3 (dev), Prisma ORM
+- **Database**: Supabase PostgreSQL, Prisma ORM for schema management
 - **Auth**: Supabase Auth with custom user profile layer
 - **Payments**: Stripe (EUR currency, checkout sessions)
 - **UI Components**: Base UI, Lucide icons, custom shadcn-like components in `/components/ui`
@@ -127,7 +127,7 @@ lib/
 
 prisma/
   ├── schema.prisma               # Data model
-  └── dev.db                      # SQLite dev database (committed)
+  └── migrations/                 # Database migrations
 
 locales/                          # Translation files (JSON by language)
 supabase/                         # Supabase config files
@@ -143,8 +143,8 @@ public/                           # Static assets
 2. User Profile: Custom table in SQLite stores role (ADMIN/CLIENT) and status
 
 **Flow**:
-- User signs up → Supabase creates auth record → Server action creates User profile with role=CLIENT
-- User signs in → Supabase validates → AuthContext fetches User profile → Sets role in context
+- User signs up → Supabase creates auth record → Server action creates users profile with role=CLIENT in PostgreSQL database
+- User signs in → Supabase validates → AuthContext fetches User profile from PostgreSQL → Sets role in context
 - Server actions use `requireAuth()` from `lib/auth/server-auth.ts` to verify auth + role
 
 **Important**: AuthContext is the single source of truth for client-side user state. It:
@@ -229,8 +229,9 @@ export async function updateProfile(profileId: string, updates: any) {
 **Database changes**:
 1. Edit `prisma/schema.prisma`
 2. Run `npx prisma migrate dev --name <change_description>` (creates migration)
-3. Commit migration files
-4. Note: This app uses SQLite in dev; better-sqlite3 adapter; schema auto-generated in `app/generated/prisma`
+3. Apply migrations to Supabase PostgreSQL: `npx prisma db push` or use Supabase Dashboard
+4. Commit migration files
+5. Note: This app uses Supabase PostgreSQL; Prisma ORM for schema management and type-safe queries
 
 ### Important Patterns
 
@@ -247,9 +248,9 @@ export async function updateProfile(profileId: string, updates: any) {
 ### Debugging
 
 - **Auth issues**: Check `AuthContext` logs (verbose logging with `[AUTH-CONTEXT]` prefix) and Supabase session
-- **Database**: SQLite stored in `dev.db`; inspect with Prisma Studio: `npx prisma studio`
+- **Database**: Supabase PostgreSQL; inspect with Supabase Dashboard or Prisma Studio: `npx prisma studio`
 - **Stripe**: Test keys in env; webhooks tested with Stripe CLI
-- **Environment variables**: Required `.env.local` keys: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, STRIPE_SECRET_KEY, etc.
+- **Environment variables**: Required `.env.local` keys: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, STRIPE_SECRET_KEY, DATABASE_URL (Supabase PostgreSQL connection string)
 
 ### Note on App Initialization
 
@@ -260,3 +261,9 @@ The app directory is mostly empty at the root (see `app/`). Main pages are under
 - Root `app/layout.tsx` wraps entire app with providers
 
 There is no `/app/page.tsx` home page currently; routing logic determines which section user sees based on auth state and role.
+
+# currentDate
+Today's date is 2026-08-06.
+
+# currentDate
+Today's date is 2026-08-06.

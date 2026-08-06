@@ -9,7 +9,7 @@ async function runDemo() {
   console.log('🌍 Multilingual Notification System - Functional Demo\n');
 
   // Test parameters
-  const testParams = {
+  const testParams: { [key: string]: string | number } = {
     name: 'Mario Rossi',
     role: 'CLIENT',
     dashboardUrl: '/c/dashboard',
@@ -43,7 +43,7 @@ async function runDemo() {
       const template = getNotificationTemplate(lang, type);
       if (template) {
         const subject = template.subject.replace(/{(\w+)}/g, (match, key) => {
-          return testParams[key] || match;
+          return String(testParams[key] || match);
         });
 
         const body = template.body(testParams);

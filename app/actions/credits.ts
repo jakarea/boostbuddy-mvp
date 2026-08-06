@@ -40,7 +40,7 @@ export async function getCreditPackagesAdminAction() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("credit_packages")
-      .select("id, name, description, price, credits_amount, is_active")
+      .select("id, name, description, price, credits_amount, is_active, created_at")
       .order("credits_amount", { ascending: true });
 
     if (error) throw error;
@@ -73,7 +73,7 @@ export async function getActiveCreditPackagesAction() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("credit_packages")
-      .select("id, name, description, price, credits_amount, is_active")
+      .select("id, name, description, price, credits_amount, is_active, created_at")
       .eq("is_active", true)
       .order("credits_amount", { ascending: true });
 
@@ -108,15 +108,16 @@ export async function createCreditPackageAction(data: CreditPackageData) {
     const now = new Date().toISOString();
 
     const supabase = await createAdminClient();
+    const insertData: any = {
+      name: data.name,
+      description: data.description || null,
+      credits_amount: data.creditsAmount,
+      price: data.price,
+      is_active: data.isActive !== undefined ? data.isActive : true,
+    };
     const { data: package_, error } = await supabase
       .from("credit_packages")
-      .insert({
-        name: data.name,
-        description: data.description || null,
-        credits_amount: data.creditsAmount,
-        price: data.price,
-        is_active: data.isActive !== undefined ? data.isActive : true,
-      })
+      .insert(insertData)
       .select()
       .single();
 
@@ -147,8 +148,8 @@ export async function updateCreditPackageAction(packageId: string, data: Partial
     if (data.price !== undefined) updateData.price = data.price;
     if (data.isActive !== undefined) updateData.is_active = data.isActive;
 
-    const { data: package_, error } = await supabase
-      .from("credit_packages")
+    const { data: package_, error } = await (supabase
+      .from("credit_packages") as any)
       .update(updateData)
       .eq("id", packageId)
       .select()
@@ -211,8 +212,8 @@ export async function togglePackageStatusAction(packageId: string) {
     const supabase = await createAdminClient();
 
     // Get current status
-    const { data: current } = await supabase
-      .from("credit_packages")
+    const { data: current } = await (supabase
+      .from("credit_packages") as any)
       .select("is_active")
       .eq("id", packageId)
       .single();
@@ -222,8 +223,8 @@ export async function togglePackageStatusAction(packageId: string) {
     }
 
     // Toggle status
-    const { data: package_ } = await supabase
-      .from("credit_packages")
+    const { data: package_ } = await (supabase
+      .from("credit_packages") as any)
       .update({ is_active: !current.is_active })
       .eq("id", packageId)
       .select()
@@ -395,8 +396,8 @@ export async function fulfillCreditsPurchase(sessionId: string) {
       stripe_session_id: sessionId,
     });
 
-    const { data: order, error: orderError } = await supabase
-      .from("orders")
+    const { data: order, error: orderError } = await (supabase
+      .from("orders") as any)
       .insert({
         user_id: userId,
         credit_package_id: packageId,
@@ -422,8 +423,8 @@ export async function fulfillCreditsPurchase(sessionId: string) {
     }
 
     // Get current balance
-    const { data: user } = await supabase
-      .from("users")
+    const { data: user } = await (supabase
+      .from("users") as any)
       .select("credits_balance, email")
       .eq("id", userId)
       .single();
@@ -432,8 +433,8 @@ export async function fulfillCreditsPurchase(sessionId: string) {
     const newBalance = currentBalance + creditsAmount;
 
     // Update user balance with optimistic concurrency control to prevent race conditions
-    const { data: updateResult, error: balanceError } = await supabase
-      .from("users")
+    const { data: updateResult, error: balanceError } = await (supabase
+      .from("users") as any)
       .update({ credits_balance: newBalance })
       .eq("id", userId)
       .eq("credits_balance", currentBalance)  // Only update if balance hasn't changed
@@ -445,8 +446,8 @@ export async function fulfillCreditsPurchase(sessionId: string) {
     }
 
     // Create credit transaction AFTER successful balance update
-    await supabase
-      .from("credit_transactions")
+    await (supabase
+      .from("credit_transactions") as any)
       .insert({
         user_id: userId,
         amount: creditsAmount,
@@ -466,7 +467,7 @@ export async function fulfillCreditsPurchase(sessionId: string) {
         "TELEGRAM",
         "REVIEWS_CREDITS_PURCHASED",
         "MEDIUM",  // Priority: Purchase confirmation, not urgent
-        null      // No related order ID for credit purchases
+        undefined      // No related order ID for credit purchases
       );
     } catch (notifError) {
       console.warn("📍 [LOG#49] Failed to send notification:", notifError);
@@ -657,13 +658,13 @@ export async function getAllCreditTransactionsAction(filters?: {
       // Sanitize input to prevent PostgREST filter manipulation
       const sanitized = trimmed.replace(/[,\.\(\)%\\]/g, '');
 
-      const { data: users } = await supabase
-        .from("users")
+      const { data: users } = await (supabase
+        .from("users") as any)
         .select("id")
         .or(`name.ilike.%${sanitized}%,email.ilike.%${sanitized}%`)
         .limit(100);
 
-      const userIds = users?.map(u => u.id) || [];
+      const userIds = users?.map((u: any) => u.id) || [];
       console.log("🔍 [TRANSACTIONS] Found matching user IDs:", userIds.length);
 
       if (userIds.length > 0) {
@@ -730,8 +731,8 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
     const supabase = await createAdminClient();
 
     // Get current user balance
-    const { data: user } = await supabase
-      .from("users")
+    const { data: user } = await (supabase
+      .from("users") as any)
       .select("credits_balance, email, name")
       .eq("id", data.userId)
       .single();
@@ -749,8 +750,8 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
     }
 
     // Create transaction record
-    const { error: transactionError } = await supabase
-      .from("credit_transactions")
+    const { error: transactionError } = await (supabase
+      .from("credit_transactions") as any)
       .insert({
         user_id: data.userId,
         amount: data.amount,
@@ -769,8 +770,8 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
 
     // Update user balance with optimistic concurrency control to prevent race conditions
     // If balance has changed since we read it, the update will affect 0 rows
-    const { data: updateResult, error: updateError } = await supabase
-      .from("users")
+    const { data: updateResult, error: updateError } = await (supabase
+      .from("users") as any)
       .update({ credits_balance: newBalance })
       .eq("id", data.userId)
       .eq("credits_balance", currentBalance);
@@ -795,7 +796,7 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
       "TELEGRAM",
       "REVIEWS_CREDITS_ADJUSTED",
       "HIGH",   // Priority: Financial adjustment requiring immediate attention
-      null      // No related order ID for admin adjustments
+      undefined      // No related order ID for admin adjustments
     );
 
     revalidatePath("/a/services/credits");

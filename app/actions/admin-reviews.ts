@@ -130,7 +130,7 @@ export async function getAllReviewOrdersAction(filters?: ReviewOrderFilter) {
     }
 
     // Attach skip information to orders and normalize field names
-    const ordersWithSkips = orders?.map(order => {
+    const ordersWithSkips = orders?.map((order: any) => {
       const normalizedOrder = {
         ...order,
         skips: skipsMap.get(order.id) || [],
@@ -243,7 +243,7 @@ export async function assignReviewToEmployeeAction(data: AdminAssignmentData) {
         "TELEGRAM",
         "REVIEWS_ORDER_ASSIGNED",
         "HIGH",  // Priority: Real-time notification for employees
-        orderId   // Related order ID for context
+        data.orderId   // Related order ID for context
       );
     } catch (notifError) {
       console.warn("Failed to send notification:", notifError);
@@ -260,7 +260,7 @@ export async function assignReviewToEmployeeAction(data: AdminAssignmentData) {
           "TELEGRAM",
           "REVIEWS_ORDER_IN_PROGRESS",
           "HIGH",  // Priority: Real-time update for clients
-          orderId   // Related order ID for context
+          data.orderId   // Related order ID for context
         );
       } catch (notifError) {
         console.warn("Failed to send client notification:", notifError);
@@ -324,10 +324,10 @@ export async function cancelReviewOrderAction(orderId: string, reason: string) {
       const newBalance = (user.credits_balance || 0) + (order as any).credits_consumed;
 
       // Create refund transaction
-      await supabase.from("credit_transactions").insert({
+      await (supabase.from("credit_transactions") as any).insert({
         id: randomUUID(),
-        user_id: order.user_id,
-        amount: order.credits_consumed,
+        user_id: (order as any).user_id,
+        amount: (order as any).credits_consumed,
         balance_after: newBalance,
         type: "REFUND",
         description: `Refund for cancelled order: ${reason}`,
@@ -335,14 +335,13 @@ export async function cancelReviewOrderAction(orderId: string, reason: string) {
       });
 
       // Update user balance
-      await supabase
-        .from("users")
+      await (supabase.from("users") as any)
         .update({ credits_balance: newBalance })
-        .eq("id", order.user_id);
+        .eq("id", (order as any).user_id);
 
       // Cancel order
-      const { error: cancelError } = await supabase
-        .from("review_orders")
+      const { error: cancelError } = await (supabase
+        .from("review_orders") as any)
         .update({ status: "CANCELLED", updated_at: now })
         .eq("id", orderId);
 
@@ -383,8 +382,7 @@ export async function cancelReviewOrderAction(orderId: string, reason: string) {
       }
     } else {
       // Just cancel completed orders
-      await supabase
-        .from("review_orders")
+      await (supabase.from("review_orders") as any)
         .update({ status: "CANCELLED", updated_at: now })
         .eq("id", orderId);
 
@@ -574,7 +572,7 @@ export async function verifyCompletedReviewAction(orderId: string, approved: boo
       .from("review_orders")
       .select("id, status, user_id, assigned_employee_id, business_name, users:user_id(email), employees:assigned_employee_id(email)")
       .eq("id", orderId)
-      .single();
+      .single() as any;
 
     if (!order) {
       return { success: false, error: "Order not found" };
@@ -590,8 +588,8 @@ export async function verifyCompletedReviewAction(orderId: string, approved: boo
     // Update order based on approval/rejection
     if (approved) {
       // Approve: Set admin verification status to APPROVED
-      const { error: updateError } = await supabase
-        .from("review_orders")
+      const { error: updateError } = await (supabase
+        .from("review_orders") as any)
         .update({
           admin_verification_status: "APPROVED",
           admin_verified_at: now,
@@ -602,8 +600,8 @@ export async function verifyCompletedReviewAction(orderId: string, approved: boo
       if (updateError) throw updateError;
     } else {
       // Reject: Reset to PENDING, remove assignment, save rejection reason
-      const { error: updateError } = await supabase
-        .from("review_orders")
+      const { error: updateError } = await (supabase
+        .from("review_orders") as any)
         .update({
           status: "PENDING",
           assigned_employee_id: null,
@@ -776,8 +774,8 @@ export async function inviteEmployeeAction(
     }
 
     // 3. Upsert into public.users table (role EMPLOYEE, ACTIVE, accepting orders by default)
-    const { error: dbError } = await supabaseAdmin
-      .from("users")
+    const { error: dbError } = await (supabaseAdmin
+      .from("users") as any)
       .upsert({
         id: authData.user.id,
         email,
@@ -822,8 +820,8 @@ export async function toggleEmployeeAcceptingOrdersAction(userId: string) {
 
     const supabase = await createAdminClient();
 
-    const { data: current } = await supabase
-      .from("users")
+    const { data: current } = await (supabase
+      .from("users") as any)
       .select("accepting_orders")
       .eq("id", userId)
       .eq("role", "EMPLOYEE")
@@ -835,8 +833,8 @@ export async function toggleEmployeeAcceptingOrdersAction(userId: string) {
 
     const newStatus = !current.accepting_orders;
 
-    const { error: updateError } = await supabase
-      .from("users")
+    const { error: updateError } = await (supabase
+      .from("users") as any)
       .update({ accepting_orders: newStatus })
       .eq("id", userId)
       .eq("role", "EMPLOYEE");
@@ -861,8 +859,8 @@ export async function setEmployeeActiveStatusAction(userId: string, isActive: bo
 
     const supabase = await createAdminClient();
 
-    const { error: updateError, count } = await supabase
-      .from("users")
+    const { error: updateError, count } = await (supabase
+      .from("users") as any)
       .update({ is_active: isActive })
       .eq("id", userId)
       .eq("role", "EMPLOYEE");

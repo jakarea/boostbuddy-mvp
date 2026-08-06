@@ -138,7 +138,7 @@ async function testDefaultLanguage() {
 async function testTranslationTemplates() {
   try {
     // Dynamic import of templates
-    const templates = await import('../lib/locales/notification-templates');
+    const templates = await import('@/lib/locales/notification-templates');
 
     if (!templates.enTemplates || !templates.itTemplates) {
       results.push({
@@ -174,7 +174,7 @@ async function testTranslationTemplates() {
  */
 async function testTemplateParameters() {
   try {
-    const { getNotificationTemplate } = await import('../lib/locales/notification-templates');
+    const { getNotificationTemplate } = await import('@/lib/locales/notification-templates');
 
     // Test English template with parameters
     const enTemplate = getNotificationTemplate('en', 'ACCOUNT_READY');
@@ -251,7 +251,7 @@ async function testTemplateParameters() {
  */
 async function testTemplateCompleteness() {
   try {
-    const { getNotificationTemplate, SUPPORTED_LANGUAGES } = await import('../lib/locales/notification-templates');
+    const { getNotificationTemplate, SUPPORTED_LANGUAGES } = await import('@/lib/locales/notification-templates');
 
     const requiredTemplates = [
       'ACCOUNT_READY',

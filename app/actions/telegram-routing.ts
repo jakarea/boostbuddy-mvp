@@ -426,6 +426,7 @@ async function sendToAllAdmins(
   const method = adminGroups.length > 0 ? "admin_groups" : "admin_personal";
 
   return {
+    success: delivered > 0,
     delivered,
     failed,
     method: method + (adminUsers.length > 0 ? "+personal" : ""),
@@ -459,6 +460,7 @@ async function sendToEmployeeGroup(
     });
 
     return {
+      success: false,
       delivered: 0,
       failed: 0,
       method: "web_fallback",
@@ -491,6 +493,7 @@ async function sendToEmployeeGroup(
   }
 
   return {
+    success: delivered > 0,
     delivered,
     failed,
     method: "employee_group",
@@ -526,6 +529,7 @@ async function sendToIndividualClient(
     });
 
     return {
+      success: false,
       delivered: 0,
       failed: 0,
       method: "web_fallback",
@@ -559,6 +563,7 @@ async function sendToIndividualClient(
   }
 
   return {
+    success: delivered > 0,
     delivered,
     failed,
     method: "client_personal",

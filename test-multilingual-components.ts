@@ -230,7 +230,7 @@ function testTranslationTemplatesCompleteness() {
       'ORDER_CANCELLED_REFUNDED'
     ];
 
-    let missingTemplates = [];
+    let missingTemplates: any[] = [];
     let templateCount = 0;
 
     requiredTemplates.forEach(template => {
@@ -296,7 +296,7 @@ function testMultilingualDispatcherFunctions() {
       'getUserLanguagePreferenceAction'
     ];
 
-    let missingFunctions = [];
+    let missingFunctions: any[] = [];
 
     requiredFunctions.forEach(func => {
       if (!dispatcherContent.includes(func)) {

@@ -125,14 +125,16 @@ export function useRealtimeNotifications(): UseRealtimeNotificationsResult {
             (payload) => {
               console.log('[REALTIME] HIGH priority notification received:', payload.new);
 
+              const newNotification = payload.new as Notification;
+
               // Play notification sound
               playNotificationSound();
 
               // Show browser notification (if permission granted)
-              showBrowserNotification(payload.new);
+              showBrowserNotification(newNotification);
 
               // Update notifications list with new notification
-              setNotifications(prev => [payload.new as Notification, ...prev]);
+              setNotifications(prev => [newNotification, ...prev]);
 
               // Increment unread count for HIGH priority
               setUnreadCount(prev => prev + 1);
@@ -142,7 +144,7 @@ export function useRealtimeNotifications(): UseRealtimeNotificationsResult {
             console.log('[REALTIME] Subscription status:', status);
             if (status === 'SUBSCRIBED') {
               setIsConnected(true);
-            } else if (status === 'SUBSCRIPTION_FAILED') {
+            } else {
               console.warn('[REALTIME] Subscription failed, falling back to polling');
               setIsConnected(false);
               // Start polling as fallback

@@ -28,7 +28,7 @@ export interface ExpiringProfileDTO {
   profile_name: string;
   expiration_date: string;
   assigned_client_id: string | null;
-  users?: { name: string };
+  users?: { name: string }[];
 }
 
 export interface DashboardStatsDTO {
@@ -58,7 +58,7 @@ const calculateDaysRemaining = (expDateStr?: string): number | null => {
 };
 
 const getClientNameFromProfile = (profile: ExpiringProfileDTO): string => {
-  return profile.users?.name || "Unknown Client";
+  return profile.users?.[0]?.name || "Unknown Client";
 };
 
 export default function DashboardClient({ initialStats }: DashboardClientProps) {

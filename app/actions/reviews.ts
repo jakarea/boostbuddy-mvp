@@ -124,7 +124,7 @@ export async function updateReviewPricingAction(orderType: OrderType, creditsPer
 
     const supabaseAdmin = await createAdminClient();
 
-    const { error } = await supabaseAdmin
+    const { error } = await (supabaseAdmin as any)
       .from("review_credit_pricing")
       .update({
         credits_per_unit: creditsPerUnit,
@@ -291,7 +291,7 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
     const expectedBalance = validation.currentBalance;
     const newBalance = expectedBalance - requiredCredits;
 
-    const { data: deducted, error: deductError } = await supabaseAdmin
+    const { data: deducted, error: deductError } = await (supabaseAdmin as any)
       .from("users")
       .update({ credits_balance: newBalance })
       .eq("id", auth.user.id)
@@ -330,7 +330,7 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
 
     console.log("📍 [ORDER] Order payload:", JSON.stringify(orderPayload, null, 2));
 
-    const { error: orderError } = await supabaseAdmin
+    const { error: orderError } = await (supabaseAdmin as any)
       .from("review_orders")
       .insert(orderPayload);
 
@@ -342,7 +342,7 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
     console.log("✅ [ORDER] Order created successfully in database");
 
     // Create transaction record
-    await supabaseAdmin.from("credit_transactions").insert({
+    await (supabaseAdmin as any).from("credit_transactions").insert({
       id: randomUUID(),
       user_id: auth.user.id,
       amount: -requiredCredits,
@@ -554,7 +554,7 @@ export async function submitClientFeedbackAction(orderId: string, feedback: "HAP
     if (!auth.success) return auth;
 
     const supabaseAdmin = await createAdminClient();
-    const { error } = await supabaseAdmin
+    const { error } = await (supabaseAdmin as any)
       .from("review_orders")
       .update({ client_feedback: feedback })
       .eq("id", orderId)

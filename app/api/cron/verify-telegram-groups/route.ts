@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     const supabase = createAdminClient();
 
     // Get all active group configurations
-    const { data: activeGroups, error: fetchError } = await supabase
+    const { data: activeGroups, error: fetchError } = await (supabase as any)
       .from("telegram_group_configs")
       .select("*")
       .eq("is_active", true)

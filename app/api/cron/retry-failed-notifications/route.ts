@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     // Get failed notifications from last hour that haven't been retried too many times
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
-    const { data: failedNotifications, error: fetchError } = await supabase
+    const { data: failedNotifications, error: fetchError } = await (supabase as any)
       .from("notification_logs")
       .select("*")
       .eq("status", "FAILED")
@@ -98,7 +98,7 @@ export async function GET(request: Request) {
 
         if (!shouldRetry) {
           // Mark as permanently failed
-          await supabase
+          await (supabase as any)
             .from("notification_logs")
             .update({ status: "PERMANENTLY_FAILED", retry_count: retryCount + 1 })
             .eq("id", notification.id);
@@ -129,7 +129,7 @@ export async function GET(request: Request) {
         const retrySuccess = await attemptNotificationRetry(notification, botToken);
 
         if (retrySuccess) {
-          await supabase
+          await (supabase as any)
             .from("notification_logs")
             .update({
               status: "SENT",
@@ -146,7 +146,7 @@ export async function GET(request: Request) {
           });
           console.log(`[CRON] Successfully retried notification ${notification.id}`);
         } else {
-          await supabase
+          await (supabase as any)
             .from("notification_logs")
             .update({ retry_count: retryCount + 1 })
             .eq("id", notification.id);
@@ -165,7 +165,7 @@ export async function GET(request: Request) {
         failed++;
 
         // Update retry count even if error occurred
-        await supabase
+        await (supabase as any)
           .from("notification_logs")
           .update({ retry_count: (notification.retry_count || 0) + 1 })
           .eq("id", notification.id)

@@ -130,8 +130,8 @@ export async function createClientAction(data: CreateClientData) {
       // Create user profile in users table with ACTIVE status
       console.log("📝 [CLIENT] Creating user profile with ACTIVE status...");
       const now = new Date().toISOString();
-      const { error: profileError } = await supabaseAdmin
-        .from("users")
+      const { error: profileError } = await (supabaseAdmin
+        .from("users") as any)
         .insert({
           id: newUser.user.id,
           email: data.email,
@@ -249,8 +249,8 @@ export async function inviteUserAction(
     // Note: The id matches the auth.users.id
     // We use upsert instead of insert because Supabase often has a database trigger
     // that automatically inserts a row into public.users upon user creation.
-    const { error: dbError } = await supabaseAdmin
-      .from("users")
+    const { error: dbError } = await (supabaseAdmin
+      .from("users") as any)
       .upsert({
         id: authData.user.id,
         email: email,
@@ -406,14 +406,14 @@ export async function updateClientStatusAction(userId: string, status: string) {
     const supabaseAdmin = createAdminClient();
 
     // Fetch user details for notification
-    const { data: clientUser } = await supabaseAdmin
-      .from("users")
+    const { data: clientUser } = await (supabaseAdmin
+      .from("users") as any)
       .select("email, name")
       .eq("id", userId)
       .maybeSingle();
 
-    const { error } = await supabaseAdmin
-      .from("users")
+    const { error } = await (supabaseAdmin
+      .from("users") as any)
       .update({ status })
       .eq("id", userId);
 
@@ -471,14 +471,14 @@ export async function approveClientAndVerifyEmailAction(userId: string) {
     }
 
     // 2. Fetch user details and update status to ACTIVE
-    const { data: clientUser } = await supabaseAdmin
-      .from("users")
+    const { data: clientUser } = await (supabaseAdmin
+      .from("users") as any)
       .select("email, name")
       .eq("id", userId)
       .maybeSingle();
 
-    const { error } = await supabaseAdmin
-      .from("users")
+    const { error } = await (supabaseAdmin
+      .from("users") as any)
       .update({ status: "ACTIVE" })
       .eq("id", userId);
 
@@ -534,8 +534,8 @@ export async function verifyClientEmailAction(userId: string) {
     }
 
     // Update users table to keep in sync
-    const { error: dbError } = await supabaseAdmin
-      .from("users")
+    const { error: dbError } = await (supabaseAdmin
+      .from("users") as any)
       .update({ email_verified: true })
       .eq("id", userId);
 
@@ -560,8 +560,8 @@ export async function updateClientNotesAction(userId: string, notes: string) {
 
     const supabaseAdmin = createAdminClient();
     // Note: requires admin_notes column in users table
-    const { error } = await supabaseAdmin
-      .from("users")
+    const { error } = await (supabaseAdmin
+      .from("users") as any)
       .update({ admin_notes: notes })
       .eq("id", userId);
 
@@ -590,8 +590,8 @@ export async function updateUserRoleAction(userId: string, newRole: 'ADMIN' | 'C
     const supabaseAdmin = createAdminClient();
 
     // Update user role in Supabase
-    const { error } = await supabaseAdmin
-      .from("users")
+    const { error } = await (supabaseAdmin
+      .from("users") as any)
       .update({ role: newRole })
       .eq("id", userId);
 

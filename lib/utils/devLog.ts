@@ -29,7 +29,7 @@ export const devGroupEnd: DevLogFunction = isDevelopment
   : () => {};
 
 export const devLogTable: DevLogFunction = isDevelopment
-  ? console.table.bind(console)
+  ? (console.table.bind(console) as DevLogFunction)
   : () => {};
 
 // Conditional logger - only logs if predicate is true
@@ -41,7 +41,7 @@ export const devLogIf = (condition: boolean, ...args: unknown[]) => {
 
 // Performance logging (always logs in dev, never in production)
 export const devPerf: DevLogFunction = isDevelopment
-  ? console.timeLog?.bind(console) || (() => {})
+  ? ((console.timeLog?.bind(console) || (() => {})) as DevLogFunction)
   : () => {};
 
 /**

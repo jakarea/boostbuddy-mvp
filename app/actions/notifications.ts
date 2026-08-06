@@ -73,7 +73,7 @@ async function loadAdminTelegramCredentials(
   let chatId = process.env.TELEGRAM_CHAT_ID ?? "";
 
   try {
-    const { data: setting } = await supabase
+    const { data: setting } = await (supabase as any)
       .from("app_settings")
       .select("value")
       .eq("key", "telegram_bot")
@@ -100,7 +100,7 @@ async function loadAdminBotToken(
   let botToken = process.env.TELEGRAM_BOT_TOKEN ?? "";
 
   try {
-    const { data: setting } = await supabase
+    const { data: setting } = await (supabase as any)
       .from("app_settings")
       .select("value")
       .eq("key", "telegram_bot")
@@ -126,7 +126,7 @@ async function loadUserChatId(
 ): Promise<string | null> {
   try {
     // Resolve email → user_id
-    const { data: userRecord } = await supabase
+    const { data: userRecord } = await (supabase as any)
       .from("users")
       .select("id")
       .eq("email", recipientEmail)
@@ -135,7 +135,7 @@ async function loadUserChatId(
     if (!userRecord?.id) return null;
 
     // Fetch their personal chat ID
-    const { data: telegramRecord } = await supabase
+    const { data: telegramRecord } = await (supabase as any)
       .from("user_telegram_configs")
       .select("chat_id")
       .eq("user_id", userRecord.id)
@@ -234,7 +234,7 @@ export async function sendNotificationAction(
     let userId: string | null = null;
     let userRole: string | null = null;
     try {
-      const { data: userRecord } = await supabaseAdmin
+      const { data: userRecord } = await (supabaseAdmin as any)
         .from("users")
         .select("id, role")
         .eq("email", recipient)
@@ -270,7 +270,7 @@ export async function sendNotificationAction(
     }
 
     // Log the notification with enhanced fields for priority system
-    const { error } = await supabaseAdmin
+    const { error } = await (supabaseAdmin as any)
       .from("notification_logs")
       .insert({
         recipient,

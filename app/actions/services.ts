@@ -67,13 +67,13 @@ export async function upsertServiceAction(formData: FormData, serviceId?: string
     let error;
 
     if (serviceId) {
-      const { error: updateError } = await supabaseAdmin
+      const { error: updateError } = await (supabaseAdmin as any)
         .from("services")
         .update({ ...payload, updated_at: new Date().toISOString() })
         .eq("id", serviceId);
       error = updateError;
     } else {
-      const { error: insertError } = await supabaseAdmin
+      const { error: insertError } = await (supabaseAdmin as any)
         .from("services")
         .insert(payload);
       error = insertError;

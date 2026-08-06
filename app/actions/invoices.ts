@@ -108,7 +108,8 @@ export async function uploadInvoiceAction(formData: FormData) {
     const invoicePayload = extractInvoiceData(formData, uploadData.path, file.name, formatFileSize(file.size));
     console.log("💾 [INVOICE UPLOAD] Saving to database:", invoicePayload);
 
-    const { error: dbError } = await supabaseAdmin.from("invoices").insert(invoicePayload);
+    const { error: dbError } = await (supabaseAdmin
+      .from("invoices") as any).insert(invoicePayload);
 
     if (dbError) {
       console.error("❌ [INVOICE UPLOAD] Database error:", dbError);

@@ -147,7 +147,7 @@ export async function testConfigurationStatus(): Promise<TestResult> {
     }
 
     const config = result.config;
-    const passed = config?.botConfigured && config?.adminGroups > 0;
+    const passed = (config?.botConfigured && config?.adminGroups > 0) || false;
 
     return {
       testName: "Configuration Status Test",

@@ -25,7 +25,7 @@ interface TransactionRowProps {
   getTransactionIcon: (type: string) => React.ReactNode;
   getBadgeColor: (type: string) => string;
   formatAmount: (amount: number) => string;
-  t: (key: string, defaultValue?: string, params?: any) => string;
+  t: (key: string | string[], options?: any) => string;
 }
 
 const TransactionRow = memo(function TransactionRow({
@@ -48,7 +48,7 @@ const TransactionRow = memo(function TransactionRow({
           </h4>
           <p className="text-xs text-zinc-500">
             {formatDateShort(transaction.createdAt)} {
-              !compact && t("at_time", " at {{time}}", { time: formatTime(transaction.createdAt) })
+              !compact && t("at_time", { defaultValue: " at {{time}}", time: formatTime(transaction.createdAt) })
             }
           </p>
         </div>
@@ -63,7 +63,7 @@ const TransactionRow = memo(function TransactionRow({
         </span>
         {transaction.balanceAfter !== undefined && !compact && (
           <p className="text-xs text-zinc-500 mt-1">
-            {t("balance_label", "Balance: {{balance}}", { balance: transaction.balanceAfter })}
+            {t("balance_label", { defaultValue: "Balance: {{balance}}", balance: transaction.balanceAfter })}
           </p>
         )}
       </div>

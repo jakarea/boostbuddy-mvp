@@ -4,18 +4,10 @@
  */
 
 import { createClient } from "@/lib/supabase/client";
-import path from 'path';
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { AuthUser } from "./types";
 
 const LOG_PREFIX = "[AUTH-PURE]";
-
-// Helper function to get database instance.
-// Lazy require() ensures better-sqlite3 is only loaded in local mode (never on Vercel).
-function getDb() {
-  const Database = require('better-sqlite3');
-  const dbPath = path.join(process.cwd(), 'prisma', 'dev.db');
-  return new Database(dbPath);
-}
 
 /**
  * Get current Supabase session (pure - just reads)
@@ -46,28 +38,27 @@ export async function fetchUserProfile(userId: string): Promise<AuthUser | null>
   console.log(`${LOG_PREFIX} Fetching user profile for ID:`, userId);
 
   try {
-    const db = getDb();
-    const profile = db.prepare(`
-      SELECT id, email, name, role, isActive, createdAt
-      FROM User
-      WHERE id = ?
-    `).get(userId) as any;
-    db.close();
+    const supabase = createAdminClient();
+    const { data: profile, error } = await (supabase
+      .from("users") as any)
+      .select("id, email, name, role, status, created_at")
+      .eq("id", userId)
+      .maybeSingle();
 
-    if (!profile) {
+    if (error || !profile) {
       console.log(`${LOG_PREFIX} No profile found in database`);
       return null;
     }
 
-    console.log(`${LOG_PREFIX} ✅ Profile fetched:`, profile.email, `| Role: ${profile.role} | Active: ${profile.isActive}`);
+    console.log(`${LOG_PREFIX} ✅ Profile fetched:`, profile.email, `| Role: ${profile.role} | Status: ${profile.status}`);
 
     return {
       id: profile.id,
       email: profile.email,
       name: profile.name,
       role: profile.role as "ADMIN" | "CLIENT" | "EMPLOYEE",
-      isActive: Boolean(profile.isActive),
-      createdAt: new Date(profile.createdAt),
+      isActive: profile.status === "ACTIVE",
+      createdAt: new Date(profile.created_at),
     };
   } catch (error) {
     console.error(`${LOG_PREFIX} ⚠️ Profile fetch error:`, error);
@@ -87,20 +78,39 @@ export async function createUserProfile(
   console.log(`${LOG_PREFIX} Creating user profile:`, email, `| Role: ${role}`);
 
   try {
-    const db = getDb();
+    const supabase = createAdminClient();
     const now = new Date().toISOString();
 
-    db.prepare(`
-      INSERT INTO User (id, email, passwordHash, name, role, isActive, createdAt, updatedAt, creditsBalance, acceptingOrders)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(userId, email, 'supabase-managed', name, role, 1, now, now, 0, 1);
+    const { error: insertError } = await (supabase
+      .from("users") as any)
+      .insert({
+        id: userId,
+        email: email,
+        name: name,
+        role: role,
+        status: "PENDING",
+        email_verified: false,
+        credits_balance: 0,
+        accepting_orders: true,
+        created_at: now,
+        updated_at: now
+      });
 
-    const profile = db.prepare(`
-      SELECT id, email, name, role, isActive, createdAt
-      FROM User
-      WHERE id = ?
-    `).get(userId) as any;
-    db.close();
+    if (insertError) {
+      console.error(`${LOG_PREFIX} ❌ Profile creation failed:`, insertError);
+      return null;
+    }
+
+    const { data: profile } = await (supabase
+      .from("users") as any)
+      .select("id, email, name, role, status, created_at")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!profile) {
+      console.log(`${LOG_PREFIX} Failed to retrieve created profile`);
+      return null;
+    }
 
     console.log(`${LOG_PREFIX} ✅ Profile created successfully`);
 
@@ -109,8 +119,8 @@ export async function createUserProfile(
       email: profile.email,
       name: profile.name,
       role: profile.role as "ADMIN" | "CLIENT" | "EMPLOYEE",
-      isActive: Boolean(profile.isActive),
-      createdAt: new Date(profile.createdAt),
+      isActive: profile.status === "ACTIVE",
+      createdAt: new Date(profile.created_at),
     };
   } catch (error) {
     console.error(`${LOG_PREFIX} ❌ Profile creation failed:`, error);

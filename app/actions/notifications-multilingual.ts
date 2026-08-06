@@ -16,8 +16,8 @@ import {
 async function getUserLanguage(userId: string): Promise<SupportedLanguage> {
   try {
     const supabaseAdmin = createAdminClient();
-    const { data } = await supabaseAdmin
-      .from("users")
+    const { data } = await (supabaseAdmin
+      .from("users") as any)
       .select("preferred_language")
       .eq("id", userId)
       .maybeSingle();
@@ -38,8 +38,8 @@ async function getUserLanguage(userId: string): Promise<SupportedLanguage> {
 async function getUserLanguageByEmail(email: string): Promise<SupportedLanguage> {
   try {
     const supabaseAdmin = createAdminClient();
-    const { data } = await supabaseAdmin
-      .from("users")
+    const { data } = await (supabaseAdmin
+      .from("users") as any)
       .select("id, preferred_language")
       .eq("email", email)
       .maybeSingle();
@@ -111,8 +111,8 @@ export async function sendMultilingualNotificationAction(
 export async function getUserLanguagePreferenceAction(userId: string) {
   try {
     const supabaseAdmin = createAdminClient();
-    const { data, error } = await supabaseAdmin
-      .from("users")
+    const { data, error } = await (supabaseAdmin
+      .from("users") as any)
       .select("preferred_language")
       .eq("id", userId)
       .maybeSingle();
@@ -147,8 +147,8 @@ export async function updateUserLanguagePreferenceAction(
     }
 
     const supabaseAdmin = createAdminClient();
-    const { error } = await supabaseAdmin
-      .from("users")
+    const { error } = await (supabaseAdmin
+      .from("users") as any)
       .update({ preferred_language: language })
       .eq("id", userId);
 

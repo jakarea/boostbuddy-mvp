@@ -4,6 +4,7 @@
  * Prevents scattered fixes and inconsistent data handling
  */
 
+import "server-only";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient as createSupabaseAdminClient } from "@/lib/supabase/admin";
 

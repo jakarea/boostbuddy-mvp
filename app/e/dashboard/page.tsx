@@ -51,12 +51,12 @@ export default function EmployeeDashboardPage() {
         // OPTIMIZATION: Single batched action instead of 3 separate calls
         const result = await getEmployeeDashboardDataAction();
 
-        if (result.success) {
+        if (result.success && 'data' in result) {
           const data = result.data as { stats: any; availableOrders: any[]; currentAssignments: any[] };
           setStats(data.stats);
           setAvailableOrders(data.availableOrders);
           setCurrentAssignments(data.currentAssignments);
-        } else {
+        } else if ('error' in result) {
           console.error('Failed to load dashboard data:', result.error);
           error(t("load_dashboard_failed", "Failed to load dashboard data"));
         }
@@ -84,7 +84,7 @@ export default function EmployeeDashboardPage() {
       // Reload data with single batched action
       const dashboardResult = await getEmployeeDashboardDataAction();
 
-      if (dashboardResult.success && dashboardResult.data) {
+      if (dashboardResult.success && 'data' in dashboardResult) {
         const data = dashboardResult.data;
         setStats(data.stats);
         setAvailableOrders(data.availableOrders);
@@ -115,7 +115,7 @@ export default function EmployeeDashboardPage() {
       // Reload data with single batched action
       const dashboardResult = await getEmployeeDashboardDataAction();
 
-      if (dashboardResult.success && dashboardResult.data) {
+      if (dashboardResult.success && 'data' in dashboardResult) {
         const data = dashboardResult.data;
         setStats(data.stats);
         setAvailableOrders(data.availableOrders);

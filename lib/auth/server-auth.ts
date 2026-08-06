@@ -1,4 +1,7 @@
-import { getCachedUser } from '@/lib/auth/cached-auth';
+"use server";
+
+import "server-only";
+import { createClient } from '@/lib/supabase/server';
 
 export type AuthenticatedUser = {
   id: string;
@@ -27,25 +30,38 @@ export type AuthResult<T> =
 export async function requireAuth(options?: {
   role?: 'ADMIN' | 'CLIENT' | 'EMPLOYEE'
 }): Promise<AuthResult<never>> {
-  const cachedUser = await getCachedUser();
-  if (!cachedUser) {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
     return { success: false, error: "Unauthorized" };
   }
 
+  // Get user profile from custom users table
+  const { data: userData, error: userError } = await supabase
+    .from("users")
+    .select("role, status, name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (userError || !userData) {
+    return { success: false, error: "User profile not found" };
+  }
+
   // Check role if required
-  if (options?.role && cachedUser.role !== options.role) {
+  if (options?.role && userData.role !== options.role) {
     return { success: false, error: "Forbidden" };
   }
 
   return {
     success: true,
     user: {
-      id: cachedUser.id,
-      email: cachedUser.email,
-      name: cachedUser.name,
-      role: cachedUser.role,
-      isActive: cachedUser.isActive,
-      status: cachedUser.status
+      id: user.id,
+      email: user.email || '',
+      name: userData.name || user.email?.split('@')[0] || 'User',
+      role: userData.role as 'ADMIN' | 'CLIENT' | 'EMPLOYEE',
+      isActive: userData.status === 'ACTIVE',
+      status: userData.status as 'ACTIVE' | 'PENDING' | 'DEACTIVATED'
     }
   };
 }

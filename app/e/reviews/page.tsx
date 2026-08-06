@@ -172,7 +172,6 @@ export default function EmployeeReviewsPage() {
 
         setAllOrders(normalizedOrders);
         setOrders(normalizedOrders);
-        setStats(data.stats);
       } else {
         error(result.error || "Failed to load reviews data");
       }

@@ -221,8 +221,6 @@ export function CollapsibleSidebar({
                       key={child.href}
                       href={child.href}
                       prefetch={child.href === "/c/dashboard" ? true : false}
-                      key={child.href + child.label}
-                      href={child.href}
                       className="w-full"
                       onClick={mobile ? () => setSidebarOpen(false) : undefined}
                     >

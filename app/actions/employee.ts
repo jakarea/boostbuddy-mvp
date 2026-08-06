@@ -146,8 +146,8 @@ export async function createEmployeeAction(data: CreateEmployeeData) {
       // Create user profile in users table with ACTIVE status
       console.log("📝 [EMPLOYEE] Creating user profile with ACTIVE status...");
       const now = new Date().toISOString();
-      const { error: profileError } = await supabaseAdmin
-        .from("users")
+      const { error: profileError } = await (supabaseAdmin
+        .from("users") as any)
         .insert({
           id: newUser.user.id,
           email: data.email,
@@ -168,8 +168,8 @@ export async function createEmployeeAction(data: CreateEmployeeData) {
 
       // Create employee stats record
       console.log("📊 [EMPLOYEE] Creating employee stats...");
-      const { error: statsError } = await supabaseAdmin
-        .from("employee_stats")
+      const { error: statsError } = await (supabaseAdmin
+        .from("employee_stats") as any)
         .insert({
           user_id: newUser.user.id,
           is_available: true,
@@ -190,8 +190,8 @@ export async function createEmployeeAction(data: CreateEmployeeData) {
       if (data.telegram_chat_id) {
         console.log("📱 [EMPLOYEE] Setting Telegram chat ID...");
         try {
-          await supabaseAdmin
-            .from("users")
+          await (supabaseAdmin
+            .from("users") as any)
             .update({ telegram_chat_id: data.telegram_chat_id })
             .eq("id", newUser.user.id);
           console.log("✅ [EMPLOYEE] Telegram chat ID set");
@@ -378,8 +378,8 @@ export async function acceptOrderAction(orderId: string) {
 
     // Check if order is still available
     console.log("🔍 [EMPLOYEE] Checking order availability...");
-    const { data: order, error: orderCheckError } = await supabase
-      .from("review_orders")
+    const { data: order, error: orderCheckError } = await (supabase
+      .from("review_orders") as any)
       .select("id, status, business_name, user_id")
       .eq("id", orderId)
       .eq("status", "PENDING")
@@ -400,8 +400,8 @@ export async function acceptOrderAction(orderId: string) {
     // Get client email from user_id
     if (order.user_id) {
       console.log("📧 [EMPLOYEE] Getting client email...");
-      const { data: clientData, error: clientError } = await supabase
-        .from("users")
+      const { data: clientData, error: clientError } = await (supabase
+        .from("users") as any)
         .select("email")
         .eq("id", order.user_id)
         .single();
@@ -417,8 +417,8 @@ export async function acceptOrderAction(orderId: string) {
 
     // Assign to employee - SECURITY: conditional UPDATE prevents race condition
     console.log("🎯 [EMPLOYEE] Assigning order to employee...");
-    const { data: assigned, error: assignError } = await supabase
-      .from("review_orders")
+    const { data: assigned, error: assignError } = await (supabase
+      .from("review_orders") as any)
       .update({
         assigned_employee_id: auth.user.id,
         status: "IN_PROGRESS",
@@ -442,8 +442,8 @@ export async function acceptOrderAction(orderId: string) {
 
     // Update employee last active
     console.log("📊 [EMPLOYEE] Updating employee stats...");
-    const { error: statsError } = await supabase
-      .from("employee_stats")
+    const { error: statsError } = await (supabase
+      .from("employee_stats") as any)
       .update({ last_active_at: now })
       .eq("user_id", auth.user.id);
 
@@ -533,8 +533,8 @@ export async function skipOrderAction(orderId: string, reason: string) {
     }
 
     // Record skip
-    const { error: skipError } = await supabase
-      .from("skipped_reviews")
+    const { error: skipError } = await (supabase
+      .from("skipped_reviews") as any)
       .insert({
         employee_id: auth.user.id,
         review_order_id: orderId,
@@ -544,16 +544,16 @@ export async function skipOrderAction(orderId: string, reason: string) {
     if (skipError) throw skipError;
 
     // Update employee stats
-    const { data: stats } = await supabase
-      .from("employee_stats")
+    const { data: stats } = await (supabase
+      .from("employee_stats") as any)
       .select("orders_skipped")
       .eq("user_id", auth.user.id)
       .single();
 
     const newSkipCount = (stats?.orders_skipped || 0) + 1;
 
-    await supabase
-      .from("employee_stats")
+    await (supabase
+      .from("employee_stats") as any)
       .update({
         orders_skipped: newSkipCount,
         last_active_at: now
@@ -606,8 +606,8 @@ export async function submitCompletedReviewAction(orderId: string, proof: string
     const supabase = await createAdminClient();
 
     // Check if order is assigned to this employee (also fetch client email + business name)
-    const { data: order } = await supabase
-      .from("review_orders")
+    const { data: order } = await (supabase
+      .from("review_orders") as any)
       .select("id, status, assigned_employee_id, business_name, user_id")
       .eq("id", orderId)
       .eq("assigned_employee_id", auth.user.id)
@@ -620,8 +620,8 @@ export async function submitCompletedReviewAction(orderId: string, proof: string
 
     // Get client email from user_id
     if (order.user_id) {
-      const { data: clientData } = await supabase
-        .from("users")
+      const { data: clientData } = await (supabase
+        .from("users") as any)
         .select("email")
         .eq("id", order.user_id)
         .single();
@@ -630,8 +630,8 @@ export async function submitCompletedReviewAction(orderId: string, proof: string
     businessName = order.business_name || "";
 
     // Mark as completed and auto-approve
-    const { error: completeError } = await supabase
-      .from("review_orders")
+    const { error: completeError } = await (supabase
+      .from("review_orders") as any)
       .update({
         status: "COMPLETED",
         proof_of_completion: proof,
@@ -644,16 +644,16 @@ export async function submitCompletedReviewAction(orderId: string, proof: string
     if (completeError) throw completeError;
 
     // Update employee stats
-    const { data: stats } = await supabase
-      .from("employee_stats")
+    const { data: stats } = await (supabase
+      .from("employee_stats") as any)
       .select("orders_completed")
       .eq("user_id", auth.user.id)
       .single();
 
     const newCompletedCount = (stats?.orders_completed || 0) + 1;
 
-    await supabase
-      .from("employee_stats")
+    await (supabase
+      .from("employee_stats") as any)
       .update({
         orders_completed: newCompletedCount,
         last_active_at: now
@@ -718,9 +718,9 @@ export async function getEmployeeStatsAction(employeeId?: string) {
     }
 
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("employee_stats")
-      .select("id, user_id, is_available, orders_completed, orders_skipped, last_active_at")
+    const { data, error } = await (supabase
+      .from("employee_stats") as any)
+      .select("id, user_id, is_available, orders_completed, orders_skipped, last_active_at, created_at, updated_at")
       .eq("user_id", targetUserId)
       .single();
 
@@ -791,8 +791,8 @@ export async function toggleAvailabilityAction() {
     const supabase = await createAdminClient();
 
     // Get current availability
-    const { data: stats } = await supabase
-      .from("employee_stats")
+    const { data: stats } = await (supabase
+      .from("employee_stats") as any)
       .select("is_available")
       .eq("user_id", auth.user.id)
       .single();
@@ -802,13 +802,13 @@ export async function toggleAvailabilityAction() {
 
     // Update or create stats
     if (stats) {
-      await supabase
-        .from("employee_stats")
+      await (supabase
+        .from("employee_stats") as any)
         .update({ is_available: newAvailability })
         .eq("user_id", auth.user.id);
     } else {
-      await supabase
-        .from("employee_stats")
+      await (supabase
+        .from("employee_stats") as any)
         .insert({
           user_id: auth.user.id,
           is_available: newAvailability,
@@ -1027,8 +1027,8 @@ export async function completeReviewAction(orderId: string, proofOfCompletion: s
     const employeeId = auth.user.id;
 
     // Verify the order is assigned to this employee and is IN_PROGRESS
-    const { data: order, error: orderError } = await supabase
-      .from("review_orders")
+    const { data: order, error: orderError } = await (supabase
+      .from("review_orders") as any)
       .select("id, assigned_employee_id, status")
       .eq("id", orderId)
       .single();
@@ -1048,8 +1048,8 @@ export async function completeReviewAction(orderId: string, proofOfCompletion: s
     const now = new Date().toISOString();
 
     // Update order status and add proof (auto-approved)
-    const { error: updateError } = await supabase
-      .from("review_orders")
+    const { error: updateError } = await (supabase
+      .from("review_orders") as any)
       .update({
         status: 'COMPLETED',
         proof_of_completion: proofOfCompletion,
@@ -1062,15 +1062,20 @@ export async function completeReviewAction(orderId: string, proofOfCompletion: s
     if (updateError) throw updateError;
 
     // Update employee stats - increment completed count
-    const { error: statsError } = await supabase
-      .from("employee_stats")
+    // First fetch current stats
+    const { data: currentStats } = await (supabase
+      .from("employee_stats") as any)
+      .select("orders_completed")
+      .eq("user_id", employeeId)
+      .maybeSingle();
+
+    const newCompletedCount = (currentStats?.orders_completed || 0) + 1;
+
+    // Then update with new value
+    const { error: statsError } = await (supabase
+      .from("employee_stats") as any)
       .update({
-        orders_completed: await supabase
-          .from("employee_stats")
-          .select("orders_completed")
-          .eq("user_id", employeeId)
-          .single()
-          .then(({ data }) => (data?.orders_completed || 0) + 1),
+        orders_completed: newCompletedCount,
         last_active_at: now
       })
       .eq("user_id", employeeId);

@@ -86,13 +86,13 @@ export async function fulfillOrder(
       profile_account_id: profileId || null
     };
 
-    const { error: orderError } = await supabaseAdmin.from("orders").insert(orderPayload);
+    const { error: orderError } = await (supabaseAdmin as any).from("orders").insert(orderPayload);
     if (orderError) throw orderError;
 
     // Fetch target package duration
     let durationDays = 30;
     if (serviceId) {
-      const { data: targetSrv } = await supabaseAdmin
+      const { data: targetSrv } = await (supabaseAdmin as any)
         .from("services")
         .select("duration_days")
         .eq("id", serviceId)
@@ -104,7 +104,7 @@ export async function fulfillOrder(
 
     // 2. If it's a renewal, extend or reset the expiration date
     if (type === "RENEWAL" && profileId) {
-      const { data: profile } = await supabaseAdmin
+      const { data: profile } = await (supabaseAdmin as any)
         .from("profile_accounts")
         .select("expiration_date, service_id")
         .eq("id", profileId)
@@ -125,9 +125,9 @@ export async function fulfillOrder(
           newExpirationDate.setDate(newExpirationDate.getDate() + durationDays);
         }
         
-        await supabaseAdmin
+        await (supabaseAdmin as any)
           .from("profile_accounts")
-          .update({ 
+          .update({
             expiration_date: newExpirationDate.toISOString().split('T')[0],
             service_id: serviceId || null,
             status: "ACTIVE"
@@ -135,7 +135,7 @@ export async function fulfillOrder(
           .eq("id", profileId);
 
         // Fetch user email for notification
-        const { data: userRecord } = await supabaseAdmin.from("users").select("email").eq("id", userId).single();
+        const { data: userRecord } = await (supabaseAdmin as any).from("users").select("email").eq("id", userId).single();
 
         const { sendNotificationAction } = await import("./notifications");
 

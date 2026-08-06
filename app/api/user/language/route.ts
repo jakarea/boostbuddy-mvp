@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
-    const { error } = await supabaseAdmin
+    const { error } = await (supabaseAdmin as any)
       .from('users')
       .update({ preferred_language: language })
       .eq('id', userId);
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from('users')
       .select('preferred_language')
       .eq('id', auth.user.id)

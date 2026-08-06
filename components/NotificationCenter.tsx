@@ -25,7 +25,7 @@ export default function NotificationCenter({ userRole, className = '', userId }:
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const [userLanguage, setUserLanguage] = useState<'en' | 'it'>(i18n.language === 'it' ? 'it' : 'en');
-  const isPending = useTransition();
+  const [isPending] = useTransition();
 
   const {
     notifications,
@@ -142,9 +142,9 @@ export default function NotificationCenter({ userRole, className = '', userId }:
     const diffMs = now.getTime() - date.getTime();
 
     if (diffMs < 60000) return t('just_now', { defaultValue: 'Just now' });
-    if (diffMs < 3600000) return t('minutes_ago', { defaultValue: 'minutes ago' }, Math.floor(diffMs / 60000));
-    if (diffMs < 86400000) return t('hours_ago', { defaultValue: 'hours ago' }, Math.floor(diffMs / 3600000));
-    return t('days_ago', { defaultValue: 'days ago' }, Math.floor(diffMs / 86400000));
+    if (diffMs < 3600000) return t('minutes_ago', { defaultValue: '{{count}} minutes ago', count: Math.floor(diffMs / 60000) });
+    if (diffMs < 86400000) return t('hours_ago', { defaultValue: '{{count}} hours ago', count: Math.floor(diffMs / 3600000) });
+    return t('days_ago', { defaultValue: '{{count}} days ago', count: Math.floor(diffMs / 86400000) });
   };
 
   return (
@@ -192,7 +192,7 @@ export default function NotificationCenter({ userRole, className = '', userId }:
 
             {/* Priority Filter Tabs */}
             <div className="flex gap-1 mt-2">
-              {['ALL', 'HIGH', 'MEDIUM', 'LOW'] as const priority => (
+              {(['ALL', 'HIGH', 'MEDIUM', 'LOW'] as const).map(priority => (
                 <button
                   key={priority}
                   onClick={() => setFilter(priority as typeof filter)}
@@ -204,7 +204,7 @@ export default function NotificationCenter({ userRole, className = '', userId }:
                 >
                   {priority}
                 </button>
-              )}
+              ))}
             </div>
 
             {/* Actions */}
