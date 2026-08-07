@@ -52,6 +52,12 @@ interface ReviewOrder {
   reactionType?: string;
   reviewContent: string;
   reviewInstructions?: string;
+  commentText?: string;
+  comments?: string[];
+  commentCount?: number;
+  completedComments?: number[];
+  photoUrls?: string[] | string[][];
+  photoReviews?: Array<{ text: string; photos: string[] }>;
   status: string;
   creditsConsumed: number;
   createdAt: string;
@@ -150,25 +156,40 @@ export default function EmployeeReviewsPage() {
 
       if (result.success) {
         const data = result.data as { orders: any[] };
-        const normalizedOrders = data.orders?.map(order => ({
-          id: order.id,
-          businessName: order.business_name || order.businessName,
-          businessUrl: order.business_url || order.businessUrl,
-          reviewType: order.review_type || order.reviewType,
-          targetRating: order.target_rating || order.targetRating,
-          reviewContent: order.review_content || order.reviewContent,
-          reviewInstructions: order.review_instructions || order.reviewInstructions,
-          status: order.status,
-          creditsConsumed: order.credits_consumed || order.creditsConsumed || 0,
-          createdAt: order.created_at || order.createdAt,
-          updatedAt: order.updated_at || order.updatedAt,
-          completedAt: order.completed_at || order.completedAt,
-          assignedAt: order.assigned_at || order.assignedAt,
-          proofOfCompletion: order.proof_of_completion || order.proofOfCompletion,
-          adminVerificationStatus: order.admin_verification_status || order.adminVerificationStatus,
-          rejectionReason: order.rejection_reason || order.rejectionReason,
-          skips: order.skips || []
-        })) || [];
+        const normalizedOrders = data.orders?.map(order => {
+          const photoUrls = order.photo_urls ? JSON.parse(order.photo_urls) : null;
+          return {
+            id: order.id,
+            businessName: order.business_name || order.businessName,
+            businessUrl: order.business_url || order.businessUrl,
+            reviewType: order.review_type || order.reviewType,
+            targetRating: order.target_rating || order.targetRating,
+            reviewContent: order.review_content || order.reviewContent,
+            reviewInstructions: order.review_instructions || order.reviewInstructions,
+            commentText: order.comment_text || order.commentText,
+            comments: order.comment_text ? order.comment_text.split('|||').map((c: string) => c.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\')) : [],
+            commentCount: order.comment_count || 1,
+            completedComments: order.completed_comments ? order.completed_comments.split(',').map((i: string) => parseInt(i)) : [],
+            photoUrls: photoUrls,
+            // For Photo + Reviews, parse photoUrls as array of photo arrays
+            photoReviews: photoUrls && order.order_type === 'COMMENT_WITH_PHOTO'
+              ? order.comment_text.split('|||').map((c: string, i: number) => ({
+                  text: c.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\'),
+                  photos: photoUrls[i] || []
+                }))
+              : null,
+            status: order.status,
+            creditsConsumed: order.credits_consumed || order.creditsConsumed || 0,
+            createdAt: order.created_at || order.createdAt,
+            updatedAt: order.updated_at || order.updatedAt,
+            completedAt: order.completed_at || order.completedAt,
+            assignedAt: order.assigned_at || order.assignedAt,
+            proofOfCompletion: order.proof_of_completion || order.proofOfCompletion,
+            adminVerificationStatus: order.admin_verification_status || order.adminVerificationStatus,
+            rejectionReason: order.rejection_reason || order.rejectionReason,
+            skips: order.skips || []
+          };
+        }) || [];
 
         setAllOrders(normalizedOrders);
         setOrders(normalizedOrders);
@@ -664,12 +685,46 @@ export default function EmployeeReviewsPage() {
 
           {selectedOrder && (
             <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium mb-2">Review Content:</p>
-                <div className="bg-zinc-50 dark:bg-zinc-900 rounded-lg p-3">
-                  <p className="text-sm whitespace-pre-wrap">{selectedOrder.reviewContent}</p>
+              {/* Display multiple comments for COMMENT types */}
+              {selectedOrder.comments && selectedOrder.comments.length > 0 ? (
+                <div>
+                  <p className="text-sm font-medium mb-2">
+                    Comments ({selectedOrder.comments.filter(c => c && c.trim().length > 0).length}/{selectedOrder.commentCount || selectedOrder.comments.length}):
+                  </p>
+                  <div className="space-y-2">
+                    {selectedOrder.comments.map((comment, index) => (
+                      <div
+                        key={index}
+                        className={`bg-zinc-50 dark:bg-zinc-900 rounded-lg p-3 ${
+                          selectedOrder.completedComments?.includes(index)
+                            ? 'opacity-50 line-through'
+                            : ''
+                        }`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <span className="text-xs font-medium text-zinc-500 min-w-[20px]">
+                            {index + 1}.
+                          </span>
+                          <p className="text-sm whitespace-pre-wrap flex-1">{comment || '(Empty)'}</p>
+                          {selectedOrder.completedComments?.includes(index) && (
+                            <span className="text-xs text-green-600 dark:text-green-400">✓ Done</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* Legacy: Single review content */
+                selectedOrder.reviewContent && (
+                  <div>
+                    <p className="text-sm font-medium mb-2">Review Content:</p>
+                    <div className="bg-zinc-50 dark:bg-zinc-900 rounded-lg p-3">
+                      <p className="text-sm whitespace-pre-wrap">{selectedOrder.reviewContent}</p>
+                    </div>
+                  </div>
+                )
+              )}
 
               {selectedOrder.reviewInstructions && (
                 <div>

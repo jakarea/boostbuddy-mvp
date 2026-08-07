@@ -18,6 +18,24 @@ export type ReactionType = "LIKE" | "LOVE" | "CARE" | "HAHA" | "WOW" | "SAD" | "
 // ============================================
 
 /**
+ * Sanitize comment text to prevent XSS and injection attacks
+ * - Trims whitespace
+ * - Strips HTML tags
+ * - Escapes quotes
+ * - Limits to 500 characters
+ */
+function sanitizeComment(text: string): string {
+  if (!text) return "";
+  return text
+    .trim()
+    .replace(/<[^>]*>/g, '')           // Strip HTML tags
+    .replace(/"/g, '\\"')              // Escape double quotes
+    .replace(/'/g, "\\'")              // Escape single quotes
+    .replace(/\\/g, '\\\\')            // Escape backslashes
+    .substring(0, 500);                 // Max 500 chars
+}
+
+/**
  * Extract a display name from Facebook URL
  * Generates a readable name like "Facebook Page Order" or uses URL path
  */
@@ -59,8 +77,10 @@ export type ReviewOrderData = {
   // Review-specific fields
   targetRating?: "5_STAR" | "4_STAR" | "3_STAR" | "2_STAR" | "1_STAR";
   content?: string; // Review content or comment text
-  commentText?: string; // For COMMENT and COMMENT_WITH_PHOTO
-  photoUrls?: string[]; // For COMMENT_WITH_PHOTO
+  commentText?: string; // For COMMENT and COMMENT_WITH_PHOTO (legacy single comment)
+  comments?: string[]; // Multiple comments for COMMENT types (1-50)
+  photoUrls?: string[]; // For COMMENT_WITH_PHOTO (legacy)
+  photoReviews?: Array<{ text: string; photos: string[] }>; // Multiple (text + photos) pairs for COMMENT_WITH_PHOTO
 };
 
 export type ReviewOrderFilter = {
@@ -105,6 +125,51 @@ export async function getReviewCreditCostAction(orderType: OrderType) {
     }
 
     return { success: true, cost: data.credits_per_unit };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get all pricing and user credits in a single call (optimized for page load)
+ */
+export async function getReviewOrderSetupAction() {
+  try {
+    const auth = await requireAuth();
+    if (!auth.success) return auth;
+
+    const supabase = await createClient();
+
+    // Parallel queries: pricing + user credits
+    const [pricingResult, userResult] = await Promise.all([
+      supabase
+        .from("review_credit_pricing")
+        .select("order_type, credits_per_unit")
+        .eq("is_active", true),
+      supabase
+        .from("users")
+        .select("credits_balance")
+        .eq("id", auth.user.id)
+        .single()
+    ]);
+
+    if (pricingResult.error) throw pricingResult.error;
+    if (userResult.error) throw userResult.error;
+    if (!userResult.data) {
+      return { success: false, error: "User not found" };
+    }
+
+    // Convert pricing array to object
+    const pricingMap: Record<string, number> = {};
+    pricingResult.data?.forEach((p: any) => {
+      pricingMap[p.order_type] = p.credits_per_unit;
+    });
+
+    return {
+      success: true,
+      pricing: pricingMap,
+      creditsBalance: userResult.data.credits_balance || 0
+    };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -176,66 +241,97 @@ export async function validateCreditsForOrderAction(orderData: ReviewOrderData) 
     }
 
     // Type-specific validations
-    if (orderData.orderType === "COMMENT" || orderData.orderType === "COMMENT_WITH_PHOTO") {
-      // Validate comment text
-      console.log("🔍 [VALIDATION] Checking comment text for order type:", orderData.orderType);
-      console.log("🔍 [VALIDATION] Comment text value:", orderData.commentText);
-      console.log("🔍 [VALIDATION] Comment text length:", orderData.commentText?.length);
+    if (orderData.orderType === "REVIEW") {
+      // REVIEWS: Validate review texts
+      console.log("🔍 [VALIDATION] Checking reviews for REVIEW type");
 
-      if (!orderData.commentText || orderData.commentText.trim().length === 0) {
-        console.log("❌ [VALIDATION] Comment text validation failed");
-        return { success: false, error: "Comment text is required" };
-      }
-      if (orderData.commentText.length > 500) {
-        console.log("❌ [VALIDATION] Comment text too long");
-        return { success: false, error: "Comment text must be less than 500 characters" };
-      }
-      console.log("✅ [VALIDATION] Comment text validation passed");
-
-
-      // Validate photos for COMMENT_WITH_PHOTO
-      if (orderData.orderType === "COMMENT_WITH_PHOTO") {
-        if (!orderData.photoUrls || orderData.photoUrls.length === 0) {
-          return { success: false, error: "At least one photo is required" };
+      if (orderData.comments && Array.isArray(orderData.comments)) {
+        const validReviews = orderData.comments.filter(c => c && c.trim().length > 0);
+        if (validReviews.length === 0) {
+          console.log("❌ [VALIDATION] No reviews provided");
+          return { success: false, error: "At least one review is required" };
         }
-        if (orderData.photoUrls.length > 2) {
-          return { success: false, error: "Maximum 2 photos allowed" };
+        if (validReviews.length > 50) {
+          console.log("❌ [VALIDATION] Too many reviews");
+          return { success: false, error: "Maximum 50 reviews allowed" };
         }
+        // Validate each review
+        for (let i = 0; i < validReviews.length; i++) {
+          if (validReviews[i].length > 500) {
+            return { success: false, error: `Review ${i + 1} must be less than 500 characters` };
+          }
+        }
+        orderData.quantity = validReviews.length;
+        console.log("✅ [VALIDATION] Reviews validated, quantity:", orderData.quantity);
       }
     }
+    else if (orderData.orderType === "COMMENT_WITH_PHOTO") {
+      // PHOTO + REVIEWS: Validate (text + photos) pairs
+      console.log("🔍 [VALIDATION] Checking photo reviews for COMMENT_WITH_PHOTO type");
 
-    // Get pricing from database
-    console.log("💰 [VALIDATION] Getting pricing for order type:", orderData.orderType);
+      if (orderData.photoReviews && Array.isArray(orderData.photoReviews)) {
+        const validReviews = orderData.photoReviews.filter(r => r.text && r.text.trim().length > 0);
+        if (validReviews.length === 0) {
+          console.log("❌ [VALIDATION] No reviews provided");
+          return { success: false, error: "At least one review is required" };
+        }
+        if (validReviews.length > 50) {
+          console.log("❌ [VALIDATION] Too many reviews");
+          return { success: false, error: "Maximum 50 reviews allowed" };
+        }
+        // Validate each review has photos
+        for (let i = 0; i < validReviews.length; i++) {
+          const review = validReviews[i];
+          if (review.text.length > 500) {
+            return { success: false, error: `Review ${i + 1} must be less than 500 characters` };
+          }
+          if (!review.photos || review.photos.length === 0) {
+            return { success: false, error: `Review ${i + 1} must have at least 1 photo` };
+          }
+          if (review.photos.length > 1) {
+            return { success: false, error: `Review ${i + 1} can have maximum 1 photo` };
+          }
+        }
+        orderData.quantity = validReviews.length;
+        console.log("✅ [VALIDATION] Photo reviews validated, quantity:", orderData.quantity);
+      }
+    }
+    // COMMENT (Reactions) type requires no text/photos validation
 
-    const pricingResponse = await getReviewCreditCostAction(orderData.orderType);
+    // Get pricing and user balance in parallel (optimized)
+    console.log("💰 [VALIDATION] Getting pricing and balance for order type:", orderData.orderType);
+
+    const supabase = await createClient();
+    const [pricingResponse, userResult] = await Promise.all([
+      getReviewCreditCostAction(orderData.orderType),
+      supabase
+        .from("users")
+        .select("credits_balance")
+        .eq("id", auth.user.id)
+        .single()
+    ]);
+
     if (!pricingResponse.success) {
       console.error("❌ [VALIDATION] Failed to get pricing");
       return { success: false, error: "Failed to get pricing" };
+    }
+
+    if (!userResult.data) {
+      console.error("❌ [VALIDATION] User not found");
+      return { success: false, error: "User not found" };
     }
 
     const creditsPerUnit = pricingResponse.cost;
     const requiredCredits = creditsPerUnit * quantity;
     console.log("💰 [VALIDATION] Credits calculation:", { creditsPerUnit, quantity, requiredCredits });
 
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("users")
-      .select("credits_balance")
-      .eq("id", auth.user.id)
-      .single();
-
-    if (!data) {
-      console.error("❌ [VALIDATION] User not found");
-      return { success: false, error: "User not found" };
-    }
-
-    const currentBalance = data.credits_balance || 0;
+    const currentBalance = userResult.data.credits_balance || 0;
     const hasEnough = currentBalance >= requiredCredits;
     console.log("💰 [VALIDATION] Credit check:", { currentBalance, requiredCredits, hasEnough });
     return {
       success: true,
       hasEnough,
-      currentBalance: data.credits_balance || 0,
+      currentBalance: userResult.data.credits_balance || 0,
       requiredCredits,
       orderType: orderData.orderType
     };
@@ -306,6 +402,42 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
     // Generate a business name from the Facebook URL
     const businessName = extractBusinessNameFromUrl(orderData.facebookUrl);
 
+    // Process comments: sanitize and convert to pipe-separated format
+    let finalCommentText = null;
+    let commentCount = orderData.quantity || 1;
+    let finalPhotoUrls = null;
+
+    if (orderData.orderType === "COMMENT") {
+      // REACTIONS: No text, just quantity
+      console.log("📍 [ORDER] Processing Reactions - no text needed");
+      finalCommentText = null;
+      finalPhotoUrls = null;
+    }
+    else if (orderData.orderType === "REVIEW") {
+      // REVIEWS: Multiple review texts
+      console.log("📍 [ORDER] Processing Reviews:", orderData.comments?.length || 0);
+      if (orderData.comments && Array.isArray(orderData.comments)) {
+        const sanitizedComments = orderData.comments.map(comment => sanitizeComment(comment));
+        finalCommentText = sanitizedComments.join('|||');
+        commentCount = sanitizedComments.length;
+      }
+    }
+    else if (orderData.orderType === "COMMENT_WITH_PHOTO") {
+      // PHOTO + REVIEWS: Multiple (text + photos) pairs
+      console.log("📍 [ORDER] Processing Photo + Reviews:", orderData.photoReviews?.length || 0);
+      if (orderData.photoReviews && Array.isArray(orderData.photoReviews)) {
+        const sanitizedReviews = orderData.photoReviews.map(review => ({
+          text: sanitizeComment(review.text),
+          photos: review.photos || []
+        }));
+        // Store reviews as pipe-separated text
+        finalCommentText = sanitizedReviews.map(r => r.text).join('|||');
+        // Store photos as JSON array of arrays
+        finalPhotoUrls = JSON.stringify(sanitizedReviews.map(r => r.photos));
+        commentCount = sanitizedReviews.length;
+      }
+    }
+
     // Create order with new field structure
     console.log("📍 [ORDER] Creating order in database...");
 
@@ -320,9 +452,11 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
       quantity: orderData.quantity,
       target_rating: "5_STAR", // Always default to 5_STAR - hidden from UI
       reaction_type: orderData.reactionType || "LIKE", // Default to LIKE
-      content: orderData.content || null,
-      comment_text: orderData.commentText || null,
-      photo_urls: orderData.photoUrls || null,
+      content: null, // Not used in new system
+      comment_text: finalCommentText, // Pipe-separated multiple comments/reviews
+      comment_count: commentCount, // Number of reviews/reactions (1-50)
+      completed_comments: null, // Initialize as null, will be updated as comments are completed
+      photo_urls: finalPhotoUrls, // JSON array of photo arrays (for Photo + Reviews)
       credits_consumed: requiredCredits,
       number_of_reviews: orderData.quantity,
       status: "PENDING"
@@ -341,8 +475,8 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
 
     console.log("✅ [ORDER] Order created successfully in database");
 
-    // Create transaction record
-    await (supabaseAdmin as any).from("credit_transactions").insert({
+    // Create transaction record (non-blocking - fire and forget)
+    (supabaseAdmin as any).from("credit_transactions").insert({
       id: randomUUID(),
       user_id: auth.user.id,
       amount: -requiredCredits,
@@ -350,7 +484,7 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
       type: "SPEND",
       description: `${orderData.orderType} order (${orderData.quantity} units)`,
       reference_id: orderId
-    });
+    }).catch((err: any) => console.error("Failed to create transaction record:", err));
 
     finalNewBalance = newBalance;
     console.log("📍 [ORDER] Supabase order created successfully");
@@ -402,8 +536,15 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
     })(); // Fire and forget - don't await
 
     console.log("📍 [ORDER] Notifications dispatched, revalidating paths...");
-    revalidatePath("/c/services/reviews/orders");
-    revalidatePath("/wallet");
+    // Non-blocking cache revalidation - fire and forget
+    (async () => {
+      try {
+        revalidatePath("/c/services/reviews/orders");
+        revalidatePath("/wallet");
+      } catch (err) {
+        console.error("Cache revalidation failed (non-blocking):", err);
+      }
+    })();
 
     console.log("📍 [ORDER] Order creation completed successfully, returning:", orderId);
     return {
@@ -434,7 +575,7 @@ export async function getClientReviewOrdersAction(filters?: ReviewOrderFilter) {
     const supabase = await createClient();
     let query = supabase
       .from("review_orders")
-      .select("id, user_id, status, target_rating, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, rejection_reason, client_feedback, content, comment_text, photo_urls, created_at, updated_at")
+      .select("id, user_id, status, target_rating, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, rejection_reason, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at")
       .eq("user_id", auth.user.id)
       .order("created_at", { ascending: false });
 
@@ -472,7 +613,17 @@ export async function getClientReviewOrdersAction(filters?: ReviewOrderFilter) {
       clientFeedback: order.client_feedback,
       content: order.content,
       commentText: order.comment_text,
+      comments: order.comment_text ? order.comment_text.split('|||').map((c: string) => c.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\')) : [],
+      commentCount: order.comment_count || 1,
+      completedComments: order.completed_comments ? order.completed_comments.split(',').map((i: string) => parseInt(i)) : [],
       photoUrls: order.photo_urls ? JSON.parse(order.photo_urls) : null,
+      // For Photo + Reviews, parse photoUrls as array of photo arrays
+      photoReviews: order.photo_urls && order.order_type === 'COMMENT_WITH_PHOTO'
+        ? order.comment_text.split('|||').map((c: string, i: number) => ({
+            text: c.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\'),
+            photos: JSON.parse(order.photo_urls)[i] || []
+          }))
+        : null,
       createdAt: order.created_at,
       updatedAt: order.updated_at
     })) || [];
@@ -496,7 +647,7 @@ export async function getReviewOrderDetailAction(orderId: string) {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("review_orders")
-      .select("id, user_id, status, target_rating, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, rejection_reason, client_feedback, content, comment_text, photo_urls, created_at, updated_at")
+      .select("id, user_id, status, target_rating, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, rejection_reason, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at")
       .eq("id", orderId)
       .eq("user_id", auth.user.id)
       .single();
@@ -527,7 +678,17 @@ export async function getReviewOrderDetailAction(orderId: string) {
       clientFeedback: data.client_feedback,
       content: data.content,
       commentText: data.comment_text,
+      comments: data.comment_text ? data.comment_text.split('|||').map((c: string) => c.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\')) : [],
+      commentCount: data.comment_count || 1,
+      completedComments: data.completed_comments ? data.completed_comments.split(',').map((i: string) => parseInt(i)) : [],
       photoUrls: data.photo_urls ? JSON.parse(data.photo_urls) : null,
+      // For Photo + Reviews, parse photoUrls as array of photo arrays
+      photoReviews: data.photo_urls && data.order_type === 'COMMENT_WITH_PHOTO'
+        ? data.comment_text.split('|||').map((c: string, i: number) => ({
+            text: c.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\'),
+            photos: JSON.parse(data.photo_urls)[i] || []
+          }))
+        : null,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };

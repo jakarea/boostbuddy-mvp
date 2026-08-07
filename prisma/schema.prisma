@@ -184,7 +184,9 @@ model ReviewOrder {
   reactionType          String   @map("reaction_type") @default("LIKE")     // "LIKE", "LOVE", "CARE", "HAHA", "WOW", "SAD", "ANGRY"
   reviewContent         String?  @map("review_content")   // The actual review text to post
   reviewInstructions    String?  @map("review_instructions")  // Additional instructions from client
-  commentText           String?  @map("comment_text")   // Comment text for COMMENT types
+  commentText           String?  @map("comment_text")   // Comment text for COMMENT types (comma-separated multiple comments)
+  commentCount          Int      @default(1) @map("comment_count")  // Number of comments (1-50)
+  completedComments     String?  @map("completed_comments")  // Comma-separated indices of completed comments "0,2,3"
   photoUrls             String?  @map("photo_urls")     // JSON array of photo URLs
   proofOfCompletion     String?  @map("proof_of_completion")  // Employee submission proof
 

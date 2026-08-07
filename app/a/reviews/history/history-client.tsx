@@ -40,11 +40,18 @@ interface ReviewOrder {
   id: string;
   businessName: string;
   businessUrl?: string;
+  orderType?: string;
   reviewType: string;
   targetRating: string;
   reactionType?: string;
   reviewContent: string;
   reviewInstructions?: string;
+  commentText?: string;
+  comments?: string[];
+  commentCount?: number;
+  completedComments?: number[];
+  photoUrls?: string[] | string[][];
+  photoReviews?: Array<{ text: string; photos: string[] }>;
   status: string;
   creditsConsumed: number;
   createdAt: string;

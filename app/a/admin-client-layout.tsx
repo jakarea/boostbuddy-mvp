@@ -3,7 +3,6 @@
 import React from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
-  Shield,
   Users,
   UserCog,
   Package,
@@ -23,6 +22,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { CollapsibleSidebar, type NavEntry } from "@/components/CollapsibleSidebar";
+import { BoostBuddyIcon } from "@/components/BoostBuddyIcon";
 
 const LOG_PREFIX = "[ADMIN-LAYOUT]";
 
@@ -119,7 +119,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <CollapsibleSidebar
       navEntries={navEntries}
-      headerIcon={Shield}
+      headerIcon={BoostBuddyIcon}
       title={t("title")}
       subtitle={t("subtitle")}
       signOutLabel={t("sign_out")}

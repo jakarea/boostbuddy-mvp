@@ -59,8 +59,8 @@ const ACCENTS: Record<AccentColor, AccentClasses> = {
 export type CollapsibleSidebarProps = {
   /** Nav entries — single-link entries use `href`, collapsible groups use `items`. */
   navEntries: NavEntry[];
-  /** Header icon (e.g., Shield for admin, Globe for client). */
-  headerIcon: LucideIcon;
+  /** Header icon component (e.g., BoostBuddyIcon, or any LucideIcon). */
+  headerIcon: React.ComponentType<{ className?: string }>;
   /** Header title. */
   title: string;
   /** Optional header subtitle. */
@@ -213,12 +213,12 @@ export function CollapsibleSidebar({
 
             {expanded && (
               <div className={`space-y-0.5 ${mobile ? "pl-3" : "md:pl-3"}`}>
-                {entry.items?.map((child) => {
+                {entry.items?.map((child, index) => {
                   const Icon = child.icon;
                   const active = isChildActive(child.href);
                   return (
                     <Link
-                      key={child.href}
+                      key={`${child.href}-${index}`}
                       href={child.href}
                       prefetch={child.href === "/c/dashboard" ? true : false}
                       className="w-full"
@@ -255,21 +255,9 @@ export function CollapsibleSidebar({
 
   const renderHeader = () => (
     <div className="flex items-center gap-2.5 min-w-0">
-      {/* BoostBuddy Logo - Grid Design */}
-      <div
-        className="bb-logo-cell"
-        style={{ '--bb-logo-size': '10px' } as React.CSSProperties}
-        aria-hidden="true"
-      >
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-        <span className="bb-center"></span>
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
+      {/* BoostBuddy Logo Icon */}
+      <div className="shrink-0">
+        <HeaderIcon className="h-8 w-8 sm:h-10 sm:w-10" />
       </div>
       <div className="min-w-0">
         <div className="bb-logo-text text-xs sm:text-sm leading-none tracking-tight text-zinc-900 dark:text-white truncate">
@@ -277,12 +265,6 @@ export function CollapsibleSidebar({
         </div>
         {subtitle && <div className="text-[10px] text-zinc-500 mt-0.5 sm:mt-1">{subtitle}</div>}
       </div>
-
-      {/* Original Icon-Based Logo - Commented Out
-      <div className={`p-1.5 ${headerIconClass} shrink-0`}>
-        <HeaderIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-      </div>
-      */}
     </div>
   );
 

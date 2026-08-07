@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useTransition } from "react";
+import React, { useState, useEffect, useMemo, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { requestProfileChangeAction } from "@/app/actions/dashboard";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -262,10 +262,14 @@ export default function DashboardClient({ initialProfiles, creditsBalance = 0 }:
     return p.status === "ACTIVE" && days !== null && days >= 0 && days <= 7;
   });
 
+  // Track if warning has been shown to prevent duplicates
+  const warningShownRef = useRef(false);
+
   // Trigger warning toast for expiring soon profiles
   useEffect(() => {
-    if (expiringSoonProfiles.length > 0) {
+    if (expiringSoonProfiles.length > 0 && !warningShownRef.current) {
       warning(`${t("exp_warning_title")} ${t("exp_warning_desc", { count: expiringSoonProfiles.length })}`, 8000);
+      warningShownRef.current = true;
     }
   }, [expiringSoonProfiles.length, t, warning]);
 

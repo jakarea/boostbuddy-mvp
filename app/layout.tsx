@@ -16,6 +16,10 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "BoostBuddy MWP - Client Portal & Admin Management",
   description: "Manual IXBrowser client portal and account assignment system.",
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/apple-icon.svg",
+  },
 };
 
 export default async function RootLayout({

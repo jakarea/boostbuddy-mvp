@@ -7,7 +7,6 @@ import {
   CreditCard,
   Settings,
   User,
-  Globe,
   Bell,
   Star,
   ShoppingBag,
@@ -25,6 +24,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { CollapsibleSidebar, type NavEntry } from "@/components/CollapsibleSidebar";
+import { BoostBuddyIcon } from "@/components/BoostBuddyIcon";
 
 const LOG_PREFIX = "[DASHBOARD-LAYOUT]";
 
@@ -88,7 +88,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       label: t("nav.services", { defaultValue: "Services" }),
       icon: ShoppingBag,
       items: [
-        { href: "/c/services/reviews", label: t("nav.services_overview", { defaultValue: "Reviews" }), icon: Star },
+        { href: "/c/services/reviews", label: t("nav.services_overview", { defaultValue: "Reviews" }), icon: ShoppingBag },
         { href: "#", label: t("nav.clocker", { defaultValue: "Clocker" }), icon: Clock, soon: true },
         { href: "#", label: t("nav.prompt_engine", { defaultValue: "Prompt Engine" }), icon: MessageSquare, soon: true },
       ],
@@ -122,7 +122,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <CollapsibleSidebar
       navEntries={navEntries}
-      headerIcon={Globe}
+      headerIcon={BoostBuddyIcon}
       title={t("title")}
       subtitle={t("subtitle")}
       signOutLabel={t("sign_out")}

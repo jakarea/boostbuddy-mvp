@@ -5,7 +5,6 @@ import { useAuth } from "@/context/AuthContext";
 import {
   LayoutDashboard,
   Package,
-  Star,
   ClipboardCheck,
   X,
   Bell,
@@ -14,6 +13,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { CollapsibleSidebar, type NavEntry } from "@/components/CollapsibleSidebar";
+import { BoostBuddyIcon } from "@/components/BoostBuddyIcon";
 
 const LOG_PREFIX = "[EMPLOYEE-LAYOUT]";
 
@@ -55,7 +55,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
       icon: Package,
       items: [
         { href: "/e/orders", label: t("nav.available_orders", { defaultValue: "Available Orders" }), icon: Package },
-        { href: "/e/reviews", label: t("nav.review_queue", { defaultValue: "Review Queue" }), icon: Star },
+        { href: "/e/reviews", label: t("nav.review_queue", { defaultValue: "Review Queue" }), icon: Package },
       ],
     },
     // 📂 AUDIT & HISTORY
@@ -83,7 +83,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
   return (
     <CollapsibleSidebar
       navEntries={navEntries}
-      headerIcon={Star}
+      headerIcon={BoostBuddyIcon}
       title={t("title")}
       subtitle={t("subtitle")}
       signOutLabel={t("sign_out")}

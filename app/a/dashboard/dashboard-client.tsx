@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect, useTransition, useRef } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -75,9 +75,13 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
     expiringProfiles
   } = initialStats;
 
+  // Track if warning has been shown to prevent duplicates
+  const warningShownRef = useRef(false);
+
   useEffect(() => {
-    if (expiringProfilesCount > 0) {
+    if (expiringProfilesCount > 0 && !warningShownRef.current) {
       warning(`${t("alert_required")} ${t("alert_desc", { count: expiringProfilesCount })}`, 8000);
+      warningShownRef.current = true;
     }
   }, [expiringProfilesCount, t, warning]);
 

@@ -35,7 +35,11 @@ interface ReviewOrder {
   reactionType?: string;
   content?: string;
   commentText?: string;
-  photoUrls?: string[];
+  comments?: string[];
+  commentCount?: number;
+  completedComments?: number[];
+  photoUrls?: string[] | string[][];
+  photoReviews?: Array<{ text: string; photos: string[] }>;
   reviewInstructions?: string;
   status: string;
   quantity: number;
@@ -318,29 +322,51 @@ export default function QueueClient({
                   )}
 
                   {/* Comment Text (for COMMENT and COMMENT_WITH_PHOTO orders) */}
-                  {(order.orderType === "COMMENT" || order.orderType === "COMMENT_WITH_PHOTO") && order.commentText && (
-                    <div className="bg-zinc-50 dark:bg-zinc-900 rounded px-1.5 py-1">
-                      <p className="text-[11px] text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap line-clamp-2">
-                        {order.commentText}
-                      </p>
-                    </div>
+                  {(order.orderType === "COMMENT" || order.orderType === "COMMENT_WITH_PHOTO") && (
+                    order.comments && order.comments.length > 0 ? (
+                      <div className="space-y-1">
+                        <div className="bg-zinc-50 dark:bg-zinc-900 rounded px-1.5 py-1">
+                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mb-1">
+                            {order.comments.filter(c => c && c.trim().length > 0).length} comments
+                            {order.completedComments && order.completedComments.length > 0 && ` (${order.completedComments.length} done)`}
+                          </p>
+                          {order.comments.slice(0, 2).map((comment, index) => (
+                            <div key={index} className="text-[11px] text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
+                              <span className="font-medium text-zinc-500">{index + 1}.</span> {comment || '(Empty)'}
+                              {order.completedComments?.includes(index) && <span className="text-green-600 ml-1">✓</span>}
+                            </div>
+                          ))}
+                          {order.comments.length > 2 && (
+                            <p className="text-[10px] text-zinc-500">+{order.comments.length - 2} more...</p>
+                          )}
+                        </div>
+                      </div>
+                    ) : order.commentText ? (
+                      <div className="bg-zinc-50 dark:bg-zinc-900 rounded px-1.5 py-1">
+                        <p className="text-[11px] text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap line-clamp-2">
+                          {order.commentText}
+                        </p>
+                      </div>
+                    ) : null
                   )}
 
                   {/* Photos (for COMMENT_WITH_PHOTO orders) */}
-                  {order.orderType === "COMMENT_WITH_PHOTO" && order.photoUrls && order.photoUrls.length > 0 && (
+                  {order.orderType === "COMMENT_WITH_PHOTO" && order.photoReviews && order.photoReviews.length > 0 && (
                     <div className="grid grid-cols-6 gap-1">
-                      {order.photoUrls.map((url: string, index: number) => (
-                        <div key={index} className="relative">
-                          <img
-                            src={url}
-                            alt={`Photo ${index + 1}`}
-                            className="w-10 h-10 object-cover rounded border border-zinc-200 dark:border-zinc-700"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ))}
+                      {order.photoReviews.flatMap((review, rIndex) =>
+                        review.photos.map((url: string, pIndex: number) => (
+                          <div key={`${rIndex}-${pIndex}`} className="relative">
+                            <img
+                              src={url}
+                              alt={`Photo ${rIndex + 1}-${pIndex + 1}`}
+                              className="w-10 h-10 object-cover rounded border border-zinc-200 dark:border-zinc-700"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        ))
+                      )}
                     </div>
                   )}
 
