@@ -99,7 +99,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       label: t("nav.finance_billing", { defaultValue: "Finance & Billing" }),
       icon: WalletIcon,
       items: [
-        { href: "/c/wallet", label: t("nav.wallet", { defaultValue: "Wallet" }), icon: WalletIcon },
         { href: "/c/wallet/top-up", label: t("nav.top_up", { defaultValue: "Top-Up" }), icon: PlusCircle },
         { href: "/c/wallet/transactions", label: t("nav.transactions", { defaultValue: "Transactions" }), icon: ArrowLeftRight },
         { href: "/c/billing", label: t("nav.billing_details", { defaultValue: "Billing Details" }), icon: FileText },
