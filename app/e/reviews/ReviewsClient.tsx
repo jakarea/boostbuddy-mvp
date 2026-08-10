@@ -66,7 +66,6 @@ interface ReviewOrder {
 interface EmployeeStats {
   is_available: boolean;
   orders_completed: number;
-  orders_skipped: number;
 }
 
 interface ReviewsData {
@@ -126,8 +125,7 @@ function normalizeServerData(serverData: any): ReviewsData {
   return {
     stats: {
       is_available: serverData.stats.is_available,
-      orders_completed: serverData.stats.orders_completed,
-      orders_skipped: serverData.stats.orders_skipped
+      orders_completed: serverData.stats.orders_completed
     },
     orders: normalizedOrders
   };

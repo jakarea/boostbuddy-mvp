@@ -15,7 +15,6 @@ export type EmployeeStats = {
   userId: string;
   isAvailable: boolean;
   ordersCompleted: number;
-  ordersSkipped: number;
   lastActiveAt: string | null;
 };
 
@@ -174,7 +173,6 @@ export async function createEmployeeAction(data: CreateEmployeeData) {
           user_id: newUser.user.id,
           is_available: true,
           orders_completed: 0,
-          orders_skipped: 0,
           last_active_at: null,
           created_at: now,
           updated_at: now
@@ -637,7 +635,7 @@ export async function getEmployeeStatsAction(employeeId?: string) {
     const supabase = await createClient();
     const { data, error } = await (supabase
       .from("employee_stats") as any)
-      .select("id, user_id, is_available, orders_completed, orders_skipped, last_active_at, created_at, updated_at")
+      .select("id, user_id, is_available, orders_completed, last_active_at, created_at, updated_at")
       .eq("user_id", targetUserId)
       .single();
 
@@ -651,8 +649,7 @@ export async function getEmployeeStatsAction(employeeId?: string) {
         .insert({
           user_id: targetUserId,
           is_available: true,
-          orders_completed: 0,
-          orders_skipped: 0
+          orders_completed: 0
         })
         .select()
         .single();
@@ -665,7 +662,6 @@ export async function getEmployeeStatsAction(employeeId?: string) {
         userId: newStats.user_id,
         isAvailable: newStats.is_available,
         ordersCompleted: newStats.orders_completed,
-        ordersSkipped: newStats.orders_skipped,
         lastActiveAt: newStats.last_active_at,
         createdAt: newStats.created_at,
         updatedAt: newStats.updated_at
@@ -680,7 +676,6 @@ export async function getEmployeeStatsAction(employeeId?: string) {
       userId: data.user_id,
       isAvailable: data.is_available,
       ordersCompleted: data.orders_completed,
-      ordersSkipped: data.orders_skipped,
       lastActiveAt: data.last_active_at,
       createdAt: data.created_at,
       updatedAt: data.updated_at
@@ -729,8 +724,7 @@ export async function toggleAvailabilityAction() {
         .insert({
           user_id: auth.user.id,
           is_available: newAvailability,
-          orders_completed: 0,
-          orders_skipped: 0
+          orders_completed: 0
         });
     }
 
@@ -850,7 +844,7 @@ export async function getEmployeeReviewOrdersAction() {
     // Fetch employee stats
     const { data: stats, error: statsError } = await supabase
       .from("employee_stats")
-      .select("is_available, orders_completed, orders_skipped")
+      .select("is_available, orders_completed")
       .eq("user_id", employeeId)
       .maybeSingle();
 
@@ -912,8 +906,7 @@ export async function getEmployeeReviewOrdersAction() {
     // Return employee stats and orders
     const employeeStats = stats || {
       is_available: true,
-      orders_completed: 0,
-      orders_skipped: 0
+      orders_completed: 0
     };
 
     return {
