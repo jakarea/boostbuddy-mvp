@@ -76,19 +76,9 @@ export const enTemplates: NotificationTemplates = {
     body: (params) => `Your review has been approved by the administrator.`
   },
 
-  REVIEW_REJECTED_ADMIN: {
-    subject: "❌ Review Rejected by Admin",
-    body: (params) => `Your review has been rejected by the administrator. Reason: ${params.reason}`
-  },
-
   REVIEW_APPROVED_EMPLOYEE: {
     subject: "✅ Your Review Was Approved",
     body: (params) => `Great job! Your review has been approved by the administrator.`
-  },
-
-  REVIEW_REJECTED_EMPLOYEE: {
-    subject: "❌ Your Review Was Rejected",
-    body: (params) => `Your review has been rejected. Reason: ${params.reason}`
   },
 
   NEW_ORDER_AVAILABLE: {
@@ -214,19 +204,9 @@ export const itTemplates: NotificationTemplates = {
     body: (params) => `La tua revisione è stata approvata dall'amministratore.`
   },
 
-  REVIEW_REJECTED_ADMIN: {
-    subject: "❌ Revisione rifiutata dall'amministratore",
-    body: (params) => `La tua revisione è stata rifiutata dall'amministratore. Motivo: ${params.reason}`
-  },
-
   REVIEW_APPROVED_EMPLOYEE: {
     subject: "✅ La tua revisione è stata approvata",
     body: (params) => `Ottimo lavoro! La tua revisione è stata approvata dall'amministratore.`
-  },
-
-  REVIEW_REJECTED_EMPLOYEE: {
-    subject: "❌ La tua revisione è stata rifiutata",
-    body: (params) => `La tua revisione è stata rifiutata. Motivo: ${params.reason}`
   },
 
   NEW_ORDER_AVAILABLE: {

@@ -60,7 +60,6 @@ interface ReviewOrder {
   assignedAt?: string;
   proofOfCompletion?: string;
   adminVerificationStatus?: string;
-  rejectionReason?: string;
 }
 
 interface EmployeeStats {
@@ -117,8 +116,7 @@ function normalizeServerData(serverData: any): ReviewsData {
       completedAt: order.completed_at || null,
       assignedAt: order.assigned_at || null,
       proofOfCompletion: order.proof_of_completion || null,
-      adminVerificationStatus: order.admin_verification_status || null,
-      rejectionReason: order.rejection_reason || null
+      adminVerificationStatus: order.admin_verification_status || null
     };
   }) || [];
 
@@ -230,8 +228,7 @@ export function ReviewsClient({ initialData }: ReviewsClientProps) {
             completedAt: order.completed_at || order.completedAt,
             assignedAt: order.assigned_at || order.assignedAt,
             proofOfCompletion: order.proof_of_completion || order.proofOfCompletion,
-            adminVerificationStatus: order.admin_verification_status || order.adminVerificationStatus,
-            rejectionReason: order.rejection_reason || order.rejectionReason
+            adminVerificationStatus: order.admin_verification_status || order.adminVerificationStatus
           };
         }) || [];
 
@@ -524,7 +521,6 @@ export function ReviewsClient({ initialData }: ReviewsClientProps) {
                         : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
                     }`}>
                       <strong>Verification:</strong> {order.adminVerificationStatus.replace("_", " ")}
-                      {order.rejectionReason && ` - ${order.rejectionReason}`}
                     </div>
                   )}
                 </div>

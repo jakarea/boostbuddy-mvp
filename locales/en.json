@@ -971,16 +971,10 @@
       "forClient": "Client: {{name}} ({{email}})",
       "verifying": "Verifying...",
       "approve": "Approve & Send to Client",
-      "reject": "Reject & Request Revision",
       "approveDialog": {
         "title": "Approve Review?",
         "message": "This will notify the client that their review is complete. The employee will be credited with a completed order.",
         "confirm": "Approve"
-      },
-      "rejectDialog": {
-        "title": "Reject Review?",
-        "message": "This will notify the employee to revise and resubmit. The client will not be notified.",
-        "confirm": "Reject"
       },
       "cancelDialog": {
         "back": "Back"
@@ -1118,7 +1112,6 @@
       "review_queue": "Review Queue",
       "audit_history": "Audit & History",
       "completed_reviews": "Completed Reviews",
-      "rejected_reviews": "Rejected Reviews",
       "account": "Account",
       "shared_wallet": "Shared Wallet",
       "notifications": "Notifications"

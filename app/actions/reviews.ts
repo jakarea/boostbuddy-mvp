@@ -575,7 +575,7 @@ export async function getClientReviewOrdersAction(filters?: ReviewOrderFilter) {
     const supabase = await createClient();
     let query = supabase
       .from("review_orders")
-      .select("id, user_id, status, target_rating, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, rejection_reason, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at")
+      .select("id, user_id, status, target_rating, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at")
       .eq("user_id", auth.user.id)
       .order("created_at", { ascending: false });
 
@@ -609,7 +609,6 @@ export async function getClientReviewOrdersAction(filters?: ReviewOrderFilter) {
       completedAt: order.completed_at,
       adminVerificationStatus: order.admin_verification_status,
       adminVerifiedAt: order.admin_verified_at,
-      rejectionReason: order.rejection_reason,
       clientFeedback: order.client_feedback,
       content: order.content,
       commentText: order.comment_text,
@@ -647,7 +646,7 @@ export async function getReviewOrderDetailAction(orderId: string) {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("review_orders")
-      .select("id, user_id, status, target_rating, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, rejection_reason, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at")
+      .select("id, user_id, status, target_rating, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at")
       .eq("id", orderId)
       .eq("user_id", auth.user.id)
       .single();
@@ -674,7 +673,6 @@ export async function getReviewOrderDetailAction(orderId: string) {
       completedAt: data.completed_at,
       adminVerificationStatus: data.admin_verification_status,
       adminVerifiedAt: data.admin_verified_at,
-      rejectionReason: data.rejection_reason,
       clientFeedback: data.client_feedback,
       content: data.content,
       commentText: data.comment_text,

@@ -265,7 +265,7 @@ export async function getAvailableOrdersAction() {
     // OPTIMIZED: Select only needed fields, reduced limit for performance
     const { data: orders, error } = await supabase
       .from("review_orders")
-      .select("id, business_name, review_type, target_rating, review_content, review_instructions, credits_consumed, created_at, rejection_reason, admin_verification_status")
+      .select("id, business_name, review_type, target_rating, review_content, review_instructions, credits_consumed, created_at, admin_verification_status")
       .eq("status", "PENDING")
       .order("created_at", { ascending: true })
       .limit(10);  // Reduced from 20 to 10 for better performance
@@ -285,7 +285,7 @@ export async function getAvailableOrdersAction() {
 
     const skipMap = new Map(skipRecords?.map(s => [s.review_order_id, s]) || []);
 
-    // Normalize field names to camelCase for frontend and add skip/rejection info
+    // Normalize field names to camelCase for frontend
     const normalizedData = orders?.map(order => {
       const skipInfo = skipMap.get(order.id);
       return {
@@ -297,7 +297,6 @@ export async function getAvailableOrdersAction() {
         reviewInstructions: order.review_instructions,
         creditsConsumed: order.credits_consumed,
         createdAt: order.created_at,
-        rejectionReason: order.rejection_reason || null,
         adminVerificationStatus: order.admin_verification_status || null,
         skippedByCurrentUser: !!skipInfo,
         skipReason: skipInfo?.reason || null,
@@ -779,51 +778,6 @@ export async function getEmployeeOrderHistoryAction(limit: number = 50) {
 }
 
 /**
- * Get employee's reviews by admin verification status
- */
-export async function getEmployeeReviewsByStatusAction(verificationStatus: "APPROVED" | "REJECTED") {
-  try {
-    const auth = await requireAuth();
-    if (!auth.success) return auth;
-
-    if (auth.user.role !== 'EMPLOYEE') {
-      return { success: false, error: "Unauthorized - Employee only" };
-    }
-
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("review_orders")
-      .select("id, business_name, review_type, target_rating, credits_consumed, status, assigned_at, completed_at, proof_of_completion, created_at, admin_verification_status, admin_verified_at")
-      .eq("assigned_employee_id", auth.user.id)
-      .eq("status", "COMPLETED")
-      .eq("admin_verification_status", verificationStatus)
-      .order("completed_at", { ascending: false });
-
-    if (error) throw error;
-
-    // Normalize field names to camelCase for frontend
-    const normalizedData = data?.map(order => ({
-      id: order.id,
-      businessName: order.business_name,
-      reviewType: order.review_type,
-      targetRating: order.target_rating,
-      creditsConsumed: order.credits_consumed,
-      status: order.status,
-      assignedAt: order.assigned_at,
-      completedAt: order.completed_at,
-      proofOfCompletion: order.proof_of_completion,
-      createdAt: order.created_at,
-      adminVerificationStatus: order.admin_verification_status,
-      adminVerifiedAt: order.admin_verified_at
-    })) || [];
-
-    return { success: true, data: normalizedData };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-}
-
-/**
  * Get all review orders visible to employee:
  * - All PENDING orders (available to accept)
  * - Their own IN_PROGRESS, COMPLETED, CANCELLED orders
@@ -862,7 +816,7 @@ export async function getEmployeeReviewOrdersAction() {
     // Fetch employee's own assigned orders (IN_PROGRESS, COMPLETED, CANCELLED)
     const { data: assignedOrders, error: assignedError } = await supabase
       .from("review_orders")
-      .select("id, business_name, business_url, review_type, target_rating, review_content, review_instructions, credits_consumed, status, created_at, updated_at, completed_at, assigned_at, proof_of_completion, admin_verification_status, rejection_reason")
+      .select("id, business_name, business_url, review_type, target_rating, review_content, review_instructions, credits_consumed, status, created_at, updated_at, completed_at, assigned_at, proof_of_completion, admin_verification_status")
       .eq("assigned_employee_id", employeeId)
       .in("status", ["IN_PROGRESS", "COMPLETED", "CANCELLED"])
       .order("created_at", { ascending: false });

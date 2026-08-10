@@ -1111,16 +1111,10 @@
       "forClient": "Cliente: {{name}} ({{email}})",
       "verifying": "Verifica...",
       "approve": "Approva e Invia al Cliente",
-      "reject": "Rifiuta e Richiedi Revisione",
       "approveDialog": {
         "title": "Approvare Recensione?",
         "message": "Questo notificherà il cliente che la loro recensione è completa. Il dipendente verrà accreditato con un ordine completato.",
         "confirm": "Approva"
-      },
-      "rejectDialog": {
-        "title": "Rifiutare Recensione?",
-        "message": "Questo notificherà il dipendente di revisionare e reinviare. Il cliente non verrà notificato.",
-        "confirm": "Rifiuta"
       },
       "cancelDialog": {
         "back": "Indietro"
@@ -1346,7 +1340,6 @@
       "review_queue": "Coda Recensioni",
       "audit_history": "Audit & Cronologia",
       "completed_reviews": "Recensioni Completate",
-      "rejected_reviews": "Recensioni Rifiutate",
       "account": "Account",
       "shared_wallet": "Portafoglio Condiviso",
       "notifications": "Notifiche"

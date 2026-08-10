@@ -27,7 +27,6 @@ export function normalizeDbRecord<T extends Record<string, any>>(record: T): T {
     assigned_employee_id: 'assignedEmployeeId',
     admin_verification_status: 'adminVerificationStatus',
     admin_verified_at: 'adminVerifiedAt',
-    rejection_reason: 'rejectionReason',
     created_at: 'createdAt',
     updated_at: 'updatedAt',
     stripe_session_id: 'stripeSessionId',

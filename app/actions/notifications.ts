@@ -23,7 +23,6 @@ function getDefaultPriority(type: string): "HIGH" | "MEDIUM" | "LOW" {
     "ORDER_CANCELLED",
     "ORDER_ACCEPTED",
     "REVIEW_APPROVED",
-    "REVIEW_REJECTED",
     "ORDER_IN_PROGRESS"
   ];
 

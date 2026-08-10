@@ -204,9 +204,8 @@ model ReviewOrder {
   completedAt           DateTime? @map("completed_at")
 
   // Admin Verification
-  adminVerificationStatus String?  @map("admin_verification_status") // "PENDING", "APPROVED", "REJECTED"
+  adminVerificationStatus String?  @map("admin_verification_status") // "APPROVED"
   adminVerifiedAt          DateTime? @map("admin_verified_at")
-  rejectionReason          String?   @map("rejection_reason") // Reason for rejection
 
   @@index([status])
   @@index([assignedEmployeeId])

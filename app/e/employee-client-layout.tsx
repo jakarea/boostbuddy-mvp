@@ -64,7 +64,6 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
       icon: ClipboardCheck,
       items: [
         { href: "/e/reviews/completed", label: t("nav.completed_reviews", { defaultValue: "Completed Reviews" }), icon: ClipboardCheck },
-        { href: "/e/reviews/rejected", label: t("nav.rejected_reviews", { defaultValue: "Rejected Reviews" }), icon: X },
       ],
     },
     // 📂 NOTIFICATIONS

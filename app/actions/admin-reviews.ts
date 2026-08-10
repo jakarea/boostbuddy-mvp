@@ -125,7 +125,6 @@ export async function getAllReviewOrdersAction(filters?: ReviewOrderFilter) {
         completedAt: order.completed_at,
         adminVerificationStatus: order.admin_verification_status,
         adminVerifiedAt: order.admin_verified_at,
-        rejectionReason: order.rejection_reason,
         clientFeedback: order.client_feedback,
         content: order.content,
         commentText: order.comment_text,
@@ -536,92 +535,6 @@ export async function getPendingOrdersQueueAction() {
     })) || [];
 
     return { success: true, data: normalizedData };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Verify completed review (admin only)
- * Admin can only approve reviews - rejection is not allowed
- */
-export async function verifyCompletedReviewAction(orderId: string, approved: boolean, rejectionReason?: string) {
-  try {
-    const auth = await requireAuth({ role: 'ADMIN' });
-    if (!auth.success) return auth;
-
-    const now = new Date().toISOString();
-    const supabase = await createAdminClient();
-
-    // Get order details with client and employee emails
-    const { data: order } = await supabase
-      .from("review_orders")
-      .select("id, status, user_id, assigned_employee_id, business_name, users:user_id(email), employees:assigned_employee_id(email)")
-      .eq("id", orderId)
-      .single() as any;
-
-    if (!order) {
-      return { success: false, error: "Order not found" };
-    }
-
-    if (order.status !== "COMPLETED") {
-      return { success: false, error: "Order must be completed to verify" };
-    }
-
-    const clientEmail = (order.users as any)?.email || order.user_id;
-    const employeeEmail = (order.employees as any)?.email || null;
-
-    // Always approve - admin can only check/approve, not reject
-    // If someone tries to reject, we still approve
-    const { error: updateError } = await (supabase
-      .from("review_orders") as any)
-      .update({
-        admin_verification_status: "APPROVED",
-        admin_verified_at: now,
-        updated_at: now
-      })
-      .eq("id", orderId);
-
-    if (updateError) throw updateError;
-
-    // Send notification to client
-    try {
-      const { sendNotificationAction } = await import("./notifications");
-      await sendNotificationAction(
-        clientEmail,
-        "✅ Review Approved by Admin",
-        `Your review for ${order.business_name} has been approved by our quality team.`,
-        "TELEGRAM",
-        "REVIEWS_REVIEW_VERIFIED",
-        "HIGH",  // Priority: Time-sensitive decision notification
-        orderId   // Related order ID for context
-      );
-    } catch (notifError) {
-      console.warn("Failed to send notification:", notifError);
-    }
-
-    // Send notification to employee
-    if (employeeEmail) {
-      try {
-        const { sendNotificationAction } = await import("./notifications");
-        await sendNotificationAction(
-          employeeEmail,
-          "✅ Your Review Was Approved",
-          `Your submitted review for ${order.business_name} has been approved by the admin. Great work!`,
-          "TELEGRAM",
-          "EMPLOYEE_REVIEW_APPROVED",
-          "HIGH",  // Priority: Time-sensitive for employee performance
-          orderId   // Related order ID for context
-        );
-      } catch (notifError) {
-        console.warn("Failed to send employee notification:", notifError);
-      }
-    }
-
-    revalidatePath("/a/reviews");
-    revalidatePath("/c/services/reviews/orders");
-
-    return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
