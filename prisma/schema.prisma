@@ -32,7 +32,6 @@ model User {
   creditTransactions  CreditTransaction[]
   reviewOrdersAsClient      ReviewOrder[]       @relation("ReviewOrderClient")
   reviewOrdersAsEmployee   ReviewOrder[]       @relation("ReviewOrderEmployee")
-  skippedReviews            SkippedReview[]
   employeeStats             EmployeeStats?
   notifications             Notification[]
   notificationLogs           NotificationLog[]
@@ -216,18 +215,6 @@ model ReviewOrder {
   @@index([adminVerificationStatus])
 }
 
-model SkippedReview {
-  id              String   @id @default(uuid())
-  employeeId      String
-  employee        User     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  reviewOrderId   String
-  reason          String?  // Optional reason for skipping
-  createdAt       DateTime @default(now())
-
-  @@unique([employeeId, reviewOrderId])  // Prevent duplicate skips
-  @@index([reviewOrderId])               // For querying which employees skipped what
-}
-
 model EmployeeStats {
   id              String   @id @default(uuid())
   userId          String   @unique
@@ -238,7 +225,6 @@ model EmployeeStats {
 
   // Performance Tracking
   ordersCompleted Int      @default(0)
-  ordersSkipped   Int      @default(0)
   lastActiveAt    DateTime?
 
   // Timestamps
