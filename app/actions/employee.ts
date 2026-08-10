@@ -876,6 +876,53 @@ export async function getEmployeeReviewOrdersAction() {
 }
 
 /**
+ * Get employee's completed reviews
+ */
+export async function getEmployeeCompletedReviewsAction() {
+  try {
+    const auth = await requireAuth();
+    if (!auth.success) return auth;
+
+    if (auth.user.role !== 'EMPLOYEE') {
+      return { success: false, error: "Unauthorized - Employee only" };
+    }
+
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("review_orders")
+      .select("id, business_name, business_url, review_type, target_rating, review_content, review_instructions, credits_consumed, status, assigned_at, completed_at, proof_of_completion, admin_verification_status, admin_verified_at, created_at")
+      .eq("assigned_employee_id", auth.user.id)
+      .eq("status", "COMPLETED")
+      .order("completed_at", { ascending: false });
+
+    if (error) throw error;
+
+    // Normalize field names to camelCase for frontend
+    const normalizedData = data?.map(order => ({
+      id: order.id,
+      businessName: order.business_name,
+      businessUrl: order.business_url || null,
+      reviewType: order.review_type,
+      targetRating: order.target_rating,
+      reviewContent: order.review_content,
+      reviewInstructions: order.review_instructions,
+      creditsConsumed: order.credits_consumed,
+      status: order.status,
+      assignedAt: order.assigned_at,
+      completedAt: order.completed_at,
+      proofOfCompletion: order.proof_of_completion,
+      adminVerificationStatus: order.admin_verification_status,
+      adminVerifiedAt: order.admin_verified_at,
+      createdAt: order.created_at
+    })) || [];
+
+    return { success: true, data: normalizedData };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Mark an assigned review order as complete and submit proof
  */
 export async function completeReviewAction(orderId: string, proofOfCompletion: string) {

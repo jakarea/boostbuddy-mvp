@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
-import { getEmployeeReviewsByStatusAction } from "@/app/actions/employee";
+import { getEmployeeCompletedReviewsAction } from "@/app/actions/employee";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { CheckCircle, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatDateTime, safeDateDisplay } from "@/lib/dateUtils";
@@ -61,7 +61,7 @@ export default function EmployeeCompletedReviewsPage() {
 
     const loadData = async () => {
       try {
-        const result = await getEmployeeReviewsByStatusAction("APPROVED");
+        const result = await getEmployeeCompletedReviewsAction();
 
         if (result.success && result.data) {
           setAllReviews(result.data);
