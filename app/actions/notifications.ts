@@ -319,7 +319,8 @@ export async function getClientNotificationsAction() {
       .from("notification_logs")
       .select("id, recipient, subject, body, type, channel, status, priority, is_read, created_at, related_order_id")
       .eq("user_id", auth.user.id)  // Use user_id for more efficient filtering
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(100);  // Limit to prevent slow queries with many notifications
     if (error && error.code !== "PGRST204" && error.code !== "42P01") throw error;
     return { success: true, data: data || [] };
   } catch (error: unknown) {

@@ -29,7 +29,7 @@ export async function getEmployeeDashboardDataAction() {
       // Employee stats - all needed fields
       supabase
         .from("employee_stats")
-        .select("is_available, orders_completed, orders_skipped")
+        .select("is_available, orders_completed")
         .eq("user_id", employeeId)
         .maybeSingle(),
 
@@ -44,7 +44,7 @@ export async function getEmployeeDashboardDataAction() {
       // Current assignments - all fields needed for display
       supabase
         .from("review_orders")
-        .select("id, business_name, review_type, target_rating, review_content, review_instructions, assigned_at, status, created_at")
+        .select("id, business_name, review_type, target_rating, review_content, review_instructions, assigned_at, status, created_at, credits_consumed, business_url")
         .eq("assigned_employee_id", employeeId)
         .eq("status", "IN_PROGRESS")
         .order("assigned_at", { ascending: false })
@@ -58,19 +58,14 @@ export async function getEmployeeDashboardDataAction() {
     console.log(`📋 Available:`, availableResult.data?.length || 0);
     console.log(`🔧 Assignments:`, assignmentsResult.data?.length || 0);
 
-    // Return default stats if none exist (convert to camelCase)
-    const employeeStats = statsResult.data || {
-      isAvailable: true,
-      ordersCompleted: 0,
-      ordersSkipped: 0
-    };
-
     // Convert stats to camelCase for client
     const camelStats = statsResult.data ? {
       isAvailable: statsResult.data.is_available,
-      ordersCompleted: statsResult.data.orders_completed,
-      ordersSkipped: statsResult.data.orders_skipped
-    } : employeeStats;
+      ordersCompleted: statsResult.data.orders_completed
+    } : {
+      isAvailable: true,
+      ordersCompleted: 0
+    };
 
     // Convert all data to plain objects with camelCase (no Date objects)
     const plainData = {
@@ -98,7 +93,9 @@ export async function getEmployeeDashboardDataAction() {
           targetRating: assignment.target_rating,
           assignedAt: assignment.assigned_at,
           createdAt: assignment.created_at,
-          status: assignment.status
+          status: assignment.status,
+          creditsConsumed: assignment.credits_consumed || 0,
+          businessUrl: assignment.business_url || null
         }))
       }
     };
