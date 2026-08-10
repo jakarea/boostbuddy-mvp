@@ -21,12 +21,6 @@ interface ReviewOrder {
   clientEmail?: string;
   assignedEmployeeId?: string;
   employeeName?: string;
-  skips?: Array<{
-    employeeId: string;
-    employeeName?: string;
-    reason: string;
-    createdAt: string;
-  }>;
 }
 
 interface Employee {

@@ -10,7 +10,6 @@ interface EmployeePerformance {
   isActive: boolean;
   acceptingOrders: boolean;
   ordersCompleted: number;
-  ordersSkipped: number;
   lastActiveAt: string;
   createdAt: string;
 }
@@ -47,7 +46,6 @@ export default async function AdminReviewsEmployeesPage({ searchParams }: PagePr
       isActive: emp.is_active ?? emp.isActive ?? true,
       acceptingOrders: emp.accepting_orders ?? emp.acceptingOrders ?? true,
       ordersCompleted: emp.orders_completed || emp.ordersCompleted || 0,
-      ordersSkipped: emp.orders_skipped || emp.ordersSkipped || 0,
       lastActiveAt: emp.last_active_at || emp.lastActiveAt,
       createdAt: emp.created_at || emp.createdAt,
     })) || [];

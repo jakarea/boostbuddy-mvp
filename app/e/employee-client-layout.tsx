@@ -8,7 +8,6 @@ import {
   ClipboardCheck,
   X,
   Bell,
-  Wallet,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -68,15 +67,12 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
         { href: "/e/reviews/rejected", label: t("nav.rejected_reviews", { defaultValue: "Rejected Reviews" }), icon: X },
       ],
     },
-    // 📂 ACCOUNT
+    // 📂 NOTIFICATIONS
     {
-      id: "account",
-      label: t("nav.account", { defaultValue: "Account" }),
+      id: "notifications",
+      label: t("nav.notifications", { defaultValue: "Notifications" }),
       icon: Bell,
-      items: [
-        { href: "/wallet", label: t("nav.shared_wallet", { defaultValue: "Shared Wallet" }), icon: Wallet },
-        { href: "/e/notifications", label: t("nav.notifications", { defaultValue: "Notifications" }), icon: Bell },
-      ],
+      href: "/e/notifications",
     },
   ];
 

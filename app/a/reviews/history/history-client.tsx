@@ -526,10 +526,17 @@ export default function HistoryClient({ initialOrders, totalCount }: HistoryClie
               {selectedOrder.proofOfCompletion && (
                 <div>
                   <h4 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-1">
-                    {t("history.proof", "Proof of Completion")}
+                    {t("history.proof", "Review URL")}
                   </h4>
                   <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3 text-sm">
-                    <p className="whitespace-pre-wrap">{selectedOrder.proofOfCompletion}</p>
+                    <a
+                      href={selectedOrder.proofOfCompletion}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#168BB0] hover:underline break-all"
+                    >
+                      {selectedOrder.proofOfCompletion}
+                    </a>
                   </div>
                 </div>
               )}

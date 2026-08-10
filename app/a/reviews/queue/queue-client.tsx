@@ -49,12 +49,6 @@ interface ReviewOrder {
   clientEmail?: string;
   assignedEmployeeId?: string;
   employeeName?: string;
-  skips?: Array<{
-    employeeId: string;
-    employeeName?: string;
-    reason: string;
-    createdAt: string;
-  }>;
 }
 
 interface Employee {
@@ -376,29 +370,6 @@ export default function QueueClient({
                       <p className="text-[11px] text-blue-600 dark:text-blue-400">
                         {order.reviewInstructions}
                       </p>
-                    </div>
-                  )}
-
-                  {/* Skips by employees (admin only) */}
-                  {order.skips && order.skips.length > 0 && (
-                    <div className="bg-yellow-50 dark:bg-yellow-900/10 rounded px-1.5 py-1 border border-yellow-200 dark:border-yellow-800">
-                      <p className="text-[10px] text-yellow-700 dark:text-yellow-300 font-medium mb-1">
-                        Skipped ({order.skips.length})
-                      </p>
-                      <div className="space-y-0.5">
-                        {order.skips.map((skip, idx) => (
-                          <div key={idx} className="text-[10px] bg-yellow-100 dark:bg-yellow-900/20 px-1 py-0.5 rounded">
-                            <div className="flex justify-between items-center">
-                              <span className="font-medium text-yellow-800 dark:text-yellow-200">
-                                {skip.employeeName || skip.employeeId}
-                              </span>
-                              <span className="text-yellow-600 dark:text-yellow-400">
-                                {formatDateShort(skip.createdAt)}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
                     </div>
                   )}
 

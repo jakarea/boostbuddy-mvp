@@ -26,7 +26,6 @@ interface OverviewStats {
   totalRevenue: number;
   totalEmployees: number;
   employeeCompleted: number;
-  employeeSkipped: number;
 }
 
 export default function AdminReviewsPage() {
@@ -184,7 +183,7 @@ export default function AdminReviewsPage() {
       </div>
 
       {/* Employee Performance Summary */}
-      {stats && (stats.employeeCompleted > 0 || stats.employeeSkipped > 0) && (
+      {stats && stats.employeeCompleted > 0 && (
         <Card className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 border-emerald-200 dark:border-emerald-800">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
@@ -195,9 +194,8 @@ export default function AdminReviewsPage() {
                 {t("employeePerformance.title", "Employee Performance")}
               </p>
               <p className="text-xs text-zinc-500">
-                {t("employeePerformance.summary", "{{completed}} completed, {{skipped}} skipped", {
-                  completed: stats.employeeCompleted,
-                  skipped: stats.employeeSkipped
+                {t("employeePerformance.summary", "{{completed}} orders completed", {
+                  completed: stats.employeeCompleted
                 })}
               </p>
             </div>

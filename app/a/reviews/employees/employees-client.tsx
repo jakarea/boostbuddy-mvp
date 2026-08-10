@@ -54,7 +54,6 @@ interface EmployeePerformance {
   isActive: boolean;
   acceptingOrders: boolean;
   ordersCompleted: number;
-  ordersSkipped: number;
   lastActiveAt: string;
   createdAt: string;
 }
@@ -74,7 +73,7 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
   const [employees, setEmployees] = useState<EmployeePerformance[]>(initialEmployees);
   const [localTotalCount, setLocalTotalCount] = useState(totalCount);
   const [isLoading, setIsLoading] = useState(false);
-  const [sortBy, setSortBy] = useState<"completed" | "skipped" | "recent">("completed");
+  const [sortBy, setSortBy] = useState<"completed" | "recent">("completed");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [invitePending, startInviteTransition] = useTransition();
   const initialSearchTerm = searchParams.get('search') || '';
@@ -113,8 +112,6 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
     switch (sortBy) {
       case "completed":
         return sorted.sort((a, b) => b.ordersCompleted - a.ordersCompleted);
-      case "skipped":
-        return sorted.sort((a, b) => b.ordersSkipped - a.ordersSkipped);
       case "recent":
         return sorted.sort((a, b) =>
           new Date(b.lastActiveAt || 0).getTime() - new Date(a.lastActiveAt || 0).getTime()
@@ -237,12 +234,6 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
     }
   };
 
-  const getCompletionRate = (completed: number, skipped: number) => {
-    const total = completed + skipped;
-    if (total === 0) return "0%";
-    return Math.round((completed / total) * 100) + "%";
-  };
-
   const isActiveRecently = (lastActiveAt: string | undefined) => {
     if (!lastActiveAt) return false;
     const lastActive = new Date(lastActiveAt);
@@ -294,14 +285,6 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
               className="h-6 text-[10px] px-2"
             >
               {t("employees.sort.completed", "Completed")}
-            </Button>
-            <Button
-              size="sm"
-              variant={sortBy === "skipped" ? "default" : "outline"}
-              onClick={() => setSortBy("skipped")}
-              className="h-6 text-[10px] px-2"
-            >
-              {t("employees.sort.skipped", "Skipped")}
             </Button>
             <Button
               size="sm"
@@ -416,26 +399,6 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
                   </div>
                   <p className="text-[10px] text-zinc-600 dark:text-zinc-400">
                     {t("employees.completed", "Done")}
-                  </p>
-                </div>
-                <div className="text-center px-1.5 py-1 bg-yellow-500/10 dark:bg-yellow-950/20 rounded">
-                  <div className="flex items-center justify-center gap-0.5 text-yellow-600 dark:text-yellow-400">
-                    <AlertTriangle className="h-2.5 w-2.5" />
-                    <span className="text-sm font-bold">{employee.ordersSkipped}</span>
-                  </div>
-                  <p className="text-[10px] text-zinc-600 dark:text-zinc-400">
-                    {t("employees.skipped", "Skip")}
-                  </p>
-                </div>
-                <div className="text-center px-1.5 py-1 bg-[#168BB0]/10 dark:bg-blue-950/20 rounded">
-                  <div className="flex items-center justify-center gap-0.5 text-[#168BB0] dark:text-[#45B0D2]">
-                    <TrendingUp className="h-2.5 w-2.5" />
-                    <span className="text-sm font-bold">
-                      {getCompletionRate(employee.ordersCompleted, employee.ordersSkipped)}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-zinc-600 dark:text-zinc-400">
-                    {t("employees.rate", "Rate")}
                   </p>
                 </div>
               </div>
@@ -616,20 +579,6 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
               </p>
               <p className="text-[10px] text-zinc-600 dark:text-zinc-400">
                 {t("employees.summary.totalCompleted", "Completed")}
-              </p>
-            </div>
-            <div>
-              <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">
-                {employees.length > 0
-                  ? Math.round(
-                      employees.reduce((sum, e) => sum + (e.ordersCompleted + e.ordersSkipped > 0
-                        ? (e.ordersCompleted / (e.ordersCompleted + e.ordersSkipped)) * 100
-                        : 0), 0) / employees.length
-                    )
-                  : 0}%
-              </p>
-              <p className="text-[10px] text-zinc-600 dark:text-zinc-400">
-                {t("employees.summary.avgRate", "Avg Rate")}
               </p>
             </div>
           </div>

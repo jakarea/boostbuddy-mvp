@@ -501,89 +501,6 @@ export async function acceptOrderAction(orderId: string) {
 }
 
 /**
- * Skip an available review order with reason
- */
-export async function skipOrderAction(orderId: string, reason: string) {
-  try {
-    const auth = await requireAuth();
-    if (!auth.success) return auth;
-
-    if (auth.user.role !== 'EMPLOYEE') {
-      return { success: false, error: "Unauthorized - Employee only" };
-    }
-
-    if (!reason || reason.trim().length === 0) {
-      return { success: false, error: "Reason is required" };
-    }
-
-    const now = new Date().toISOString();
-
-    const supabase = await createAdminClient();
-
-    // Check if order is still available
-    const { data: order } = await supabase
-      .from("review_orders")
-      .select("id, status")
-      .eq("id", orderId)
-      .eq("status", "PENDING")
-      .single();
-
-    if (!order) {
-      return { success: false, error: "Order not available" };
-    }
-
-    // Record skip
-    const { error: skipError } = await (supabase
-      .from("skipped_reviews") as any)
-      .insert({
-        employee_id: auth.user.id,
-        review_order_id: orderId,
-        reason: reason
-      });
-
-    if (skipError) throw skipError;
-
-    // Update employee stats
-    const { data: stats } = await (supabase
-      .from("employee_stats") as any)
-      .select("orders_skipped")
-      .eq("user_id", auth.user.id)
-      .single();
-
-    const newSkipCount = (stats?.orders_skipped || 0) + 1;
-
-    await (supabase
-      .from("employee_stats") as any)
-      .update({
-        orders_skipped: newSkipCount,
-        last_active_at: now
-      })
-      .eq("user_id", auth.user.id);
-
-    // Send Telegram notification
-    try {
-      const { sendNotificationAction } = await import("./notifications");
-      await sendNotificationAction(
-        auth.user.email,
-        "📝 Review Order Skipped",
-        `You have skipped a review order. Reason: ${reason}`,
-        "TELEGRAM",
-        "EMPLOYEE_ORDER_SKIPPED",
-        "MEDIUM",  // Priority: Employee action, not time-sensitive
-        orderId   // Related order ID for context
-      );
-    } catch (notifError) {
-      console.warn("Failed to send notification:", notifError);
-    }
-
-    revalidatePath("/e/dashboard");
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-}
-
-/**
  * Submit completed review with proof
  */
 export async function submitCompletedReviewAction(orderId: string, proof: string) {
@@ -666,7 +583,7 @@ export async function submitCompletedReviewAction(orderId: string, proof: string
       await sendNotificationAction(
         auth.user.email,
         "🎉 Review Completed Successfully",
-        `Your review has been submitted successfully and marked as complete.`,
+        `Your review has been completed successfully.`,
         "TELEGRAM",
         "EMPLOYEE_REVIEW_COMPLETED",
         "HIGH",  // Priority: Major milestone, real-time confirmation
@@ -1046,6 +963,27 @@ export async function completeReviewAction(orderId: string, proofOfCompletion: s
     }
 
     const now = new Date().toISOString();
+    let clientEmail: string | null = null;
+    let businessName: string = "";
+
+    // Get client info for notifications
+    const { data: orderInfo } = await (supabase
+      .from("review_orders") as any)
+      .select("user_id, business_name")
+      .eq("id", orderId)
+      .single();
+
+    if (orderInfo) {
+      businessName = orderInfo.business_name || "";
+      if (orderInfo.user_id) {
+        const { data: clientData } = await (supabase
+          .from("users") as any)
+          .select("email")
+          .eq("id", orderInfo.user_id)
+          .single();
+        clientEmail = clientData?.email || null;
+      }
+    }
 
     // Update order status and add proof (auto-approved)
     const { error: updateError } = await (supabase
@@ -1085,7 +1023,41 @@ export async function completeReviewAction(orderId: string, proofOfCompletion: s
       console.error("Failed to update employee stats:", statsError);
     }
 
-    return { success: true, data: { message: "Review marked as complete and submitted for verification" } };
+    // Send Telegram notification to the employee
+    try {
+      const { sendNotificationAction } = await import("./notifications");
+      await sendNotificationAction(
+        auth.user.email,
+        "🎉 Review Completed Successfully",
+        `Your review has been completed successfully.`,
+        "TELEGRAM",
+        "EMPLOYEE_REVIEW_COMPLETED",
+        "HIGH",
+        orderId
+      );
+    } catch (notifError) {
+      console.warn("Failed to send notification:", notifError);
+    }
+
+    // Notify the client that their review is completed
+    if (clientEmail) {
+      try {
+        const { sendNotificationAction } = await import("./notifications");
+        await sendNotificationAction(
+          clientEmail,
+          "✅ Review Completed",
+          `Your review for ${businessName} has been completed.`,
+          "TELEGRAM",
+          "REVIEWS_REVIEW_COMPLETED",
+          "MEDIUM",
+          orderId
+        );
+      } catch (clientNotifError) {
+        console.warn("Failed to send client notification:", clientNotifError);
+      }
+    }
+
+    return { success: true, data: { message: "Review marked as complete" } };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

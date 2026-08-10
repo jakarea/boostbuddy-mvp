@@ -106,34 +106,10 @@ export async function getAllReviewOrdersAction(filters?: ReviewOrderFilter) {
     if (countError) throw countError;
     if (error) throw error;
 
-    // Get skip information for the current page orders only
-    const orderIds = orders?.map(o => o.id) || [];
-    let skipsMap = new Map<string, any[]>();
-
-    if (orderIds.length > 0) {
-      const { data: skips } = await supabase
-        .from("skipped_reviews")
-        .select("review_order_id, employee_id, reason, created_at, users:employee_id(name)")
-        .in("review_order_id", orderIds);
-
-      for (const skip of skips || []) {
-        if (!skipsMap.has(skip.review_order_id)) {
-          skipsMap.set(skip.review_order_id, []);
-        }
-        skipsMap.get(skip.review_order_id)!.push({
-          employeeId: skip.employee_id,
-          employeeName: (skip.users as any)?.name || null,
-          reason: skip.reason,
-          createdAt: skip.created_at
-        });
-      }
-    }
-
-    // Attach skip information to orders and normalize field names
+    // Normalize field names from snake_case to camelCase
     const ordersWithSkips = orders?.map((order: any) => {
       const normalizedOrder = {
         ...order,
-        skips: skipsMap.get(order.id) || [],
         // Normalize database column names from snake_case to camelCase
         targetRating: order.target_rating,
         facebookUrl: order.facebook_url,
@@ -567,7 +543,7 @@ export async function getPendingOrdersQueueAction() {
 
 /**
  * Verify completed review (admin only)
- * When rejected with reason, order becomes PENDING again and available for all employees
+ * Admin can only approve reviews - rejection is not allowed
  */
 export async function verifyCompletedReviewAction(orderId: string, approved: boolean, rejectionReason?: string) {
   try {
@@ -595,46 +571,26 @@ export async function verifyCompletedReviewAction(orderId: string, approved: boo
     const clientEmail = (order.users as any)?.email || order.user_id;
     const employeeEmail = (order.employees as any)?.email || null;
 
-    // Update order based on approval/rejection
-    if (approved) {
-      // Approve: Set admin verification status to APPROVED
-      const { error: updateError } = await (supabase
-        .from("review_orders") as any)
-        .update({
-          admin_verification_status: "APPROVED",
-          admin_verified_at: now,
-          updated_at: now
-        })
-        .eq("id", orderId);
+    // Always approve - admin can only check/approve, not reject
+    // If someone tries to reject, we still approve
+    const { error: updateError } = await (supabase
+      .from("review_orders") as any)
+      .update({
+        admin_verification_status: "APPROVED",
+        admin_verified_at: now,
+        updated_at: now
+      })
+      .eq("id", orderId);
 
-      if (updateError) throw updateError;
-    } else {
-      // Reject: Reset to PENDING, remove assignment, save rejection reason
-      const { error: updateError } = await (supabase
-        .from("review_orders") as any)
-        .update({
-          status: "PENDING",
-          assigned_employee_id: null,
-          assigned_at: null,
-          admin_verification_status: "REJECTED",
-          admin_verified_at: now,
-          rejection_reason: rejectionReason || "",
-          updated_at: now
-        })
-        .eq("id", orderId);
-
-      if (updateError) throw updateError;
-    }
+    if (updateError) throw updateError;
 
     // Send notification to client
     try {
       const { sendNotificationAction } = await import("./notifications");
       await sendNotificationAction(
         clientEmail,
-        approved ? "✅ Review Approved by Admin" : "❌ Review Rejected by Admin",
-        approved
-          ? `Your review for ${order.business_name} has been approved by our quality team.`
-          : `Your review for ${order.business_name} did not meet our quality standards. Please revise and resubmit.`,
+        "✅ Review Approved by Admin",
+        `Your review for ${order.business_name} has been approved by our quality team.`,
         "TELEGRAM",
         "REVIEWS_REVIEW_VERIFIED",
         "HIGH",  // Priority: Time-sensitive decision notification
@@ -650,12 +606,10 @@ export async function verifyCompletedReviewAction(orderId: string, approved: boo
         const { sendNotificationAction } = await import("./notifications");
         await sendNotificationAction(
           employeeEmail,
-          approved ? "✅ Your Review Was Approved" : "❌ Your Review Was Rejected",
-          approved
-            ? `Your submitted review for ${order.business_name} has been approved by the admin. Great work!`
-            : `Your submitted review for ${order.business_name} was rejected and returned to the queue. Reason: ${rejectionReason || "Not specified"}`,
+          "✅ Your Review Was Approved",
+          `Your submitted review for ${order.business_name} has been approved by the admin. Great work!`,
           "TELEGRAM",
-          approved ? "EMPLOYEE_REVIEW_APPROVED" : "EMPLOYEE_REVIEW_REJECTED",
+          "EMPLOYEE_REVIEW_APPROVED",
           "HIGH",  // Priority: Time-sensitive for employee performance
           orderId   // Related order ID for context
         );
@@ -705,8 +659,7 @@ export async function getReviewsOverviewAction() {
         completedOrders: completedOrders.count || 0,
         totalRevenue: totalRevenue,
         totalEmployees: employeeStats.count || 0,
-        employeeCompleted: 0,
-        employeeSkipped: 0
+        employeeCompleted: 0
       }
     };
   } catch (error: any) {
