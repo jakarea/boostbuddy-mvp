@@ -9,9 +9,10 @@ import { createEmployeeAction } from "@/app/actions/employee";
 
 interface EmployeeFormProps {
   onCancel: () => void;
+  onRefresh?: () => void;
 }
 
-export default function EmployeeForm({ onCancel }: EmployeeFormProps) {
+export default function EmployeeForm({ onCancel, onRefresh }: EmployeeFormProps) {
   const { t } = useTranslation("admin_employees");
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -71,6 +72,7 @@ export default function EmployeeForm({ onCancel }: EmployeeFormProps) {
       });
 
       if (result.success) {
+        onRefresh?.(); // Refresh cache
         onCancel(); // Go back to list
         // Optionally show success message
       } else {

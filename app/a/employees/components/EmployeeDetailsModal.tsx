@@ -17,11 +17,13 @@ import { ArrowLeft, Check, UserCheck, Loader2, ShieldCheck, Shield, UserCog, Zap
 interface EmployeeDetailsModalProps {
   employee: EmployeeUser;
   onClose: () => void;
+  onRefresh?: () => void;
 }
 
 export default function EmployeeDetailsModal({
   employee,
   onClose,
+  onRefresh,
 }: EmployeeDetailsModalProps) {
   const { t } = useTranslation("admin_employees");
   const { success, error } = useToast();
@@ -54,6 +56,7 @@ export default function EmployeeDetailsModal({
       const result = await updateClientNotesAction(employee.id, adminNotes);
       if (result.success) {
         success(t("alert_notes_success", { defaultValue: "Notes saved successfully" }));
+        onRefresh?.();
       } else {
         error(result.error || t("alert_notes_failed", { defaultValue: "Failed to save notes" }));
       }
@@ -67,6 +70,7 @@ export default function EmployeeDetailsModal({
     startTransition(async () => {
       const newStatus = checked ? "ACTIVE" : "DEACTIVATED";
       await updateClientStatusAction(employee.id, newStatus);
+      onRefresh?.();
       router.refresh();
     });
   };
@@ -81,6 +85,7 @@ export default function EmployeeDetailsModal({
       if (result.success) {
         setUserRole(newRole);
         success(t("alert_role_success", { defaultValue: "Role updated successfully" }));
+        onRefresh?.();
 
         // Redirect to appropriate page after role change
         setTimeout(() => {

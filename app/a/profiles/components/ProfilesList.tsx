@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { FolderKey, Plus, UserCheck, UserMinus, Calendar, Edit, Trash, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { FolderKey, Plus, UserCheck, UserMinus, Calendar, Edit, Trash, Search, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ProfilesListProps {
@@ -30,6 +30,8 @@ interface ProfilesListProps {
   onAddNew: () => void;
   formatDate: (dateString?: string | null) => string | null;
   getClientName: (p: ProfileAccountRecord) => string;
+  onRefresh?: () => void;
+  isCacheValid?: boolean;
 }
 
 const getStatusBadgeStyle = (status: string) => {
@@ -61,6 +63,8 @@ const ProfilesList = memo(function ProfilesList({
   onAddNew,
   formatDate,
   getClientName,
+  onRefresh,
+  isCacheValid = true,
 }: ProfilesListProps) {
   const { t } = useTranslation("admin_profiles");
   const { t: tStatus } = useTranslation("status");
@@ -104,13 +108,27 @@ const ProfilesList = memo(function ProfilesList({
               {t("subtitle")}
             </p>
           </div>
-          <Button
-            className="bg-[#168BB0] hover:bg-[#0F7493] text-white font-bold cursor-pointer"
-            onClick={onAddNew}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            {t("btn_add_profile")}
-          </Button>
+          <div className="flex items-center gap-2">
+            {onRefresh && (
+              <Button
+                onClick={onRefresh}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                disabled={!isCacheValid}
+              >
+                <Loader2 className={`h-4 w-4 ${!isCacheValid ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            )}
+            <Button
+              className="bg-[#168BB0] hover:bg-[#0F7493] text-white font-bold cursor-pointer"
+              onClick={onAddNew}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {t("btn_add_profile")}
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -258,13 +276,27 @@ const ProfilesList = memo(function ProfilesList({
             {t("subtitle")}
           </p>
         </div>
-        <Button
-          className="bg-[#168BB0] hover:bg-[#0F7493] text-white font-bold cursor-pointer"
-          onClick={onAddNew}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {t("btn_add_profile")}
-        </Button>
+        <div className="flex items-center gap-2">
+          {onRefresh && (
+            <Button
+              onClick={onRefresh}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              disabled={!isCacheValid}
+            >
+              <Loader2 className={`h-4 w-4 ${!isCacheValid ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          )}
+          <Button
+            className="bg-[#168BB0] hover:bg-[#0F7493] text-white font-bold cursor-pointer"
+            onClick={onAddNew}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            {t("btn_add_profile")}
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}

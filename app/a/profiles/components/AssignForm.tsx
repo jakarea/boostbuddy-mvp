@@ -17,9 +17,10 @@ interface AssignFormProps {
   profile: ProfileAccountRecord | null;
   activeClients: ActiveClient[];
   onCancel: () => void;
+  onRefresh?: () => void;
 }
 
-export default function AssignForm({ profile, activeClients, onCancel }: AssignFormProps) {
+export default function AssignForm({ profile, activeClients, onCancel, onRefresh }: AssignFormProps) {
   const { t } = useTranslation("admin_profiles");
   const { success, error } = useToast();
   const router = useRouter();
@@ -54,6 +55,7 @@ export default function AssignForm({ profile, activeClients, onCancel }: AssignF
         error(res.error || "Failed to assign profile");
       } else {
         success("Profile assigned successfully");
+        onRefresh?.();
         window.location.href = "/a/profiles";
       }
     });

@@ -8,7 +8,11 @@ import { useDebounce } from "@/lib/hooks/useDebounce";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDateShort, safeDateDisplay } from "@/lib/dateUtils";
-import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { useSWR } from "@/lib/cache/swr";
+import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import { getEmployeeOrdersAction } from "@/app/actions/employee-dashboard";
+import { Button } from "@/components/ui/button";
 
 const STATUS_FILTERS = ["", "IN_PROGRESS", "COMPLETED", "CANCELLED"] as const;
 
@@ -33,7 +37,17 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [allOrders, setAllOrders] = useState<Order[]>(initialOrders);
+  // SWR for employee orders - 2 minute cache
+  const { data: allOrders, refresh, isValid } = useSWR({
+    key: CACHE_KEYS.EMPLOYEE_ORDERS,
+    fetcher: async () => {
+      const result = await getEmployeeOrdersAction();
+      return result.success ? result.data : [];
+    },
+    ttl: 2 * 60 * 1000,
+    initialData: initialOrders,
+  });
+
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [statusFilter, setStatusFilter] = useState<typeof STATUS_FILTERS[number]>("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -108,6 +122,16 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
     <div className="space-y-3">
       <div className="flex justify-between items-center">
         <h1 className="text-lg font-bold">{t("employee.orderHistory", "Order History")}</h1>
+        <Button
+          onClick={refresh}
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          disabled={!isValid}
+        >
+          <Loader2 className={`h-4 w-4 ${!isValid ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Filters & Search */}

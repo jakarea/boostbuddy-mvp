@@ -8,6 +8,9 @@ import { showConfirm } from "@/lib/utils/swal";
 import { unassignProfileAction, deleteProfileAction } from "@/app/actions/profiles";
 import { ProfileAccountRecord, ActiveClient } from "./components/types";
 import ProfilesList from "./components/ProfilesList";
+import { useSWR } from "@/lib/cache/swr";
+import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import { getProfilesData, getActiveClientsData } from "@/lib/data/profiles";
 
 // Dynamic imports for code splitting
 const ProfileForm = dynamic(() => import("./components/ProfileForm"), { ssr: false });
@@ -23,6 +26,28 @@ export default function ProfilesContent({
   const { t } = useTranslation("admin_profiles");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+
+  // SWR for profiles data - 5 minute cache
+  const { data: profiles, refresh: refreshProfiles, isValid: profilesValid } = useSWR({
+    key: CACHE_KEYS.ADMIN_PROFILES,
+    fetcher: getProfilesData,
+    ttl: 5 * 60 * 1000,
+    initialData: initialProfiles,
+  });
+
+  // SWR for active clients - 5 minute cache
+  const { data: clients, refresh: refreshClients } = useSWR({
+    key: 'admin_active_clients',
+    fetcher: getActiveClientsData,
+    ttl: 5 * 60 * 1000,
+    initialData: activeClients,
+  });
+
+  // Combined refresh function
+  const refreshAll = () => {
+    refreshProfiles();
+    refreshClients();
+  };
 
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return null;
@@ -54,7 +79,7 @@ export default function ProfilesContent({
 
   // Filtered Profiles list
   const filteredProfiles = useMemo(() => {
-    return initialProfiles.filter(p => {
+    return profiles?.filter(p => {
       const matchSearch =
         p.profile_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.account_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,8 +88,8 @@ export default function ProfilesContent({
       const matchStatus = statusFilter === "ALL" || p.status === statusFilter;
 
       return matchSearch && matchStatus;
-    });
-  }, [initialProfiles, searchTerm, statusFilter]);
+    }) || [];
+  }, [profiles, searchTerm, statusFilter]);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -100,6 +125,7 @@ export default function ProfilesContent({
     if (result.isConfirmed) {
       startTransition(async () => {
         await unassignProfileAction(pid);
+        refreshAll();
         router.refresh();
       });
     }
@@ -119,6 +145,7 @@ export default function ProfilesContent({
     if (result.isConfirmed) {
       startTransition(async () => {
         await deleteProfileAction(pid);
+        refreshAll();
         router.refresh();
       });
     }
@@ -126,24 +153,26 @@ export default function ProfilesContent({
 
   // Render 1: Add/Edit Profile Page
   if (action === "new" || (action === "edit" && profileId)) {
-    const profileToEdit = profileId ? initialProfiles.find(p => p.id === profileId) : null;
+    const profileToEdit = profileId ? profiles?.find(p => p.id === profileId) : null;
     return (
       <ProfileForm
         initialProfile={profileToEdit || null}
         onCancel={() => router.push("/a/profiles")}
         isEdit={action === "edit"}
+        onRefresh={refreshAll}
       />
     );
   }
 
   // Render 2: Profile Assignment Page
   if (action === "assign" && profileId) {
-    const targetProfile = initialProfiles.find(p => p.id === profileId);
+    const targetProfile = profiles?.find(p => p.id === profileId);
     return (
       <AssignForm
         profile={targetProfile || null}
-        activeClients={activeClients}
+        activeClients={clients || activeClients}
         onCancel={() => router.push("/a/profiles")}
+        onRefresh={refreshAll}
       />
     );
   }
@@ -151,7 +180,7 @@ export default function ProfilesContent({
   // Render 3: Inventory List view
   return (
     <ProfilesList
-      profiles={initialProfiles}
+      profiles={profiles || initialProfiles}
       paginatedProfiles={paginatedProfiles}
       onEdit={(id) => router.push(`/a/profiles?action=edit&id=${id}`)}
       onDelete={handleDeleteProfile}
@@ -168,6 +197,8 @@ export default function ProfilesContent({
       onAddNew={() => router.push("/a/profiles?action=new")}
       formatDate={formatDate}
       getClientName={getClientName}
+      onRefresh={refreshAll}
+      isCacheValid={profilesValid}
     />
   );
 }

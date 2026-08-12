@@ -6,14 +6,17 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-   Users, ShieldAlert, FolderKey, Clock, 
+import {
+   Users, ShieldAlert, FolderKey, Clock,
    Check, X, AlertTriangle, ArrowRight, Loader2
 } from "lucide-react";
 import { updateClientStatusAction } from "@/app/actions/clients";
+import { getAdminDashboardStatsData } from "@/lib/data/dashboard";
 import { useTranslation } from "react-i18next";
 import Swal from "sweetalert2";
 import { useToast } from "@/context/ToastContext";
+import { useSWR } from "@/lib/cache/swr";
+import { CACHE_KEYS, invalidateCaches } from "@/lib/cache/cacheContext";
 
 // --- DTOs (Data Transfer Objects) ---
 export interface PendingClientDTO {
@@ -66,14 +69,22 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
   const { success, error, warning } = useToast();
   const [isPending, startTransition] = useTransition();
 
+  // SWR for dashboard stats with 2-minute cache
+  const { data: stats, refresh, isValid } = useSWR({
+    key: CACHE_KEYS.ADMIN_DASHBOARD,
+    fetcher: getAdminDashboardStatsData,
+    ttl: 2 * 60 * 1000, // 2 minutes
+    initialData: initialStats,
+  });
+
   const {
-    activeClientsCount,
-    pendingClientsCount,
-    pendingClients,
-    availableProfilesCount,
-    expiringProfilesCount,
-    expiringProfiles
-  } = initialStats;
+    activeClientsCount = stats?.activeClientsCount ?? 0,
+    pendingClientsCount = stats?.pendingClientsCount ?? 0,
+    pendingClients = stats?.pendingClients ?? [],
+    availableProfilesCount = stats?.availableProfilesCount ?? 0,
+    expiringProfilesCount = stats?.expiringProfilesCount ?? 0,
+    expiringProfiles = stats?.expiringProfiles ?? [],
+  } = stats || initialStats;
 
   // Track if warning has been shown to prevent duplicates
   const warningShownRef = useRef(false);
@@ -90,6 +101,8 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
       const result = await updateClientStatusAction(clientId, "ACTIVE");
       if (result.success) {
         success(t('alert_approved_text'));
+        // Refresh dashboard stats
+        refresh();
       } else {
         error(result.error || "An error occurred");
       }
@@ -112,6 +125,8 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
         const res = await updateClientStatusAction(clientId, "DEACTIVATED");
         if (res.success) {
           success(t('alert_rejected_title'));
+          // Refresh dashboard stats
+          refresh();
         } else {
           error(res.error || "An error occurred");
         }
@@ -139,11 +154,23 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
       )}
 
       {/* Header */}
-      <div className="border-b border-zinc-200 dark:border-zinc-800 pb-4">
-        <h1 className="text-2xl font-extrabold tracking-tight">{t("title")}</h1>
-        <p className="text-xs text-zinc-500 mt-1">
-          {t("subtitle")}
-        </p>
+      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-4">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight">{t("title")}</h1>
+          <p className="text-xs text-zinc-500 mt-1">
+            {t("subtitle")}
+          </p>
+        </div>
+        <Button
+          onClick={() => refresh()}
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          disabled={!isValid}
+        >
+          <Loader2 className={`h-4 w-4 ${!isValid ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
 

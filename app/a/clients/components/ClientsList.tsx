@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, UserPlus, Settings, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, UserPlus, Settings, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
 interface ClientsListProps {
   paginatedClients: ClientUser[];
@@ -25,6 +25,8 @@ interface ClientsListProps {
   itemsPerPage: number;
   profileCounts: Record<string, number>;
   i18nLanguage: string;
+  onRefresh?: () => void;
+  isCacheValid?: boolean;
 }
 
 const ClientsList = memo(function ClientsList({
@@ -41,6 +43,8 @@ const ClientsList = memo(function ClientsList({
   itemsPerPage,
   profileCounts,
   i18nLanguage,
+  onRefresh,
+  isCacheValid = true,
 }: ClientsListProps) {
   const { t } = useTranslation("admin_clients");
   const { t: tStatus } = useTranslation("status");
@@ -107,13 +111,27 @@ const ClientsList = memo(function ClientsList({
               {t("subtitle")}
             </p>
           </div>
-          <Button
-            className="bg-[#168BB0] hover:bg-[#0F7493] text-white font-bold cursor-pointer"
-            onClick={onAddNew}
-          >
-            <UserPlus className="h-4 w-4 mr-2" />
-            {t("btn_add_client")}
-          </Button>
+          <div className="flex items-center gap-2">
+            {onRefresh && (
+              <Button
+                onClick={onRefresh}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                disabled={!isCacheValid}
+              >
+                <Loader2 className={`h-4 w-4 ${!isCacheValid ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            )}
+            <Button
+              className="bg-[#168BB0] hover:bg-[#0F7493] text-white font-bold cursor-pointer"
+              onClick={onAddNew}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              {t("btn_add_client")}
+            </Button>
+          </div>
         </div>
 
         {/* Empty state */}
@@ -136,13 +154,27 @@ const ClientsList = memo(function ClientsList({
             {t("subtitle")}
           </p>
         </div>
-        <Button
-          className="bg-[#168BB0] hover:bg-[#0F7493] text-white font-bold cursor-pointer"
-          onClick={onAddNew}
-        >
-          <UserPlus className="h-4 w-4 mr-2" />
-          {t("btn_add_client")}
-        </Button>
+        <div className="flex items-center gap-2">
+          {onRefresh && (
+            <Button
+              onClick={onRefresh}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              disabled={!isCacheValid}
+            >
+              <Loader2 className={`h-4 w-4 ${!isCacheValid ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          )}
+          <Button
+            className="bg-[#168BB0] hover:bg-[#0F7493] text-white font-bold cursor-pointer"
+            onClick={onAddNew}
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            {t("btn_add_client")}
+          </Button>
+        </div>
       </div>
 
       {/* Status Filter */}

@@ -10,7 +10,7 @@ import { Pagination } from "@/components/ui/pagination";
 import {
   Key, Copy, RefreshCw, AlertTriangle, ExternalLink,
   ShieldCheck, Mail, Server, MessageCircle, AlertCircle,
-  ShoppingBag, PlusCircle, Settings, Receipt
+  ShoppingBag, PlusCircle, Settings, Receipt, Loader2
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/context/ToastContext";
@@ -20,6 +20,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getServicesAction } from "@/app/actions/services";
 import { calculateUpgradePriceAction } from "@/app/actions/stripe";
+import { useSWR } from "@/lib/cache/swr";
+import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import { getClientProfilesData } from "@/lib/data/dashboard";
 
 // Ticking 2FA Timer Component
 const TwoFactorTimer: React.FC<{ secret: string }> = ({ secret }) => {
@@ -127,6 +130,14 @@ export default function DashboardClient({ initialProfiles, creditsBalance = 0 }:
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
+  // SWR for client dashboard profiles - 3 minute cache
+  const { data: profiles, refresh, isValid } = useSWR({
+    key: CACHE_KEYS.CLIENT_DASHBOARD,
+    fetcher: getClientDashboardData,
+    ttl: 3 * 60 * 1000,
+    initialData: initialProfiles,
+  });
+
   // Renewal/upgrade selection state
   const [services, setServices] = useState<any[]>([]);
   const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
@@ -134,7 +145,6 @@ export default function DashboardClient({ initialProfiles, creditsBalance = 0 }:
   const [selectedServiceId, setSelectedServiceId] = useState<string>("");
   const [prorationDetails, setProrationDetails] = useState<{ credit: number; finalPrice: number; targetPrice: number } | null>(null);
   const [calculatingProration, setCalculatingProration] = useState(false);
-  const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
 
   // Fetch active services list
   useEffect(() => {
@@ -232,7 +242,7 @@ export default function DashboardClient({ initialProfiles, creditsBalance = 0 }:
   };
 
   // The server action already filters for the current user and valid statuses
-  const clientProfiles = initialProfiles;
+  const clientProfiles = profiles || [];
 
   // Calculate statistics for account summary
   const accountStats = useMemo(() => {
@@ -283,10 +293,20 @@ export default function DashboardClient({ initialProfiles, creditsBalance = 0 }:
             {t("subtitle", { defaultValue: "Welcome back! Here's your account overview." })}
           </p>
         </div>
+        <Button
+          onClick={refresh}
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          disabled={!isValid}
+        >
+          <Loader2 className={`h-4 w-4 ${!isValid ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Account Summary Statistics - Show skeleton during loading */}
-      {isLoadingProfiles ? (
+      {!profiles ? (
         <StatCardSkeleton count={6} />
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3 sm:gap-4">

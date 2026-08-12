@@ -20,6 +20,7 @@ interface ClientDetailsModalProps {
   billingInfo: BillingInfo | null;
   assignedProfilesCount: number;
   onClose: () => void;
+  onRefresh?: () => void;
 }
 
 export default function ClientDetailsModal({
@@ -27,6 +28,7 @@ export default function ClientDetailsModal({
   billingInfo,
   assignedProfilesCount,
   onClose,
+  onRefresh,
 }: ClientDetailsModalProps) {
   const { t } = useTranslation("admin_clients");
   const { success, error } = useToast();
@@ -72,6 +74,7 @@ export default function ClientDetailsModal({
       const result = await updateClientStatusAction(client.id, "ACTIVE");
       if (result.success) {
         success(t("alert_approved_success", { defaultValue: "Registration approved successfully!" }));
+        onRefresh?.();
       } else {
         error(result.error || t("alert_approved_failed", { defaultValue: "Failed to approve registration." }));
       }
@@ -89,6 +92,7 @@ export default function ClientDetailsModal({
       if (result.success) {
         setIsEmailVerified(true);
         success(t("alert_email_verified_success", { defaultValue: "Email marked as verified successfully!" }));
+        onRefresh?.();
       } else {
         error(result.error || t("alert_email_verified_failed", { defaultValue: "Failed to verify email." }));
       }
@@ -161,6 +165,7 @@ export default function ClientDetailsModal({
       });
 
       setSavedSuccess(true);
+      onRefresh?.();
       router.refresh();
 
       setTimeout(() => {
@@ -177,6 +182,7 @@ export default function ClientDetailsModal({
       const result = await updateClientNotesAction(client.id, adminNotes);
       if (result.success) {
         success(t("alert_notes_success"));
+        onRefresh?.();
       } else {
         error(result.error || t("alert_notes_failed"));
       }
@@ -190,6 +196,7 @@ export default function ClientDetailsModal({
     startTransition(async () => {
       const newStatus = checked ? "ACTIVE" : "DEACTIVATED";
       await updateClientStatusAction(client.id, newStatus);
+      onRefresh?.();
       router.refresh();
     });
   };

@@ -5,6 +5,26 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/server-auth";
 
 /**
+ * Fetch all employees for SWR caching
+ */
+export async function getEmployeesData() {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, email, name, role, status, email_verified, admin_notes, created_at")
+      .in("role", ["ADMIN", "EMPLOYEE"])
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error: any) {
+    console.error("Error fetching employees:", error);
+    return [];
+  }
+}
+
+/**
  * Fetch all users with ADMIN or EMPLOYEE roles for employee management
  */
 export async function getEmployeeUsersData() {

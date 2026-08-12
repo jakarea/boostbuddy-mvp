@@ -6,11 +6,13 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { getWalletSummaryAction } from "@/app/actions/credits";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { Wallet, ArrowUpLeft, Plus, History, ArrowUpRight } from "lucide-react";
+import { Wallet, ArrowUpLeft, Plus, History, ArrowUpRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { formatDateTime } from "@/lib/dateUtils";
+import { useSWR } from "@/lib/cache/swr";
+import { CACHE_KEYS } from "@/lib/cache/cacheContext";
 
 interface Transaction {
   id: string;
@@ -26,33 +28,25 @@ export default function WalletPage() {
   const { t } = useTranslation();
   const { error } = useToast();
 
-  const [loading, setLoading] = useState(true);
-  const [balance, setBalance] = useState(0);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const loadData = async () => {
-      try {
-        const result = await getWalletSummaryAction(10); // Get last 10 transactions
-
-        if (result.success && result.balance !== undefined) {
-          setBalance(result.balance);
-        }
-
-        if (result.success && result.data) {
-          setTransactions(result.data);
-        }
-      } catch (err) {
-        error("Failed to load wallet data");
-      } finally {
-        setLoading(false);
+  // SWR for wallet data - 3 minute cache
+  const { data: walletData, refresh, isValid, loading } = useSWR({
+    key: CACHE_KEYS.CLIENT_WALLET,
+    fetcher: async () => {
+      const result = await getWalletSummaryAction(10);
+      if (!result.success) {
+        return { balance: 0, transactions: [] };
       }
-    };
+      return {
+        balance: result.balance || 0,
+        transactions: result.data || [],
+      };
+    },
+    ttl: 3 * 60 * 1000,
+    enabled: !!user,
+  });
 
-    loadData();
-  }, [user]);
+  const balance = walletData?.balance || 0;
+  const transactions = walletData?.transactions || [];
 
   if (loading) return <LoadingScreen />;
 
@@ -68,7 +62,7 @@ export default function WalletPage() {
                 {t("wallet.backToDashboard", "Back to Dashboard")}
               </Button>
             </Link>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-1">
               <div className="p-2 bg-[#168BB0]/10 rounded-lg">
                 <Wallet className="h-6 w-6 text-[#168BB0]" />
               </div>
@@ -81,6 +75,14 @@ export default function WalletPage() {
                 </p>
               </div>
             </div>
+            <button
+              onClick={refresh}
+              disabled={!isValid}
+              className="p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Refresh wallet"
+            >
+              <Loader2 className={`h-5 w-5 ${!isValid ? 'animate-spin' : ''}`} />
+            </button>
           </div>
         </div>
       </div>

@@ -1,5 +1,49 @@
+"use server";
+
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/auth/server-auth";
+
+export async function getClientDashboardData() {
+  try {
+    const auth = await requireAuth({ role: 'CLIENT' });
+    if (!auth.success) return [];
+
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("profile_accounts")
+      .select(`
+        *,
+        services (
+          id,
+          name,
+          price,
+          duration_days
+        )
+      `)
+      .eq("assigned_client_id", auth.user.id)
+      .neq("status", "AVAILABLE")
+      .order("assignment_date", { ascending: false });
+
+    if (error) {
+      // Fallback query if relation doesn't exist yet
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from("profile_accounts")
+        .select("*")
+        .eq("assigned_client_id", auth.user.id)
+        .neq("status", "AVAILABLE")
+        .order("assignment_date", { ascending: false });
+
+      if (fallbackError) throw fallbackError;
+      return fallbackData || [];
+    }
+
+    return data || [];
+  } catch (error: any) {
+    console.error("Error fetching client dashboard data:", error);
+    return [];
+  }
+}
 
 export async function getClientProfilesData(userId: string) {
   try {

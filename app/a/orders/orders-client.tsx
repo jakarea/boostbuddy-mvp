@@ -10,8 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   CreditCard, ShoppingBag, RefreshCw, AlertCircle, CheckCircle,
-  Search, Copy, FolderKey, X, ChevronLeft, ChevronRight
+  Search, Copy, FolderKey, X, ChevronLeft, ChevronRight, Loader2
 } from "lucide-react";
+import { useSWR } from "@/lib/cache/swr";
+import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import { getAdminOrdersData } from "@/lib/data/orders";
 
 // --- CONSTANTS (No Magic Strings) ---
 export const ORDER_STATUS = {
@@ -101,6 +104,14 @@ export default function OrdersClient({ initialOrders }: OrdersClientProps) {
   const searchParams = useSearchParams();
   const initialSearch = searchParams.get("search") || "";
 
+  // SWR for orders data - 5 minute cache
+  const { data: orders, refresh, isValid } = useSWR({
+    key: CACHE_KEYS.ADMIN_ORDERS,
+    fetcher: getAdminOrdersData,
+    ttl: 5 * 60 * 1000,
+    initialData: initialOrders,
+  });
+
   // State
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1", 10));
@@ -128,11 +139,11 @@ export default function OrdersClient({ initialOrders }: OrdersClientProps) {
 
   // Derived filtered data
   const filteredOrders = useMemo(() => {
-    return initialOrders.filter(ord => 
-      isOrderMatchingSearch(ord, searchTerm, t) && 
+    return orders?.filter(ord =>
+      isOrderMatchingSearch(ord, searchTerm, t) &&
       isOrderMatchingFilters(ord, statusFilter, typeFilter)
-    );
-  }, [initialOrders, searchTerm, statusFilter, typeFilter, t]);
+    ) || [];
+  }, [orders, searchTerm, statusFilter, typeFilter, t]);
 
   // Derived paginated data
   const paginatedOrders = useMemo(() => {
@@ -151,9 +162,9 @@ export default function OrdersClient({ initialOrders }: OrdersClientProps) {
   const { t: tStatus } = useTranslation("status");
 
   const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
-  const totalPaid = initialOrders.filter(o => o.status === ORDER_STATUS.PAID).reduce((sum, o) => sum + o.amount, 0);
-  const totalPending = initialOrders.filter(o => o.status === ORDER_STATUS.PENDING).length;
-  const totalFailed = initialOrders.filter(o => o.status === ORDER_STATUS.FAILED).length;
+  const totalPaid = (orders || []).filter(o => o.status === ORDER_STATUS.PAID).reduce((sum, o) => sum + o.amount, 0);
+  const totalPending = (orders || []).filter(o => o.status === ORDER_STATUS.PENDING).length;
+  const totalFailed = (orders || []).filter(o => o.status === ORDER_STATUS.FAILED).length;
 
   return (
     <div className="space-y-6">
@@ -168,6 +179,16 @@ export default function OrdersClient({ initialOrders }: OrdersClientProps) {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          <Button
+            onClick={refresh}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            disabled={!isValid}
+          >
+            <Loader2 className={`h-4 w-4 ${!isValid ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
           <div className="text-right">
             <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{t("total_revenue")}</div>
             <div className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">${totalPaid.toFixed(2)}</div>
@@ -238,7 +259,7 @@ export default function OrdersClient({ initialOrders }: OrdersClientProps) {
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-extrabold">{t("card_title")}</CardTitle>
           <CardDescription className="text-xs">
-            {t("card_desc", { count: filteredOrders.length, total: initialOrders.length })}
+            {t("card_desc", { count: filteredOrders.length, total: orders?.length || 0 })}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">

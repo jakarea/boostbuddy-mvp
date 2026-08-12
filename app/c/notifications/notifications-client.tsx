@@ -5,9 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Mail, CheckCircle, ShieldAlert, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Mail, CheckCircle, ShieldAlert, Search, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import UserTelegramConfig from "@/components/UserTelegramConfig";
+import { useSWR } from "@/lib/cache/swr";
+import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import { getNotificationsAction } from "@/app/actions/notifications";
 
 export interface NotificationLogDTO {
   id: string;
@@ -32,6 +35,17 @@ export default function ClientNotificationsClient({ initialLogs }: ClientNotific
   const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1", 10));
   const [searchTerm, setSearchTerm] = useState("");
   const itemsPerPage = 10;
+
+  // SWR for notifications - 2 minute cache (notifications are time-sensitive)
+  const { data: logs, refresh, isValid } = useSWR({
+    key: CACHE_KEYS.CLIENT_NOTIFICATIONS,
+    fetcher: async () => {
+      const result = await getNotificationsAction();
+      return result.success ? result.data : [];
+    },
+    ttl: 2 * 60 * 1000,
+    initialData: initialLogs,
+  });
 
   // Navigation handlers
   const goToPage = (page: number) => {
@@ -66,9 +80,9 @@ export default function ClientNotificationsClient({ initialLogs }: ClientNotific
 
   // Search filter
   const filteredLogs = useMemo(() => {
-    if (!searchTerm) return initialLogs;
+    if (!searchTerm) return logs || [];
     const term = searchTerm.toLowerCase();
-    return initialLogs.filter((log) => {
+    return (logs || []).filter((log) => {
       const subject = log.subject.toLowerCase();
       const body = log.body?.toLowerCase() || "";
       const recipient = log.recipient.toLowerCase();
@@ -82,7 +96,7 @@ export default function ClientNotificationsClient({ initialLogs }: ClientNotific
         channel.includes(term)
       );
     });
-  }, [initialLogs, searchTerm]);
+  }, [logs, searchTerm]);
 
   const paginatedLogs = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -96,20 +110,30 @@ export default function ClientNotificationsClient({ initialLogs }: ClientNotific
       {/* Unified header + Telegram config card */}
       <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-zinc-100 dark:divide-zinc-800">
-          
-          {/* Left: Page info */}
-          <div className="flex items-start gap-3 p-4">
-            <div className="p-1.5 rounded-lg bg-[#168BB0]/10 text-[#168BB0] shrink-0 mt-0.5">
-              <Mail className="h-4 w-4" />
+
+          {/* Left: Page info + Refresh button */}
+          <div className="flex items-start justify-between gap-3 p-4">
+            <div className="flex items-start gap-3 flex-1">
+              <div className="p-1.5 rounded-lg bg-[#168BB0]/10 text-[#168BB0] shrink-0 mt-0.5">
+                <Mail className="h-4 w-4" />
+              </div>
+              <div>
+                <h1 className="text-sm font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
+                  {t("title")}
+                </h1>
+                <p className="text-[10px] text-zinc-400 mt-0.5 leading-relaxed">
+                  {t("subtitle")}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-sm font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
-                {t("title")}
-              </h1>
-              <p className="text-[10px] text-zinc-400 mt-0.5 leading-relaxed">
-                {t("subtitle")}
-              </p>
-            </div>
+            <button
+              onClick={refresh}
+              disabled={!isValid}
+              className="p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Refresh notifications"
+            >
+              <Loader2 className={`h-4 w-4 ${!isValid ? 'animate-spin' : ''}`} />
+            </button>
           </div>
 
           {/* Right: Personal Telegram config card */}
@@ -118,7 +142,7 @@ export default function ClientNotificationsClient({ initialLogs }: ClientNotific
       </div>
 
       {/* Search Bar */}
-      {initialLogs.length > 0 && (
+      {(logs?.length || 0) > 0 && (
         <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
           <div className="flex items-center gap-3">
             <div className="relative flex-1">

@@ -13,9 +13,12 @@ import {
   DollarSign,
   Users,
   ArrowRight,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from "lucide-react";
 import Link from "next/link";
+import { useSWR } from "@/lib/cache/swr";
+import { CACHE_KEYS } from "@/lib/cache/cacheContext";
 
 interface OverviewStats {
   totalOrders: number;
@@ -30,28 +33,21 @@ interface OverviewStats {
 export default function AdminReviewsPage() {
   const { t } = useTranslation("admin_reviews");
   const { success, error } = useToast();
-  const [stats, setStats] = useState<OverviewStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const loadStats = async () => {
-    try {
-      setIsLoading(true);
+  // SWR for reviews overview - 2 minute cache
+  const { data: stats, refresh, isValid, loading } = useSWR({
+    key: CACHE_KEYS.ADMIN_REVIEWS,
+    fetcher: async () => {
       const result = await getReviewsOverviewAction();
       if (result.success) {
-        setStats(result.data as OverviewStats);
-      } else {
-        error(result.error || "Failed to load stats");
+        return result.data as OverviewStats;
       }
-    } catch (err) {
-      error("Failed to load stats");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return null;
+    },
+    ttl: 2 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    loadStats();
-  }, [error]);
+  const isLoading = loading && !stats;
 
   const statCards = [
     {
@@ -142,10 +138,11 @@ export default function AdminReviewsPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={loadStats}
+          onClick={refresh}
+          disabled={!isValid}
           className="gap-2"
         >
-          <RefreshCw className="h-4 w-4" />
+          <Loader2 className={`h-4 w-4 ${!isValid ? 'animate-spin' : ''}`} />
           {t("refresh", "Refresh")}
         </Button>
       </div>

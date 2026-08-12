@@ -5,8 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Bell, CheckCircle, Inbox, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Bell, CheckCircle, Inbox, Search, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useSWR } from "@/lib/cache/swr";
+import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import { getNotificationsAction } from "@/app/actions/notifications";
+import { Button } from "@/components/ui/button";
 
 export interface NotificationLogDTO {
   id: string;
@@ -31,6 +35,17 @@ export default function EmployeeNotificationsClient({ initialLogs }: EmployeeNot
   const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1", 10));
   const [searchTerm, setSearchTerm] = useState("");
   const itemsPerPage = 10;
+
+  // SWR for notifications - 2 minute cache
+  const { data: logs, refresh, isValid } = useSWR({
+    key: CACHE_KEYS.EMPLOYEE_NOTIFICATIONS,
+    fetcher: async () => {
+      const result = await getNotificationsAction();
+      return result.success ? result.data : [];
+    },
+    ttl: 2 * 60 * 1000,
+    initialData: initialLogs,
+  });
 
   // Navigation handlers
   const goToPage = (page: number) => {
@@ -65,9 +80,9 @@ export default function EmployeeNotificationsClient({ initialLogs }: EmployeeNot
 
   // Search filter
   const filteredLogs = useMemo(() => {
-    if (!searchTerm) return initialLogs;
+    if (!searchTerm) return logs || [];
     const term = searchTerm.toLowerCase();
-    return initialLogs.filter((log) => {
+    return (logs || []).filter((log) => {
       const subject = log.subject.toLowerCase();
       const body = log.body?.toLowerCase() || "";
       const recipient = log.recipient.toLowerCase();
@@ -81,7 +96,7 @@ export default function EmployeeNotificationsClient({ initialLogs }: EmployeeNot
         channel.includes(term)
       );
     });
-  }, [initialLogs, searchTerm]);
+  }, [logs, searchTerm]);
 
   const paginatedLogs = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -94,23 +109,33 @@ export default function EmployeeNotificationsClient({ initialLogs }: EmployeeNot
     <div className="space-y-6">
       {/* Unified header card */}
       <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
-        <div className="flex items-start gap-3 p-4">
-          <div className="p-1.5 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 shrink-0 mt-0.5">
-            <Bell className="h-4 w-4" />
+        <div className="flex items-start justify-between gap-3 p-4">
+          <div className="flex items-start gap-3 flex-1">
+            <div className="p-1.5 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 shrink-0 mt-0.5">
+              <Bell className="h-4 w-4" />
+            </div>
+            <div>
+              <h1 className="text-sm font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {t("title", { defaultValue: "Notifications" })}
+              </h1>
+              <p className="text-[10px] text-zinc-400 mt-0.5 leading-relaxed">
+                {t("subtitle", { defaultValue: "Stay updated on your assigned orders and activities. Employee notifications are managed by your admin." })}
+              </p>
+            </div>
           </div>
-          <div className="flex-1">
-            <h1 className="text-sm font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
-              {t("title", { defaultValue: "Notifications" })}
-            </h1>
-            <p className="text-[10px] text-zinc-400 mt-0.5 leading-relaxed">
-              {t("subtitle", { defaultValue: "Stay updated on your assigned orders and activities. Employee notifications are managed by your admin." })}
-            </p>
-          </div>
+          <button
+            onClick={refresh}
+            disabled={!isValid}
+            className="p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Refresh notifications"
+          >
+            <Loader2 className={`h-4 w-4 ${!isValid ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
       {/* Search Bar */}
-      {initialLogs.length > 0 && (
+      {(logs?.length || 0) > 0 && (
         <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
           <div className="flex items-center gap-3">
             <div className="relative flex-1">

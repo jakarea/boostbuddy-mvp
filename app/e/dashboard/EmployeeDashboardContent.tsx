@@ -8,6 +8,10 @@ import { acceptUrlTaskAction } from "@/app/actions/reviews-multiurl";
 import { toggleTaskDistributionAction } from "@/app/actions/employee";
 import { getEmployeeDashboardDataAction, DashboardData, UrlTask } from "@/app/actions/employee-dashboard";
 import { formatDateTime } from "@/lib/dateUtils";
+import { useSWR } from "@/lib/cache/swr";
+import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function EmployeeDashboardContent({
   initialData,
@@ -18,9 +22,23 @@ export function EmployeeDashboardContent({
   const { t } = useTranslation();
   const [acceptingTaskId, setAcceptingTaskId] = useState<string | null>(null);
 
-  const [stats, setStats] = useState(initialData.stats);
-  const [availableTasks, setAvailableTasks] = useState(initialData.availableTasks);
-  const [currentAssignments, setCurrentAssignments] = useState(initialData.currentAssignments);
+  // SWR for employee dashboard data - 1 minute cache (more frequent refresh for active tasks)
+  const { data: dashboardData, refresh, isValid } = useSWR({
+    key: CACHE_KEYS.EMPLOYEE_DASHBOARD,
+    fetcher: async () => {
+      const result = await getEmployeeDashboardDataAction();
+      if (result.success && 'data' in result) {
+        return result.data;
+      }
+      return initialData; // Fallback to initial data on error
+    },
+    ttl: 1 * 60 * 1000, // 1 minute - shorter cache for active work
+    initialData: initialData,
+  });
+
+  const stats = dashboardData?.stats || initialData.stats;
+  const availableTasks = dashboardData?.availableTasks || initialData.availableTasks;
+  const currentAssignments = dashboardData?.currentAssignments || initialData.currentAssignments;
 
   const handleAcceptTask = async (taskId: string) => {
     // Check if task distribution is enabled
@@ -37,16 +55,7 @@ export function EmployeeDashboardContent({
 
     if (result.success) {
       toastSuccess("Task accepted successfully");
-
-      // Reload dashboard data
-      const dashboardResult = await getEmployeeDashboardDataAction();
-
-      if (dashboardResult.success && 'data' in dashboardResult) {
-        const data = dashboardResult.data;
-        setStats(data.stats);
-        setAvailableTasks(data.availableTasks);
-        setCurrentAssignments(data.currentAssignments);
-      }
+      refresh(); // Refresh SWR cache
     } else {
       toastError(result.error || "Failed to accept task");
     }
@@ -56,10 +65,7 @@ export function EmployeeDashboardContent({
     const result = await toggleTaskDistributionAction();
 
     if (result.success && result.data) {
-      setStats({
-        ...stats,
-        acceptingTasks: result.data.acceptingTasks
-      });
+      refresh(); // Refresh SWR cache
       toastSuccess(
         result.data.acceptingTasks
           ? "Task distribution enabled - you will now receive new tasks"
@@ -208,23 +214,35 @@ export function EmployeeDashboardContent({
             Manage your review tasks and assignments
           </p>
         </div>
-        <button
-          onClick={handleToggleTaskDistribution}
-          className={`px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 h-10 text-sm w-full sm:w-auto shrink-0 ${
-            stats?.acceptingTasks
-              ? "bg-emerald-500 text-white hover:bg-emerald-600"
-              : "bg-zinc-200 text-zinc-600 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
-          }`}
-        >
-          {stats?.acceptingTasks ? (
-            <>
-              <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-              Receiving Tasks
-            </>
-          ) : (
-            "Task Distribution Paused"
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={refresh}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            disabled={!isValid}
+          >
+            <Loader2 className={`h-4 w-4 ${!isValid ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <button
+            onClick={handleToggleTaskDistribution}
+            className={`px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 h-10 text-sm w-full sm:w-auto shrink-0 ${
+              stats?.acceptingTasks
+                ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                : "bg-zinc-200 text-zinc-600 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
+            }`}
+          >
+            {stats?.acceptingTasks ? (
+              <>
+                <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                Receiving Tasks
+              </>
+            ) : (
+              "Task Distribution Paused"
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}

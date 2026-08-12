@@ -13,9 +13,10 @@ import { ArrowLeft, Check } from "lucide-react";
 
 interface ClientFormProps {
   onCancel: () => void;
+  onRefresh?: () => void;
 }
 
-export default function ClientForm({ onCancel }: ClientFormProps) {
+export default function ClientForm({ onCancel, onRefresh }: ClientFormProps) {
   const { t } = useTranslation("admin_clients");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -62,6 +63,7 @@ export default function ClientForm({ onCancel }: ClientFormProps) {
         setNewClientError(result.error || t("err_failed_create", { defaultValue: "Failed to create account." }));
       } else {
         setNewClientSuccess("Account created successfully! User can log in immediately.");
+        onRefresh?.();
         setTimeout(() => {
           setNewClientName("");
           setNewClientEmail("");

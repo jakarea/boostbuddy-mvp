@@ -7,6 +7,9 @@ import { useTranslation } from "react-i18next";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { EmployeeUser } from "./components/types";
 import EmployeesList from "./components/EmployeesList";
+import { useSWR } from "@/lib/cache/swr";
+import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import { getEmployeesData } from "@/lib/data/employee";
 
 // Dynamic imports for code splitting
 const EmployeeForm = dynamic(() => import("./components/EmployeeForm"), { ssr: false });
@@ -22,6 +25,14 @@ export default function EmployeeClient({
   const searchParams = useSearchParams();
   const employeeId = searchParams.get("id");
   const action = searchParams.get("action"); // "new"
+
+  // SWR for employees data - 5 minute cache
+  const { data: employees, refresh, isValid } = useSWR({
+    key: CACHE_KEYS.ADMIN_EMPLOYEES,
+    fetcher: getEmployeesData,
+    ttl: 5 * 60 * 1000,
+    initialData: initialEmployees,
+  });
 
   // Search/Filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -57,7 +68,7 @@ export default function EmployeeClient({
   useEffect(() => {
     let isMounted = true;
 
-    const user = initialEmployees.find((u) => u.id === employeeId);
+    const user = employees?.find((u) => u.id === employeeId);
     if (employeeId && user) {
       setSelectedEmployee(user);
     } else {
@@ -67,11 +78,11 @@ export default function EmployeeClient({
     return () => {
       isMounted = false;
     };
-  }, [employeeId, initialEmployees]);
+  }, [employeeId, employees]);
 
   // Filter employees list
   const filteredEmployees = useMemo(() => {
-    return initialEmployees.filter((u) => {
+    return employees?.filter((u) => {
       // Search query
       const matchSearch =
         u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -84,8 +95,8 @@ export default function EmployeeClient({
       const matchStatus = statusFilter === "ALL" || u.status === statusFilter;
 
       return matchSearch && matchRole && matchStatus;
-    });
-  }, [initialEmployees, searchTerm, roleFilter, statusFilter]);
+    }) || [];
+  }, [employees, searchTerm, roleFilter, statusFilter]);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -104,7 +115,7 @@ export default function EmployeeClient({
   // Render 1: Create New Employee Form
   if (action === "new") {
     return (
-      <EmployeeForm onCancel={() => router.push("/a/employees")} />
+      <EmployeeForm onCancel={() => router.push("/a/employees")} onRefresh={refresh} />
     );
   }
 
@@ -114,6 +125,7 @@ export default function EmployeeClient({
       <EmployeeDetailsModal
         employee={selectedEmployee}
         onClose={() => router.push("/a/employees")}
+        onRefresh={refresh}
       />
     );
   }
@@ -141,6 +153,8 @@ export default function EmployeeClient({
       handleClearSearch={handleClearSearch}
       searchParams={searchParams}
       router={router}
+      onRefresh={refresh}
+      isCacheValid={isValid}
     />
   );
 }

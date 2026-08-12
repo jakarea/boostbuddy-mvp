@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, UserPlus, ChevronLeft, ChevronRight, Shield, UserCog, CheckCircle, XCircle, Clock, X } from "lucide-react";
+import { Search, UserPlus, ChevronLeft, ChevronRight, Shield, UserCog, CheckCircle, XCircle, Clock, X, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 interface EmployeesListProps {
@@ -31,6 +31,8 @@ interface EmployeesListProps {
   handleClearSearch: () => void;
   searchParams: ReturnType<typeof useSearchParams>;
   router: ReturnType<typeof useRouter>;
+  onRefresh?: () => void;
+  isCacheValid?: boolean;
 }
 
 const EmployeesList = memo(function EmployeesList({
@@ -54,6 +56,8 @@ const EmployeesList = memo(function EmployeesList({
   handleClearSearch,
   searchParams,
   router,
+  onRefresh,
+  isCacheValid = true,
 }: EmployeesListProps) {
   const { t } = useTranslation("admin_employees");
 
@@ -117,13 +121,27 @@ const EmployeesList = memo(function EmployeesList({
             {t("subtitle", { defaultValue: "Manage admin and employee accounts" })}
           </p>
         </div>
-        <Button
-          onClick={onAddNew}
-          className="bg-[#168BB0] hover:bg-[#0F7493] text-white font-bold cursor-pointer"
-        >
-          <UserPlus className="h-4 w-4 mr-2" />
-          {t("btn_add_employee", { defaultValue: "Add Employee" })}
-        </Button>
+        <div className="flex items-center gap-2">
+          {onRefresh && (
+            <Button
+              onClick={onRefresh}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              disabled={!isCacheValid}
+            >
+              <Loader2 className={`h-4 w-4 ${!isCacheValid ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          )}
+          <Button
+            onClick={onAddNew}
+            className="bg-[#168BB0] hover:bg-[#0F7493] text-white font-bold cursor-pointer"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            {t("btn_add_employee", { defaultValue: "Add Employee" })}
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

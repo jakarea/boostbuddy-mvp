@@ -6,13 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, CheckCircle, ShieldAlert, RefreshCw, Search, X, ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { Mail, CheckCircle, ShieldAlert, RefreshCw, Search, X, ChevronLeft, ChevronRight, Users, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import TelegramBotConfig from "@/components/admin/TelegramBotConfig";
 import TelegramGroupManager from "@/components/TelegramGroupManager";
 import type { TelegramConfig } from "@/app/actions/telegram";
 import { getNotificationsAction } from "@/app/actions/notifications";
 import { createClient } from "@/lib/supabase/client";
+import { useSWR } from "@/lib/cache/swr";
+import { CACHE_KEYS } from "@/lib/cache/cacheContext";
 
 export interface NotificationLogDTO {
   id: string;
@@ -33,14 +35,21 @@ interface NotificationsClientProps {
 export default function NotificationsClient({ initialLogs, telegramConfig }: NotificationsClientProps) {
   const { t, i18n } = useTranslation("notifications");
   const locale = i18n.language === "it" ? "it-IT" : "en-US";
-  const [logs, setLogs] = useState<NotificationLogDTO[]>(initialLogs);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const itemsPerPage = 10;
 
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // SWR for notifications - 2 minute cache (notifications are more time-sensitive)
+  const { data: logs, refresh, isValid } = useSWR({
+    key: CACHE_KEYS.ADMIN_NOTIFICATIONS,
+    fetcher: getNotificationsAction,
+    ttl: 2 * 60 * 1000,
+    initialData: initialLogs,
+  });
 
   // Navigation handlers
   const goToPage = (page: number) => {
@@ -60,36 +69,19 @@ export default function NotificationsClient({ initialLogs, telegramConfig }: Not
 
   const handleClearSearch = () => setSearchTerm("");
 
-  // Refresh function to pull fresh notification logs from database
-  const fetchLatestLogs = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      const res = await getNotificationsAction();
-      if (res.success && Array.isArray(res.data)) {
-        setLogs(res.data as NotificationLogDTO[]);
-      }
-    } catch (err) {
-      console.error("Failed to refresh notification logs:", err);
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, []);
-
-  // Fetch on window focus (so returning to tab or reloading catches any missed real-time events)
-  useEffect(() => {
-    fetchLatestLogs();
-
-    const handleFocus = () => {
-      fetchLatestLogs();
-    };
-
-    window.addEventListener("focus", handleFocus);
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-    };
-  }, [fetchLatestLogs]);
+  // Filtered logs
+  const filteredLogs = useMemo(() => {
+    if (!searchTerm) return logs || [];
+    const term = searchTerm.toLowerCase();
+    return (logs || []).filter(log =>
+      log.recipient.toLowerCase().includes(term) ||
+      log.subject.toLowerCase().includes(term) ||
+      log.type.toLowerCase().includes(term)
+    );
+  }, [logs, searchTerm]);
 
   // Subscribe to Supabase Realtime for notification_logs table
+  // When new notifications arrive, refresh SWR cache
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -97,10 +89,9 @@ export default function NotificationsClient({ initialLogs, telegramConfig }: Not
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notification_logs" },
-        (payload) => {
-          if (payload.new) {
-            setLogs((prev) => [payload.new as NotificationLogDTO, ...prev]);
-          }
+        () => {
+          // Refresh SWR cache when new notification is added
+          refresh();
         }
       )
       .subscribe();
@@ -108,18 +99,7 @@ export default function NotificationsClient({ initialLogs, telegramConfig }: Not
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
-
-  // Filter logs based on search term
-  const filteredLogs = useMemo(() => {
-    if (!searchTerm) return logs;
-    const term = searchTerm.toLowerCase();
-    return logs.filter(log =>
-      log.recipient.toLowerCase().includes(term) ||
-      log.subject.toLowerCase().includes(term) ||
-      log.id.toLowerCase().includes(term)
-    );
-  }, [logs, searchTerm]);
+  }, [refresh]);
 
   const paginatedLogs = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -157,11 +137,11 @@ export default function NotificationsClient({ initialLogs, telegramConfig }: Not
             <Button
               size="sm"
               variant="outline"
-              onClick={fetchLatestLogs}
-              disabled={isRefreshing}
+              onClick={refresh}
+              disabled={!isValid}
               className="h-8 text-xs font-semibold px-2.5 border-zinc-200 dark:border-zinc-800 shrink-0 cursor-pointer flex items-center gap-1.5"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+              <Loader2 className={`h-3.5 w-3.5 ${!isValid ? 'animate-spin' : ''}`} />
               <span>{t("btn_refresh", { defaultValue: "Refresh Logs" })}</span>
             </Button>
           </div>

@@ -17,9 +17,10 @@ interface ProfileFormProps {
   initialProfile?: ProfileAccountRecord | null;
   onCancel: () => void;
   isEdit: boolean;
+  onRefresh?: () => void;
 }
 
-export default function ProfileForm({ initialProfile, onCancel, isEdit }: ProfileFormProps) {
+export default function ProfileForm({ initialProfile, onCancel, isEdit, onRefresh }: ProfileFormProps) {
   const { t } = useTranslation("admin_profiles");
   const { success, error } = useToast();
   const router = useRouter();
@@ -57,6 +58,7 @@ export default function ProfileForm({ initialProfile, onCancel, isEdit }: Profil
         error(res.error || "Failed to save profile");
       } else {
         success(isEdit ? "Profile updated successfully" : "Profile created successfully");
+        onRefresh?.();
         window.location.href = "/a/profiles";
       }
     });

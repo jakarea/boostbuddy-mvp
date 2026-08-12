@@ -5,8 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useTranslation } from "react-i18next";
 import { getBillingInfoAction } from "@/app/actions/clients";
+import { getClientsData, getProfileCountsData } from "@/lib/data/clients";
 import { ClientUser, BillingInfo } from "./components/types";
 import ClientsList from "./components/ClientsList";
+import { useSWR } from "@/lib/cache/swr";
+import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // Dynamic imports for code splitting
 const ClientForm = dynamic(() => import("./components/ClientForm"), { ssr: false });
@@ -25,6 +30,28 @@ export default function ClientsContent({
   const clientId = searchParams.get("id");
   const action = searchParams.get("action"); // "new"
 
+  // SWR for clients data - 5 minute cache for list
+  const { data: clients, refresh: refreshClients, isValid: clientsValid } = useSWR({
+    key: CACHE_KEYS.ADMIN_CLIENTS,
+    fetcher: getClientsData,
+    ttl: 5 * 60 * 1000, // 5 minutes
+    initialData: initialClients,
+  });
+
+  // Combined refresh function
+  const refreshAll = () => {
+    refreshClients();
+    refreshCounts();
+  };
+
+  // SWR for profile counts - 5 minute cache
+  const { data: counts, refresh: refreshCounts } = useSWR({
+    key: 'admin_profile_counts',
+    fetcher: getProfileCountsData,
+    ttl: 5 * 60 * 1000,
+    initialData: profileCounts,
+  });
+
   // Search/Filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -41,7 +68,7 @@ export default function ClientsContent({
     let isMounted = true;
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    const user = initialClients.find((u) => u.id === clientId);
+    const user = clients?.find((u) => u.id === clientId);
     if (clientId && user) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedClient(user);
@@ -63,11 +90,11 @@ export default function ClientsContent({
     return () => {
       isMounted = false;
     };
-  }, [clientId, initialClients]);
+  }, [clientId, clients]);
 
   // Filter clients list
   const filteredClients = useMemo(() => {
-    return initialClients.filter((u) => {
+    return clients?.filter((u) => {
       if (u.role !== "CLIENT") return false;
 
       // Search query
@@ -80,7 +107,7 @@ export default function ClientsContent({
 
       return matchSearch && matchStatus;
     });
-  }, [initialClients, searchTerm, statusFilter]);
+  }, [clients, searchTerm, statusFilter]);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -106,7 +133,7 @@ export default function ClientsContent({
   // Render 1: Create New Client Form
   if (action === "new") {
     return (
-      <ClientForm onCancel={() => router.push("/a/clients")} />
+      <ClientForm onCancel={() => router.push("/a/clients")} onRefresh={refreshAll} />
     );
   }
 
@@ -118,6 +145,7 @@ export default function ClientsContent({
         billingInfo={billingInfo}
         assignedProfilesCount={profileCounts[selectedClient.id] || 0}
         onClose={() => router.push("/a/clients")}
+        onRefresh={refreshAll}
       />
     );
   }
@@ -138,6 +166,8 @@ export default function ClientsContent({
       itemsPerPage={itemsPerPage}
       profileCounts={profileCounts}
       i18nLanguage={i18n.language}
+      onRefresh={refreshAll}
+      isCacheValid={clientsValid}
     />
   );
 }

@@ -45,6 +45,8 @@ import {
   X
 } from "lucide-react";
 import { formatDateShort } from "@/lib/dateUtils";
+import { useSWR } from "@/lib/cache/swr";
+import { CACHE_KEYS } from "@/lib/cache/cacheContext";
 
 interface EmployeePerformance {
   id: string;
@@ -67,13 +69,22 @@ interface EmployeesClientProps {
 
 export default function EmployeesClient({ initialEmployees, totalCount }: EmployeesClientProps) {
   const { t } = useTranslation("admin_reviews");
-  const { success, error } = useToast();
+  const { success, error: showError } = useToast();
   const { confirm } = useConfirm();
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [employees, setEmployees] = useState<EmployeePerformance[]>(initialEmployees);
-  const [localTotalCount, setLocalTotalCount] = useState(totalCount);
+  // SWR for employee performance data - 2 minute cache
+  const { data: swrData, refresh, isValid } = useSWR({
+    key: CACHE_KEYS.ADMIN_EMPLOYEE_PERFORMANCE,
+    fetcher: async () => {
+      const result = await getEmployeePerformanceAction();
+      return result.success ? result.data : { employees: [], totalCount: 0 };
+    },
+    ttl: 2 * 60 * 1000,
+    initialData: { employees: initialEmployees, totalCount },
+  });
+
   const [isLoading, setIsLoading] = useState(false);
   const [sortBy, setSortBy] = useState<"completed" | "recent">("completed");
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -81,6 +92,10 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
   const initialSearchTerm = searchParams.get('search') || '';
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Use SWR data
+  const employees = swrData?.employees || [];
+  const localTotalCount = swrData?.totalCount || 0;
 
   // Sync search with URL params (triggers server refetch)
   useEffect(() => {
@@ -96,12 +111,6 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
       router.push(`/a/reviews/employees?${params.toString()}`);
     }
   }, [debouncedSearchTerm]);
-
-  // Update employees when server provides new data
-  useEffect(() => {
-    setEmployees(initialEmployees);
-    setLocalTotalCount(totalCount);
-  }, [initialEmployees, totalCount]);
 
   // Pagination state
   const itemsPerPage = parseInt(searchParams.get('pageSize') || '20', 10);
@@ -167,70 +176,39 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
       if (result.success) {
         success(result.message || t("manage.inviteDialog.success", "Invitation sent"));
         setInviteOpen(false);
+        refresh();
         router.refresh();
       } else {
-        error(result.error || "Failed to invite employee");
+        showError(result.error || "Failed to invite employee");
       }
     });
   };
 
   const handleToggleAcceptingOrders = (userId: string, nextChecked: boolean) => {
-    // Optimistic update
-    setEmployees(prev =>
-      prev.map(emp =>
-        emp.userId === userId ? { ...emp, acceptingOrders: nextChecked } : emp
-      )
-    );
-
     toggleEmployeeAcceptingOrdersAction(userId)
       .then(result => {
-        if (!result.success) {
-          // Revert on failure
-          setEmployees(prev =>
-            prev.map(emp =>
-              emp.userId === userId ? { ...emp, acceptingOrders: !nextChecked } : emp
-            )
-          );
-          error(result.error || "Failed to update");
+        if (result.success) {
+          refresh();
+        } else {
+          showError(result.error || "Failed to update");
         }
       })
       .catch(() => {
-        setEmployees(prev =>
-          prev.map(emp =>
-            emp.userId === userId ? { ...emp, acceptingOrders: !nextChecked } : emp
-          )
-        );
-        error("Failed to update");
+        showError("Failed to update");
       });
   };
 
   const handleToggleTaskDistribution = (userId: string, nextChecked: boolean) => {
-    // Optimistic update
-    setEmployees(prev =>
-      prev.map(emp =>
-        emp.userId === userId ? { ...emp, acceptingTasks: nextChecked } : emp
-      )
-    );
-
     toggleEmployeeTaskDistributionAction(userId)
       .then(result => {
-        if (!result.success) {
-          // Revert on failure
-          setEmployees(prev =>
-            prev.map(emp =>
-              emp.userId === userId ? { ...emp, acceptingTasks: !nextChecked } : emp
-            )
-          );
-          error(result.error || "Failed to update");
+        if (result.success) {
+          refresh();
+        } else {
+          showError(result.error || "Failed to update");
         }
       })
       .catch(() => {
-        setEmployees(prev =>
-          prev.map(emp =>
-            emp.userId === userId ? { ...emp, acceptingTasks: !nextChecked } : emp
-          )
-        );
-        error("Failed to update");
+        showError("Failed to update");
       });
   };
 
@@ -285,10 +263,11 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
           <Button
             variant="outline"
             size="sm"
-            onClick={() => router.refresh()}
+            onClick={refresh}
+            disabled={!isValid}
             className="gap-1 h-7 text-[11px]"
           >
-            <RefreshCw className="h-3 w-3" />
+            <Loader2 className={`h-3 w-3 ${!isValid ? 'animate-spin' : ''}`} />
             {t("employees.refresh", "Refresh")}
           </Button>
           <Button
