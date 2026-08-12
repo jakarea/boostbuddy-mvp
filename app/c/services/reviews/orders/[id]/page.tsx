@@ -71,7 +71,7 @@ export default function ReviewOrderDetailPage() {
             <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
               {t("reviews.orderType", "Order Type")}
             </h3>
-            <p className="font-medium">{order.orderType}</p>
+            <p className="font-medium">{order.orderType.replace(/_/g, ' ')}</p>
           </div>
 
           <div>

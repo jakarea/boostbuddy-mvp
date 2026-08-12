@@ -208,7 +208,7 @@ export default function ReviewOrdersPage() {
                   <span className="text-zinc-500">
                     {t("reviews.orderType", "Order Type")}:
                   </span>
-                  <span className="font-medium">{order.orderType}</span>
+                  <span className="font-medium">{order.orderType.replace(/_/g, ' ')}</span>
                 </div>
 
                 <div className="flex justify-between items-center">
