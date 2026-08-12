@@ -82,7 +82,7 @@ export default function ReviewOrderDetailPage() {
           ←
         </button>
         <h1 className="text-2xl font-bold flex-1">
-          {order.businessName}
+          {t("reviews.reviewOrder", "Review Order")}
         </h1>
         <StatusBadge status={order.status} />
       </div>
@@ -116,18 +116,16 @@ export default function ReviewOrderDetailPage() {
 
           <div>
             <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              {t("reviews.businessName", "Business Name")}
-            </h3>
-            <p className="font-medium">{order.businessName || 'N/A'}</p>
-          </div>
-
-          {/* Target Rating - Hidden from UI */}
-
-          <div>
-            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
               {t("reviews.quantity", "Quantity")}
             </h3>
             <p className="font-medium">{order.quantity}</p>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+              {t("reviews.creditsConsumed", "Credits Consumed")}
+            </h3>
+            <p className="font-medium">{order.creditsConsumed}</p>
           </div>
 
           <div>
@@ -154,75 +152,69 @@ export default function ReviewOrderDetailPage() {
           </div>
         )}
 
-        {/* Multi-URL Orders - Display all URLs with their content */}
+        {/* Multi-URL Orders - Display shared content and URLs */}
         {order.reviewUrls && order.reviewUrls.length > 0 && (
           <div>
-            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3">
-              {t("reviews.urlsAndContent", "URLs and Review Content")}
-            </h3>
-            <div className="space-y-4">
-              {order.reviewUrls.map((urlItem: any, index: number) => (
-                <div key={urlItem.id} className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 bg-zinc-50 dark:bg-zinc-900">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-medium bg-zinc-200 dark:bg-zinc-700 px-2 py-1 rounded">
-                      #{index + 1}
-                    </span>
-                    <span className={`text-xs font-medium px-2 py-1 rounded ${
-                      urlItem.status === 'COMPLETED' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                      urlItem.status === 'ASSIGNED' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                      'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-                    }`}>
-                      {urlItem.status}
-                    </span>
-                    {urlItem.quantity > 1 && (
-                      <span className="text-xs text-zinc-500">
-                        {t("reviews.quantity", "Quantity")}: {urlItem.quantity}
-                      </span>
-                    )}
-                  </div>
+            {/* Shared Review Content (from order level) */}
+            {(order.orderType === "REVIEW" || order.orderType === "COMMENT_WITH_PHOTO") && order.reviewContent && (
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
+                  {t("reviews.reviewContent", "Review Content")}
+                </h3>
+                <p className="text-sm whitespace-pre-wrap bg-zinc-50 dark:bg-zinc-900 p-3 rounded border border-zinc-200 dark:border-zinc-700">
+                  {order.reviewContent}
+                </p>
+              </div>
+            )}
 
-                  <div className="mb-3">
-                    <h4 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-                      {t("reviews.url", "URL")}
-                    </h4>
+            {/* URLs Section */}
+            <div>
+              <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3">
+                {t("reviews.urls", "URLs")} ({order.reviewUrls.length})
+              </h3>
+              <div className="space-y-3">
+                {order.reviewUrls.map((urlItem: any, index: number) => (
+                  <div key={urlItem.id} className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 bg-zinc-50 dark:bg-zinc-900">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-medium bg-zinc-200 dark:bg-zinc-700 px-2 py-1 rounded">
+                        #{index + 1}
+                      </span>
+                      <span className={`text-xs font-medium px-2 py-1 rounded ${
+                        urlItem.status === 'COMPLETED' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                        urlItem.status === 'ASSIGNED' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                      }`}>
+                        {urlItem.status}
+                      </span>
+                      <span className="text-xs text-zinc-500 font-medium">
+                        {t("reviews.quantity", "Qty")}: {urlItem.quantity}
+                      </span>
+                    </div>
+
                     <a
                       href={urlItem.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-[#168BB0] hover:underline break-all"
+                      className="text-sm text-[#168BB0] hover:underline break-all block"
                     >
                       {urlItem.url}
                     </a>
+
+                    {urlItem.proofOfCompletion && (
+                      <div className="mt-2">
+                        <a
+                          href={urlItem.proofOfCompletion}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-[#168BB0] hover:underline"
+                        >
+                          {t("reviews.viewProof", "View Proof")}
+                        </a>
+                      </div>
+                    )}
                   </div>
-
-                  {urlItem.reviewContent && (
-                    <div>
-                      <h4 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-                        {t("reviews.reviewContent", "Review Content")}
-                      </h4>
-                      <p className="text-sm whitespace-pre-wrap bg-white dark:bg-zinc-800 p-3 rounded border border-zinc-200 dark:border-zinc-700">
-                        {urlItem.reviewContent}
-                      </p>
-                    </div>
-                  )}
-
-                  {urlItem.proofOfCompletion && (
-                    <div className="mt-3">
-                      <h4 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-                        {t("reviews.proofOfCompletion", "Proof of Completion")}
-                      </h4>
-                      <a
-                        href={urlItem.proofOfCompletion}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-[#168BB0] hover:underline"
-                      >
-                        {t("reviews.viewProof", "View Proof")}
-                      </a>
-                    </div>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         )}
