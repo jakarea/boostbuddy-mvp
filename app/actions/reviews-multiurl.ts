@@ -13,13 +13,13 @@ import { randomUUID } from "crypto";
 export type ReviewUrlData = {
   url: string;
   quantity: number;
-  reviewContent?: string;
-  photos?: string[]; // For COMMENT_WITH_PHOTO type
   reactionType?: "LIKE" | "LOVE" | "CARE" | "HAHA" | "WOW" | "SAD" | "ANGRY";
 };
 
 export type MultiUrlReviewOrderData = {
   orderType: "REVIEW" | "COMMENT" | "COMMENT_WITH_PHOTO";
+  reviewContent?: string; // Shared review content for all URLs
+  photos?: string[]; // Shared photos for all URLs (for COMMENT_WITH_PHOTO)
   urls: ReviewUrlData[];
   businessName?: string;
 };
@@ -59,6 +59,26 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
       return { success: false, error: "Invalid order type" };
     }
 
+    // Validate shared review content for REVIEW types
+    if (orderData.orderType === "REVIEW" || orderData.orderType === "COMMENT_WITH_PHOTO") {
+      if (!orderData.reviewContent || orderData.reviewContent.trim().length === 0) {
+        return { success: false, error: "Review content is required" };
+      }
+      if (orderData.reviewContent.length > 500) {
+        return { success: false, error: "Review content must be less than 500 characters" };
+      }
+    }
+
+    // Validate shared photos for COMMENT_WITH_PHOTO
+    if (orderData.orderType === "COMMENT_WITH_PHOTO") {
+      if (!orderData.photos || orderData.photos.length === 0) {
+        return { success: false, error: "Photo is required" };
+      }
+      if (orderData.photos.length > 1) {
+        return { success: false, error: "Maximum 1 photo allowed" };
+      }
+    }
+
     // Validate URLs and calculate total quantity
     let totalQuantity = 0;
     for (const urlData of orderData.urls) {
@@ -74,26 +94,6 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
       }
 
       totalQuantity += urlData.quantity;
-
-      // Validate review content for REVIEW types
-      if (orderData.orderType === "REVIEW" || orderData.orderType === "COMMENT_WITH_PHOTO") {
-        if (!urlData.reviewContent || urlData.reviewContent.trim().length === 0) {
-          return { success: false, error: `Review content required for URL: ${urlData.url}` };
-        }
-        if (urlData.reviewContent.length > 500) {
-          return { success: false, error: `Review content must be less than 500 characters for URL: ${urlData.url}` };
-        }
-      }
-
-      // Validate photos for COMMENT_WITH_PHOTO
-      if (orderData.orderType === "COMMENT_WITH_PHOTO") {
-        if (!urlData.photos || urlData.photos.length === 0) {
-          return { success: false, error: `Photo required for URL: ${urlData.url}` };
-        }
-        if (urlData.photos.length > 1) {
-          return { success: false, error: `Maximum 1 photo per URL for URL: ${urlData.url}` };
-        }
-      }
     }
 
     if (totalQuantity > 500) {
@@ -160,7 +160,7 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
     // Generate business name if not provided
     const businessName = orderData.businessName || extractBusinessNameFromUrl(orderData.urls[0].url);
 
-    // Create ReviewOrder
+    // Create ReviewOrder with shared content
     const { error: orderError } = await (supabaseAdmin as any)
       .from("review_orders")
       .insert({
@@ -173,6 +173,8 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
         target_rating: "5_STAR",
         reaction_type: orderData.urls[0].reactionType || "LIKE",
         credits_consumed: requiredCredits,
+        review_content: orderData.reviewContent || null,
+        photos: orderData.photos || null,
         status: "PENDING",
         total_urls: orderData.urls.length,
         created_at: now,
@@ -181,13 +183,12 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
 
     if (orderError) throw orderError;
 
-    // Create ReviewUrl entries
+    // Create ReviewUrl entries (no per-URL content needed)
     const reviewUrlsData = orderData.urls.map((urlData, index) => ({
       id: randomUUID(),
       review_order_id: orderId,
       url: urlData.url.trim(),
       quantity: urlData.quantity,
-      review_content: urlData.reviewContent || null,
       review_index: index,
       status: "PENDING",
       created_at: now,
@@ -298,7 +299,6 @@ export async function getAvailableUrlTasksAction() {
         id,
         url,
         quantity,
-        review_content,
         review_index,
         status,
         review_order_id,
@@ -306,7 +306,9 @@ export async function getAvailableUrlTasksAction() {
           id,
           order_type,
           reaction_type,
-          business_name
+          business_name,
+          review_content,
+          photos
         )
       `)
       .eq("status", "PENDING")
@@ -320,7 +322,8 @@ export async function getAvailableUrlTasksAction() {
       id: task.id,
       url: task.url,
       quantity: task.quantity,
-      reviewContent: task.review_content,
+      reviewContent: task.review_orders?.review_content,
+      photos: task.review_orders?.photos,
       reviewIndex: task.review_index,
       status: task.status,
       reviewOrderId: task.review_order_id,
@@ -375,8 +378,6 @@ export async function getOrderUrlTasksAction(orderId: string) {
         id,
         url,
         quantity,
-        review_content,
-        photos,
         reaction_type,
         review_index,
         status,
@@ -384,7 +385,11 @@ export async function getOrderUrlTasksAction(orderId: string) {
         assigned_at,
         completed_at,
         proof_of_completion,
-        created_at
+        created_at,
+        review_orders (
+          review_content,
+          photos
+        )
       `)
       .eq("review_order_id", orderId)
       .order("review_index", { ascending: true });
@@ -404,8 +409,8 @@ export async function getOrderUrlTasksAction(orderId: string) {
       id: task.id,
       url: task.url,
       quantity: task.quantity,
-      reviewContent: task.review_content,
-      photos: task.photos,
+      reviewContent: task.review_orders?.review_content,
+      photos: task.review_orders?.photos,
       reactionType: task.reaction_type,
       reviewIndex: task.review_index,
       status: task.status,
@@ -582,9 +587,25 @@ export async function getUrlTaskDetailAction(urlTaskId: string) {
     const { data: task, error } = await supabase
       .from("review_urls")
       .select(`
-        *,
+        id,
+        url,
+        quantity,
+        reaction_type,
+        review_index,
+        status,
+        assigned_employee_id,
+        assigned_at,
+        completed_at,
+        proof_of_completion,
+        created_at,
         review_orders (
-          *,
+          id,
+          user_id,
+          business_name,
+          order_type,
+          reaction_type,
+          review_content,
+          photos,
           users:user_id (email, name)
         )
       `)
@@ -601,21 +622,31 @@ export async function getUrlTaskDetailAction(urlTaskId: string) {
       return { success: false, error: "Unauthorized" };
     }
 
-    // Normalize data
+    // Normalize data - review_orders is an array from the join
+    const reviewOrder = task.review_orders?.[0];
+    const user = reviewOrder?.users?.[0];
     const normalizedTask = {
-      ...task,
-      reviewContent: task.review_content,
+      id: task.id,
+      url: task.url,
+      quantity: task.quantity,
+      reactionType: task.reaction_type,
       reviewIndex: task.review_index,
+      status: task.status,
       assignedEmployeeId: task.assigned_employee_id,
       assignedAt: task.assigned_at,
       completedAt: task.completed_at,
       proofOfCompletion: task.proof_of_completion,
+      createdAt: task.created_at,
+      reviewContent: reviewOrder?.review_content,
+      photos: reviewOrder?.photos,
       reviewOrder: {
-        ...task.review_orders,
-        userId: task.review_orders?.user_id,
-        businessName: task.review_orders?.business_name,
-        orderType: task.review_orders?.order_type,
-        reactionType: task.review_orders?.reaction_type
+        id: reviewOrder?.id,
+        userId: reviewOrder?.user_id,
+        businessName: reviewOrder?.business_name,
+        orderType: reviewOrder?.order_type,
+        reactionType: reviewOrder?.reaction_type,
+        clientEmail: user?.email,
+        clientName: user?.name
       }
     };
 

@@ -21,8 +21,6 @@ type OrderType = "REVIEW" | "COMMENT" | "COMMENT_WITH_PHOTO";
 interface ReviewUrlData {
   url: string;
   quantity: number;
-  reviewContent: string;
-  photos: string[];
   reactionType?: ReactionType;
 }
 
@@ -43,11 +41,17 @@ export default function NewReviewOrderPage() {
 
   const [orderType, setOrderType] = useState<OrderType>("REVIEW");
   const [urls, setUrls] = useState<ReviewUrlData[]>([
-    { url: "", quantity: 1, reviewContent: "", photos: [], reactionType: "LIKE" as ReactionType }
+    { url: "", quantity: 1, reactionType: "LIKE" as ReactionType }
   ]);
+
+  // Shared review content and photos (written once, applied to all URLs)
+  const [sharedReviewContent, setSharedReviewContent] = useState("");
+  const [sharedPhotos, setSharedPhotos] = useState<string[]>([]);
 
   const [fieldErrors, setFieldErrors] = useState<{
     urls?: Record<number, boolean>;
+    reviewContent?: boolean;
+    photos?: boolean;
     credits?: boolean;
   }>({});
 
@@ -102,8 +106,6 @@ export default function NewReviewOrderPage() {
       {
         url: "",
         quantity: 1,
-        reviewContent: "",
-        photos: [],
         reactionType: "LIKE" as ReactionType
       }
     ]);
@@ -112,7 +114,7 @@ export default function NewReviewOrderPage() {
   const removeUrl = (index: number) => {
     const newUrls = urls.filter((_, i) => i !== index);
     setUrls(newUrls.length > 0 ? newUrls : [
-      { url: "", quantity: 1, reviewContent: "", photos: [], reactionType: "LIKE" as ReactionType }
+      { url: "", quantity: 1, reactionType: "LIKE" as ReactionType }
     ]);
     setFieldErrors({ ...fieldErrors, urls: { ...fieldErrors.urls, [index]: false } });
   };
@@ -135,22 +137,23 @@ export default function NewReviewOrderPage() {
       if (!urlData.url || !/^(https?:\/\/)?(www\.)?(facebook|fb)\.com\/.+/i.test(urlData.url)) {
         urlErrors[index] = true;
       }
-
-      // Validate review content for REVIEW and COMMENT_WITH_PHOTO
-      if ((orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO") && !urlData.reviewContent?.trim()) {
-        urlErrors[index] = true;
-      }
-
-      // Validate photos for COMMENT_WITH_PHOTO
-      if (orderType === "COMMENT_WITH_PHOTO" && (!urlData.photos || urlData.photos.length === 0)) {
-        urlErrors[index] = true;
-      }
-
       // Validate quantity
       if (urlData.quantity < 1 || urlData.quantity > 100) {
         urlErrors[index] = true;
       }
     });
+
+    // Validate shared review content for REVIEW and COMMENT_WITH_PHOTO
+    if ((orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO") && !sharedReviewContent?.trim()) {
+      setFieldErrors({ reviewContent: true });
+      return;
+    }
+
+    // Validate shared photos for COMMENT_WITH_PHOTO
+    if (orderType === "COMMENT_WITH_PHOTO" && (!sharedPhotos || sharedPhotos.length === 0)) {
+      setFieldErrors({ photos: true });
+      return;
+    }
 
     if (Object.keys(urlErrors).length > 0) {
       setFieldErrors({ urls: urlErrors });
@@ -169,11 +172,11 @@ export default function NewReviewOrderPage() {
     try {
       const payload = {
         orderType,
-        urls: validUrls.map((u, i) => ({
+        reviewContent: sharedReviewContent || undefined,
+        photos: sharedPhotos || undefined,
+        urls: validUrls.map((u) => ({
           url: u.url.trim(),
           quantity: u.quantity,
-          reviewContent: u.reviewContent || undefined,
-          photos: u.photos || undefined,
           reactionType: u.reactionType
         }))
       };
@@ -279,8 +282,10 @@ export default function NewReviewOrderPage() {
                   type="button"
                   onClick={() => {
                     setOrderType(option.type);
-                    // Reset URLs when changing order type
-                    setUrls([{ url: "", quantity: 1, reviewContent: "", photos: [], reactionType: "LIKE" as ReactionType }]);
+                    // Reset URLs and shared content when changing order type
+                    setUrls([{ url: "", quantity: 1, reactionType: "LIKE" as ReactionType }]);
+                    setSharedReviewContent("");
+                    setSharedPhotos([]);
                     setFieldErrors({});
                   }}
                   className={`relative p-3 rounded-lg border text-left transition-all ${
@@ -310,17 +315,78 @@ export default function NewReviewOrderPage() {
 
           {/* Form Fields */}
           <div className="p-4 space-y-4">
+            {/* Shared Review Content Section - For REVIEW and COMMENT_WITH_PHOTO */}
+            {(orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO") && (
+              <div>
+                <label className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="text-[#168BB0">✍️</span>
+                    Review Content
+                    <span className="text-red-500">*</span>
+                  </span>
+                </label>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
+                  Write your review content once. It will be used for all URLs.
+                </p>
+                <textarea
+                  rows={3}
+                  maxLength={500}
+                  value={sharedReviewContent}
+                  onChange={(e) => {
+                    setSharedReviewContent(e.target.value);
+                    setFieldErrors({ ...fieldErrors, reviewContent: false });
+                  }}
+                  placeholder="Enter your review content..."
+                  className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-zinc-800 resize-none text-sm ${
+                    fieldErrors.reviewContent
+                      ? 'border-red-300 dark:border-red-700 focus:border-red-500'
+                      : 'border-zinc-200 dark:border-zinc-700 focus:border-[#168BB0]'
+                  }`}
+                />
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {sharedReviewContent.length}/500 characters
+                </p>
+              </div>
+            )}
+
+            {/* Shared Photo Upload - For COMMENT_WITH_PHOTO */}
+            {orderType === "COMMENT_WITH_PHOTO" && (
+              <div className={fieldErrors.photos ? "border border-red-500 rounded p-2" : ""}>
+                <label className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="text-[#168BB0">📸</span>
+                    Photo
+                    <span className="text-red-500">*</span>
+                  </span>
+                </label>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
+                  Upload one photo. It will be used for all URLs.
+                </p>
+                <PhotoUpload
+                  onPhotosChange={(photos) => {
+                    setSharedPhotos(photos);
+                    setFieldErrors({ ...fieldErrors, photos: false });
+                  }}
+                  maxPhotos={1}
+                  currentPhotos={sharedPhotos}
+                />
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {sharedPhotos.length}/1 photo required
+                </p>
+              </div>
+            )}
+
             {/* URLs Section */}
             <div>
               <label className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="text-[#1877F2">🔗</span>
-                  URLs & Reviews
+                  URLs
                   <span className="text-red-500">*</span>
                 </span>
               </label>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-                Add multiple URLs with specific review content for each. Total: {totalQuantity} reviews
+                Add multiple URLs. The review above will be posted to all URLs. Total: {totalQuantity} reviews
                 {urls.length > 1 && (
                   <span className="text-[#168BB0] ml-1">({urls.length} URLs)</span>
                 )}
@@ -407,47 +473,6 @@ export default function NewReviewOrderPage() {
                             </button>
                           ))}
                         </div>
-                      </div>
-                    )}
-
-                    {/* Review Content - For REVIEW and COMMENT_WITH_PHOTO */}
-                    {(orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO") && (
-                      <div className="mb-3">
-                        <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                          Review Content<span className="text-red-500 ml-1">*</span>
-                        </label>
-                        <textarea
-                          rows={2}
-                          maxLength={500}
-                          value={urlData.reviewContent}
-                          onChange={(e) => updateUrl(index, 'reviewContent', e.target.value)}
-                          placeholder={`Enter review content for URL ${index + 1}...`}
-                          className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-zinc-800 resize-none text-sm ${
-                            fieldErrors.urls?.[index]
-                              ? 'border-red-300 dark:border-red-700'
-                              : 'border-zinc-200 dark:border-zinc-700 focus:border-[#168BB0]'
-                          }`}
-                        />
-                        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                          {urlData.reviewContent.length}/500 characters
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Photo Upload - For COMMENT_WITH_PHOTO */}
-                    {orderType === "COMMENT_WITH_PHOTO" && (
-                      <div className={fieldErrors.urls?.[index] ? "border border-red-500 rounded p-2" : ""}>
-                        <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                          Photo<span className="text-red-500 ml-1">*</span>
-                        </label>
-                        <PhotoUpload
-                          onPhotosChange={(photos) => updateUrl(index, 'photos', photos)}
-                          maxPhotos={1}
-                          currentPhotos={urlData.photos}
-                        />
-                        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                          {urlData.photos.length}/1 photo required
-                        </p>
                       </div>
                     )}
                   </div>
