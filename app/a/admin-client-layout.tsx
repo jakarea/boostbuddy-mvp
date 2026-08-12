@@ -100,7 +100,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       icon: WalletIcon,
       items: [
         { href: "/a/invoices", label: t("nav.invoices", { defaultValue: "Invoices" }), icon: FileText },
-        { href: "/wallet", label: t("nav.shared_wallet", { defaultValue: "Shared Wallet" }), icon: WalletIcon },
       ],
     },
     // 📂 SYSTEM
