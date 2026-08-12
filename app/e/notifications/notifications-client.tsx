@@ -37,11 +37,11 @@ export default function EmployeeNotificationsClient({ initialLogs }: EmployeeNot
   const itemsPerPage = 10;
 
   // SWR for notifications - 2 minute cache
-  const { data: logs, refresh, isValid } = useSWR({
+  const { data: logs, refresh, isValid } = useSWR<NotificationLogDTO[]>({
     key: CACHE_KEYS.EMPLOYEE_NOTIFICATIONS,
-    fetcher: async () => {
+    fetcher: async (): Promise<NotificationLogDTO[]> => {
       const result = await getNotificationsAction();
-      return result.success ? result.data : [];
+      return result.success ? (result.data as NotificationLogDTO[]) : [];
     },
     ttl: 2 * 60 * 1000,
     initialData: initialLogs,

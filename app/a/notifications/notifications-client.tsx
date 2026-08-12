@@ -44,9 +44,12 @@ export default function NotificationsClient({ initialLogs, telegramConfig }: Not
   const searchParams = useSearchParams();
 
   // SWR for notifications - 2 minute cache (notifications are more time-sensitive)
-  const { data: logs, refresh, isValid } = useSWR({
+  const { data: logs, refresh, isValid } = useSWR<NotificationLogDTO[]>({
     key: CACHE_KEYS.ADMIN_NOTIFICATIONS,
-    fetcher: getNotificationsAction,
+    fetcher: async (): Promise<NotificationLogDTO[]> => {
+      const result = await getNotificationsAction();
+      return result.success ? (result.data as NotificationLogDTO[]) : [];
+    },
     ttl: 2 * 60 * 1000,
     initialData: initialLogs,
   });

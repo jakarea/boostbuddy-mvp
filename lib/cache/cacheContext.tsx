@@ -3,8 +3,6 @@
  * Use to clear caches when data changes
  */
 
-import { showToast } from '@/context/ToastContext';
-
 /**
  * Cache keys - central registry for all cache keys
  */

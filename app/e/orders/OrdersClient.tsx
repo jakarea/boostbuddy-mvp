@@ -11,7 +11,7 @@ import { formatDateShort, safeDateDisplay } from "@/lib/dateUtils";
 import { Search, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS } from "@/lib/cache/cacheContext";
-import { getEmployeeOrdersAction } from "@/app/actions/employee-dashboard";
+import { getEmployeeReviewOrdersAction } from "@/app/actions/employee";
 import { Button } from "@/components/ui/button";
 
 const STATUS_FILTERS = ["", "IN_PROGRESS", "COMPLETED", "CANCELLED"] as const;
@@ -38,11 +38,15 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
   const router = useRouter();
 
   // SWR for employee orders - 2 minute cache
-  const { data: allOrders, refresh, isValid } = useSWR({
+  const { data: allOrders, refresh, isValid } = useSWR<Order[]>({
     key: CACHE_KEYS.EMPLOYEE_ORDERS,
-    fetcher: async () => {
-      const result = await getEmployeeOrdersAction();
-      return result.success ? result.data : [];
+    fetcher: async (): Promise<Order[]> => {
+      const result = await getEmployeeReviewOrdersAction();
+      if (result.success && result.data) {
+        const data = result.data as any;
+        return data.orders || [];
+      }
+      return [];
     },
     ttl: 2 * 60 * 1000,
     initialData: initialOrders,
@@ -88,7 +92,7 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
 
   // Apply search filter
   useEffect(() => {
-    let filtered = allOrders;
+    let filtered = allOrders || [];
 
     // Apply status filter
     if (statusFilter) {
@@ -249,7 +253,7 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
         <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded px-3 py-2 text-xs shadow-sm">
           <span className="text-zinc-500">
             {searchTerm
-              ? `${currentPage}/${totalPages} (${filteredOrders.length} of ${allOrders.length})`
+              ? `${currentPage}/${totalPages} (${filteredOrders.length} of ${allOrders?.length || 0})`
               : `${currentPage}/${totalPages} (${filteredOrders.length} orders)`
             }
           </span>

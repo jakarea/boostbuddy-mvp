@@ -106,7 +106,7 @@ export default function ClientsContent({
       const matchStatus = statusFilter === "ALL" || u.status === statusFilter;
 
       return matchSearch && matchStatus;
-    });
+    }) || [];
   }, [clients, searchTerm, statusFilter]);
 
   // Reset to first page when filters change

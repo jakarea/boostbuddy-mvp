@@ -37,11 +37,11 @@ export default function ClientNotificationsClient({ initialLogs }: ClientNotific
   const itemsPerPage = 10;
 
   // SWR for notifications - 2 minute cache (notifications are time-sensitive)
-  const { data: logs, refresh, isValid } = useSWR({
+  const { data: logs, refresh, isValid } = useSWR<NotificationLogDTO[]>({
     key: CACHE_KEYS.CLIENT_NOTIFICATIONS,
-    fetcher: async () => {
+    fetcher: async (): Promise<NotificationLogDTO[]> => {
       const result = await getNotificationsAction();
-      return result.success ? result.data : [];
+      return result.success ? (result.data as NotificationLogDTO[]) : [];
     },
     ttl: 2 * 60 * 1000,
     initialData: initialLogs,

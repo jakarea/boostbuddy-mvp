@@ -70,21 +70,26 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
   const [isPending, startTransition] = useTransition();
 
   // SWR for dashboard stats with 2-minute cache
-  const { data: stats, refresh, isValid } = useSWR({
+  const { data: stats, refresh, isValid } = useSWR<DashboardStatsDTO | null>({
     key: CACHE_KEYS.ADMIN_DASHBOARD,
-    fetcher: getAdminDashboardStatsData,
+    fetcher: async (): Promise<DashboardStatsDTO | null> => {
+      const result = await getAdminDashboardStatsData();
+      if (!result.success) return null;
+      return (result.data as DashboardStatsDTO) || null;
+    },
     ttl: 2 * 60 * 1000, // 2 minutes
     initialData: initialStats,
   });
 
+  const currentStats = stats || initialStats;
   const {
-    activeClientsCount = stats?.activeClientsCount ?? 0,
-    pendingClientsCount = stats?.pendingClientsCount ?? 0,
-    pendingClients = stats?.pendingClients ?? [],
-    availableProfilesCount = stats?.availableProfilesCount ?? 0,
-    expiringProfilesCount = stats?.expiringProfilesCount ?? 0,
-    expiringProfiles = stats?.expiringProfiles ?? [],
-  } = stats || initialStats;
+    activeClientsCount = currentStats.activeClientsCount,
+    pendingClientsCount = currentStats.pendingClientsCount,
+    pendingClients = currentStats.pendingClients,
+    availableProfilesCount = currentStats.availableProfilesCount,
+    expiringProfilesCount = currentStats.expiringProfilesCount,
+    expiringProfiles = currentStats.expiringProfiles,
+  } = currentStats;
 
   // Track if warning has been shown to prevent duplicates
   const warningShownRef = useRef(false);

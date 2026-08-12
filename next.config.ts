@@ -4,8 +4,6 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
 
   // Performance optimizations
-  swcMinify: true,
-
   compress: true,
 
   compiler: {

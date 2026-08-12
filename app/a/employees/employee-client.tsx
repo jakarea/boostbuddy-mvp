@@ -27,7 +27,7 @@ export default function EmployeeClient({
   const action = searchParams.get("action"); // "new"
 
   // SWR for employees data - 5 minute cache
-  const { data: employees, refresh, isValid } = useSWR({
+  const { data: employees, refresh, isValid } = useSWR<EmployeeUser[]>({
     key: CACHE_KEYS.ADMIN_EMPLOYEES,
     fetcher: getEmployeesData,
     ttl: 5 * 60 * 1000,

@@ -75,11 +75,15 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
   const router = useRouter();
 
   // SWR for employee performance data - 2 minute cache
-  const { data: swrData, refresh, isValid } = useSWR({
+  const { data: swrData, refresh, isValid } = useSWR<{ employees: EmployeePerformance[]; totalCount: number }>({
     key: CACHE_KEYS.ADMIN_EMPLOYEE_PERFORMANCE,
-    fetcher: async () => {
+    fetcher: async (): Promise<{ employees: EmployeePerformance[]; totalCount: number }> => {
       const result = await getEmployeePerformanceAction();
-      return result.success ? result.data : { employees: [], totalCount: 0 };
+      if (result.success && result.data && Array.isArray(result.data)) {
+        const data = result.data as any;
+        return { employees: data as EmployeePerformance[], totalCount: data.totalCount || 0 };
+      }
+      return { employees: [], totalCount: 0 };
     },
     ttl: 2 * 60 * 1000,
     initialData: { employees: initialEmployees, totalCount },
@@ -231,16 +235,10 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
 
     const result = await setEmployeeActiveStatusAction(employee.userId, nextActive);
     if (result.success) {
-      setEmployees(prev =>
-        prev.map(emp =>
-          emp.userId === employee.userId
-            ? { ...emp, isActive: nextActive, acceptingTasks: nextActive ? emp.acceptingTasks : false }
-            : emp
-        )
-      );
+      refresh(); // Refresh SWR cache instead of optimistic update
       success(nextActive ? "Employee activated" : "Employee deactivated");
     } else {
-      error(result.error || "Failed to update");
+      showError(result.error || "Failed to update");
     }
   };
 

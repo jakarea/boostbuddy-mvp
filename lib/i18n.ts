@@ -28,7 +28,7 @@ i18n
   .use(initReactI18next)
   .use({
     type: "backend",
-    read: async (lng, ns) => {
+    read: async (lng: string, ns: string) => {
       if (lng !== "en" && !loadedLocales.has(lng)) {
         await loadLocaleAsync(lng);
       }

@@ -22,7 +22,7 @@ import { getServicesAction } from "@/app/actions/services";
 import { calculateUpgradePriceAction } from "@/app/actions/stripe";
 import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS } from "@/lib/cache/cacheContext";
-import { getClientProfilesData } from "@/lib/data/dashboard";
+import { getClientDashboardData } from "@/lib/data/dashboard";
 
 // Ticking 2FA Timer Component
 const TwoFactorTimer: React.FC<{ secret: string }> = ({ secret }) => {
