@@ -76,10 +76,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       label: t("nav.reviews_management", { defaultValue: "Reviews Management" }),
       icon: Eye,
       items: [
-        { href: "/a/reviews/queue", label: t("nav.pending_queue", { defaultValue: "Pending Queue" }), icon: Inbox },
+        { href: "/a/reviews", label: t("nav.reviews_overview", { defaultValue: "Reviews Overview" }), icon: FileText },
         { href: "/a/reviews/employees", label: t("nav.employee_submissions", { defaultValue: "Employee Submissions" }), icon: UserCog },
-        { href: "/a/reviews", label: t("nav.active_reviews", { defaultValue: "Active Reviews" }), icon: FileText },
-        { href: "/a/reviews/history", label: t("nav.complete_history", { defaultValue: "Complete History" }), icon: History },
       ],
     },
     // 📂 SERVICES & PRICING
