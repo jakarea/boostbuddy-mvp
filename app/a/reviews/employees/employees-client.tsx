@@ -25,6 +25,7 @@ import {
   toggleEmployeeAcceptingOrdersAction,
   toggleEmployeeTaskDistributionAction,
   setEmployeeActiveStatusAction,
+  getEmployeeAssignedReviewsAction,
 } from "@/app/actions/admin-reviews";
 import {
   UserCheck,
@@ -60,6 +61,17 @@ interface EmployeePerformance {
   ordersCompleted: number;
   lastActiveAt: string;
   createdAt: string;
+  assignedReviews?: AssignedReview[];
+}
+
+interface AssignedReview {
+  id: string;
+  url: string;
+  quantity: number;
+  status: string;
+  assignedAt: string;
+  orderId: string;
+  orderType: string;
 }
 
 interface EmployeesClientProps {
@@ -96,6 +108,10 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
   const initialSearchTerm = searchParams.get('search') || '';
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Track which employee cards are expanded and their assigned reviews
+  const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set());
+  const [employeeAssignments, setEmployeeAssignments] = useState<Record<string, AssignedReview[]>>({});
 
   // Use SWR data
   const employees = swrData?.employees || [];
@@ -170,6 +186,27 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
 
   const handleClearSearch = () => {
     setSearchTerm("");
+  };
+
+  const toggleEmployeeExpanded = async (employeeId: string, userId: string) => {
+    const newExpanded = new Set(expandedEmployees);
+    if (newExpanded.has(employeeId)) {
+      newExpanded.delete(employeeId);
+    } else {
+      newExpanded.add(employeeId);
+      // Fetch assigned reviews if not already loaded
+      if (!employeeAssignments[employeeId]) {
+        try {
+          const result = await getEmployeeAssignedReviewsAction(userId);
+          if (result.success && result.data) {
+            setEmployeeAssignments(prev => ({ ...prev, [employeeId]: result.data }));
+          }
+        } catch (err) {
+          console.error("Failed to fetch assigned reviews:", err);
+        }
+      }
+    }
+    setExpandedEmployees(newExpanded);
   };
 
   const handleInvite = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -410,6 +447,58 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
                     {t("employees.completed", "Done")}
                   </p>
                 </div>
+              </div>
+
+              {/* Assigned Reviews Section (Expandable) */}
+              <div className="pt-1 border-t border-zinc-200 dark:border-zinc-800">
+                <button
+                  onClick={() => toggleEmployeeExpanded(employee.id, employee.userId)}
+                  className="w-full flex items-center justify-between text-[10px] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
+                >
+                  <span className="flex items-center gap-1">
+                    <TrendingUp className="h-2.5 w-2.5" />
+                    {expandedEmployees.has(employee.id)
+                      ? `Hide Assigned Reviews (${employeeAssignments[employee.id]?.length || 0})`
+                      : `View Assigned Reviews (${employeeAssignments[employee.id]?.length || 0})`
+                    }
+                  </span>
+                  <ChevronLeft className={`h-3 w-3 transition-transform ${expandedEmployees.has(employee.id) ? 'rotate-90' : ''}`} />
+                </button>
+
+                {expandedEmployees.has(employee.id) && (
+                  <div className="mt-2 space-y-1.5">
+                    {employeeAssignments[employee.id]?.length === 0 ? (
+                      <div className="text-[10px] text-zinc-500 text-center py-2">
+                        No assigned reviews found
+                      </div>
+                    ) : (
+                      employeeAssignments[employee.id]?.map((review) => (
+                        <div key={review.id} className="bg-zinc-50 dark:bg-zinc-900 rounded p-1.5 border border-zinc-200 dark:border-zinc-800">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                              review.status === 'COMPLETED' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                              review.status === 'ASSIGNED' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                              'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                            }`}>
+                              {review.status}
+                            </span>
+                            <span className="text-[9px] text-zinc-500">
+                              Qty: {review.quantity}
+                            </span>
+                          </div>
+                          <div className="flex items-start gap-1 text-[10px]">
+                            <span className="text-zinc-600 dark:text-zinc-400 min-w-0 truncate flex-1">
+                              {review.url}
+                            </span>
+                            <span className="text-zinc-500">
+                              {review.orderType.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Last Active & Member Since */}

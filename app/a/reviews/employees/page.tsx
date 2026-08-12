@@ -12,6 +12,7 @@ interface EmployeePerformance {
   ordersCompleted: number;
   lastActiveAt: string;
   createdAt: string;
+  assignedReviews?: any[];
 }
 
 interface PageProps {

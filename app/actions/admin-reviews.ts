@@ -508,6 +508,56 @@ export async function getEmployeePerformanceAction(filters?: { page?: number; pa
 }
 
 /**
+ * Get assigned reviews for a specific employee (admin only)
+ */
+export async function getEmployeeAssignedReviewsAction(userId: string) {
+  try {
+    const auth = await requireAuth({ role: 'ADMIN' });
+    if (!auth.success) return auth;
+
+    const supabase = await createClient();
+
+    // Get all review_urls assigned to this employee with their order details
+    const { data, error } = await supabase
+      .from("review_urls")
+      .select(`
+        id,
+        url,
+        quantity,
+        status,
+        assigned_at,
+        review_order_id,
+        review_orders (
+          id,
+          order_type,
+          business_name
+        )
+      `)
+      .eq("assigned_employee_id", userId)
+      .in("status", ["ASSIGNED", "IN_PROGRESS"])
+      .order("assigned_at", { ascending: false });
+
+    if (error) throw error;
+
+    // Normalize data
+    const normalizedData = data?.map((item: any) => ({
+      id: item.id,
+      url: item.url,
+      quantity: item.quantity,
+      status: item.status,
+      assignedAt: item.assigned_at,
+      orderId: item.review_order_id,
+      orderType: item.review_orders?.order_type || 'REVIEW',
+      businessName: item.review_orders?.business_name
+    })) || [];
+
+    return { success: true, data: normalizedData };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Get pending orders queue (admin only)
  */
 export async function getPendingOrdersQueueAction() {
