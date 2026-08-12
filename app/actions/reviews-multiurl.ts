@@ -174,7 +174,7 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
         reaction_type: orderData.urls[0].reactionType || "LIKE",
         credits_consumed: requiredCredits,
         review_content: orderData.reviewContent || null,
-        photos: orderData.photos || null,
+        photoUrls: orderData.photos?.length ? JSON.stringify(orderData.photos) : null,
         status: "PENDING",
         total_urls: orderData.urls.length,
         created_at: now,
@@ -308,7 +308,7 @@ export async function getAvailableUrlTasksAction() {
           reaction_type,
           business_name,
           review_content,
-          photos
+          photo_urls
         )
       `)
       .eq("status", "PENDING")
@@ -323,7 +323,7 @@ export async function getAvailableUrlTasksAction() {
       url: task.url,
       quantity: task.quantity,
       reviewContent: task.review_orders?.review_content,
-      photos: task.review_orders?.photos,
+      photos: task.review_orders?.photo_urls ? JSON.parse(task.review_orders.photo_urls) : null,
       reviewIndex: task.review_index,
       status: task.status,
       reviewOrderId: task.review_order_id,
@@ -388,7 +388,7 @@ export async function getOrderUrlTasksAction(orderId: string) {
         created_at,
         review_orders (
           review_content,
-          photos
+          photo_urls
         )
       `)
       .eq("review_order_id", orderId)
@@ -410,7 +410,7 @@ export async function getOrderUrlTasksAction(orderId: string) {
       url: task.url,
       quantity: task.quantity,
       reviewContent: task.review_orders?.review_content,
-      photos: task.review_orders?.photos,
+      photos: task.review_orders?.photo_urls ? JSON.parse(task.review_orders.photo_urls) : null,
       reactionType: task.reaction_type,
       reviewIndex: task.review_index,
       status: task.status,
@@ -605,7 +605,7 @@ export async function getUrlTaskDetailAction(urlTaskId: string) {
           order_type,
           reaction_type,
           review_content,
-          photos,
+          photo_urls,
           users:user_id (email, name)
         )
       `)
@@ -638,7 +638,7 @@ export async function getUrlTaskDetailAction(urlTaskId: string) {
       proofOfCompletion: task.proof_of_completion,
       createdAt: task.created_at,
       reviewContent: reviewOrder?.review_content,
-      photos: reviewOrder?.photos,
+      photos: reviewOrder?.photo_urls ? JSON.parse(reviewOrder.photo_urls) : null,
       reviewOrder: {
         id: reviewOrder?.id,
         userId: reviewOrder?.user_id,
