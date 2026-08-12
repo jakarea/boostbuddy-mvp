@@ -644,6 +644,8 @@ export async function getReviewOrderDetailAction(orderId: string) {
     if (!auth.success) return auth;
 
     const supabase = await createClient();
+
+    // Fetch the order first (using regular client to verify ownership)
     const { data, error } = await supabase
       .from("review_orders")
       .select("id, user_id, status, target_rating, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at")
@@ -654,6 +656,18 @@ export async function getReviewOrderDetailAction(orderId: string) {
     if (error) throw error;
     if (!data) {
       return { success: false, error: "Order not found" };
+    }
+
+    // Fetch review_urls using admin client (bypasses RLS)
+    // Safe because we've already verified the user owns this order
+    const adminClient = createAdminClient();
+    const { data: reviewUrlsData, error: urlsError } = await adminClient
+      .from("review_urls")
+      .select("id, url, quantity, review_content, review_index, status, assigned_employee_id, assigned_at, completed_at, proof_of_completion")
+      .eq("review_order_id", orderId);
+
+    if (urlsError) {
+      console.error("Failed to fetch review URLs:", urlsError);
     }
 
     // Normalize database column names from snake_case to camelCase
@@ -688,7 +702,20 @@ export async function getReviewOrderDetailAction(orderId: string) {
           }))
         : null,
       createdAt: data.created_at,
-      updatedAt: data.updated_at
+      updatedAt: data.updated_at,
+      // Include review_urls data fetched separately
+      reviewUrls: reviewUrlsData?.map((ru: any) => ({
+        id: ru.id,
+        url: ru.url,
+        quantity: ru.quantity,
+        reviewContent: ru.review_content,
+        reviewIndex: ru.review_index,
+        status: ru.status,
+        assignedEmployeeId: ru.assigned_employee_id,
+        assignedAt: ru.assigned_at,
+        completedAt: ru.completed_at,
+        proofOfCompletion: ru.proof_of_completion
+      })) || []
     };
 
     console.log("📸 [ORDER DETAILS] Photo data:", {
@@ -696,6 +723,10 @@ export async function getReviewOrderDetailAction(orderId: string) {
       photoUrlsRaw: data.photo_urls,
       photoUrlsNormalized: normalizedData.photoUrls,
       photoUrlsLength: normalizedData.photoUrls?.length
+    });
+    console.log("🔗 [ORDER DETAILS] Review URLs:", {
+      count: normalizedData.reviewUrls.length,
+      urls: normalizedData.reviewUrls
     });
 
     return { success: true, data: normalizedData };

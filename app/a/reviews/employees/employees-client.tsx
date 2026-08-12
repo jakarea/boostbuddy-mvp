@@ -23,6 +23,7 @@ import {
   getEmployeePerformanceAction,
   inviteEmployeeAction,
   toggleEmployeeAcceptingOrdersAction,
+  toggleEmployeeTaskDistributionAction,
   setEmployeeActiveStatusAction,
 } from "@/app/actions/admin-reviews";
 import {
@@ -53,6 +54,7 @@ interface EmployeePerformance {
   isAvailable: boolean;
   isActive: boolean;
   acceptingOrders: boolean;
+  acceptingTasks: boolean;
   ordersCompleted: number;
   lastActiveAt: string;
   createdAt: string;
@@ -202,6 +204,36 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
       });
   };
 
+  const handleToggleTaskDistribution = (userId: string, nextChecked: boolean) => {
+    // Optimistic update
+    setEmployees(prev =>
+      prev.map(emp =>
+        emp.userId === userId ? { ...emp, acceptingTasks: nextChecked } : emp
+      )
+    );
+
+    toggleEmployeeTaskDistributionAction(userId)
+      .then(result => {
+        if (!result.success) {
+          // Revert on failure
+          setEmployees(prev =>
+            prev.map(emp =>
+              emp.userId === userId ? { ...emp, acceptingTasks: !nextChecked } : emp
+            )
+          );
+          error(result.error || "Failed to update");
+        }
+      })
+      .catch(() => {
+        setEmployees(prev =>
+          prev.map(emp =>
+            emp.userId === userId ? { ...emp, acceptingTasks: !nextChecked } : emp
+          )
+        );
+        error("Failed to update");
+      });
+  };
+
   const handleToggleActive = async (employee: EmployeePerformance) => {
     const nextActive = !employee.isActive;
     const confirmed = await confirm({
@@ -224,7 +256,7 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
       setEmployees(prev =>
         prev.map(emp =>
           emp.userId === employee.userId
-            ? { ...emp, isActive: nextActive, acceptingOrders: nextActive ? emp.acceptingOrders : false }
+            ? { ...emp, isActive: nextActive, acceptingTasks: nextActive ? emp.acceptingTasks : false }
             : emp
         )
       );
@@ -352,10 +384,10 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
                       <span className="px-1.5 py-0.5 bg-red-500/10 text-red-700 dark:text-red-400 rounded-full text-[10px] font-medium">
                         {t("manage.status.deactivated", "Deactivated")}
                       </span>
-                    ) : employee.isActive && !employee.acceptingOrders ? (
+                    ) : employee.isActive && !employee.acceptingTasks ? (
                       <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-full text-[10px] font-medium">
                         <PauseCircle className="h-2 w-2" />
-                        {t("manage.status.paused", "Pause")}
+                        {t("manage.status.paused", "No Tasks")}
                       </span>
                     ) : (
                       <span className="px-1.5 py-0.5 bg-green-500/10 text-green-700 dark:text-green-400 rounded-full text-[10px] font-medium">
@@ -427,19 +459,22 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
 
               {/* Controls Row */}
               <div className="flex items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-zinc-200 dark:border-zinc-800">
-                {/* Accepting Orders Switch */}
+                {/* Task Distribution Switch */}
                 <div className="flex items-center gap-1.5">
                   <Label className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300">
-                    {t("manage.acceptingOrders", "Accepting")}
+                    {t("manage.taskDistribution", "Tasks")}
                   </Label>
                   <Switch
-                    checked={employee.acceptingOrders}
+                    checked={employee.acceptingTasks}
                     onCheckedChange={(checked: boolean) =>
-                      handleToggleAcceptingOrders(employee.userId, checked)
+                      handleToggleTaskDistribution(employee.userId, checked)
                     }
                     disabled={!employee.isActive}
                     className="scale-75"
                   />
+                  <span className="text-[9px] text-zinc-500">
+                    {employee.acceptingTasks ? "ON" : "OFF"}
+                  </span>
                 </div>
 
                 {/* Activate / Deactivate */}

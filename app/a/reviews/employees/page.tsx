@@ -45,6 +45,7 @@ export default async function AdminReviewsEmployeesPage({ searchParams }: PagePr
       isAvailable: emp.is_available || emp.isAvailable || false,
       isActive: emp.is_active ?? emp.isActive ?? true,
       acceptingOrders: emp.accepting_orders ?? emp.acceptingOrders ?? true,
+      acceptingTasks: emp.accepting_tasks ?? emp.acceptingTasks ?? true,
       ordersCompleted: emp.orders_completed || emp.ordersCompleted || 0,
       lastActiveAt: emp.last_active_at || emp.lastActiveAt,
       createdAt: emp.created_at || emp.createdAt,

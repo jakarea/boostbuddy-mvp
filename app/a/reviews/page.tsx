@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { getReviewsOverviewAction } from "@/app/actions/admin-reviews";
 import {
   Star,
-  Clock,
   UserCheck,
   CheckCircle,
   DollarSign,
@@ -100,15 +99,6 @@ export default function AdminReviewsPage() {
   ];
 
   const actionCards = [
-    {
-      title: t("actions.queue.title", "Orders Queue"),
-      description: t("actions.queue.description", "View and assign pending review orders to employees"),
-      href: "/a/reviews/queue",
-      icon: Clock,
-      color: "text-yellow-600 dark:text-yellow-400",
-      bgColor: "bg-yellow-500/10 dark:bg-yellow-950/20",
-      borderColor: "border-yellow-200"
-    },
     {
       title: t("actions.employees.title", "Employee Performance"),
       description: t("actions.employees.description", "Monitor employee performance, availability, and completion rates"),

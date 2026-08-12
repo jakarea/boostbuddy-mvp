@@ -734,6 +734,54 @@ export async function toggleAvailabilityAction() {
 }
 
 /**
+ * Toggle employee task distribution status (accepting_tasks)
+ * This is separate from account availability - controls whether employee receives new tasks
+ */
+export async function toggleTaskDistributionAction() {
+  try {
+    const auth = await requireAuth();
+    if (!auth.success) return auth;
+
+    if (auth.user.role !== 'EMPLOYEE') {
+      return { success: false, error: "Unauthorized - Employee only" };
+    }
+
+    const supabase = await createAdminClient();
+
+    // Get current accepting_tasks status
+    const { data: stats } = await (supabase
+      .from("employee_stats") as any)
+      .select("accepting_tasks")
+      .eq("user_id", auth.user.id)
+      .single();
+
+    const currentAccepting = stats?.accepting_tasks ?? true;
+    const newAccepting = !currentAccepting;
+
+    // Update or create stats
+    if (stats) {
+      await (supabase
+        .from("employee_stats") as any)
+        .update({ accepting_tasks: newAccepting })
+        .eq("user_id", auth.user.id);
+    } else {
+      await (supabase
+        .from("employee_stats") as any)
+        .insert({
+          user_id: auth.user.id,
+          is_available: true,
+          accepting_tasks: newAccepting,
+          orders_completed: 0
+        });
+    }
+
+    return { success: true, data: { acceptingTasks: newAccepting } };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Get employee's order history
  */
 export async function getEmployeeOrderHistoryAction(limit: number = 50) {

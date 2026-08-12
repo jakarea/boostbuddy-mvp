@@ -5,8 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   LayoutDashboard,
   Package,
-  ClipboardCheck,
-  X,
+  Wallet,
   Bell,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -47,24 +46,19 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
       icon: LayoutDashboard,
       href: "/e/dashboard",
     },
-    // 📂 TASKS & ORDERS
+    // 📂 AVAILABLE ORDERS
     {
-      id: "tasks_orders",
-      label: t("nav.tasks_orders", { defaultValue: "Tasks & Orders" }),
+      id: "orders",
+      label: t("nav.available_orders", { defaultValue: "Available Orders" }),
       icon: Package,
-      items: [
-        { href: "/e/orders", label: t("nav.available_orders", { defaultValue: "Available Orders" }), icon: Package },
-        { href: "/e/reviews", label: t("nav.review_queue", { defaultValue: "Review Queue" }), icon: Package },
-      ],
+      href: "/e/orders",
     },
-    // 📂 AUDIT & HISTORY
+    // 📂 EARNINGS
     {
-      id: "audit_history",
-      label: t("nav.audit_history", { defaultValue: "Audit & History" }),
-      icon: ClipboardCheck,
-      items: [
-        { href: "/e/reviews/completed", label: t("nav.completed_reviews", { defaultValue: "Completed Reviews" }), icon: ClipboardCheck },
-      ],
+      id: "earnings",
+      label: t("nav.earnings", { defaultValue: "Earnings" }),
+      icon: Wallet,
+      href: "/e/earnings",
     },
     // 📂 NOTIFICATIONS
     {

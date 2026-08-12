@@ -33,9 +33,13 @@ model User {
   reviewOrdersAsClient      ReviewOrder[]       @relation("ReviewOrderClient")
   reviewOrdersAsEmployee   ReviewOrder[]       @relation("ReviewOrderEmployee")
   employeeStats             EmployeeStats?
+  employeeEarnings          EmployeeEarnings?
   notifications             Notification[]
   notificationLogs           NotificationLog[]
   userTelegramConfig        UserTelegramConfig?
+
+  // New Relations - Reviews System Redesign
+  assignedReviewUrls    ReviewUrl[]            @relation("ReviewUrlEmployee")
 }
 
 model BillingInfo {
@@ -207,6 +211,10 @@ model ReviewOrder {
   adminVerificationStatus String?  @map("admin_verification_status") // "APPROVED"
   adminVerifiedAt          DateTime? @map("admin_verified_at")
 
+  // Multi-URL Support (NEW - Reviews System Redesign)
+  reviewUrls             ReviewUrl[]            @relation("ReviewOrderUrls")
+  totalUrls              Int                    @default(0) @map("total_urls")
+
   @@index([status])
   @@index([assignedEmployeeId])
   @@index([createdAt])
@@ -222,6 +230,9 @@ model EmployeeStats {
   // Availability
   isAvailable     Boolean  @default(true)
 
+  // Task Distribution Control (NEW - Reviews System Redesign)
+  acceptingTasks  Boolean  @default(true) @map("accepting_tasks")
+
   // Performance Tracking
   ordersCompleted Int      @default(0)
   lastActiveAt    DateTime?
@@ -231,6 +242,7 @@ model EmployeeStats {
   updatedAt       DateTime @updatedAt
 
   @@index([isAvailable])
+  @@index([acceptingTasks])
 }
 
 // ============================================
@@ -336,4 +348,119 @@ model UserTelegramConfig {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([userId])
+}
+
+// ============================================
+// REVIEWS SYSTEM REDESIGN - NEW MODELS
+// ============================================
+
+model ReviewUrl {
+  id                  String   @id @default(uuid())
+  reviewOrderId       String   @map("review_order_id")
+  reviewOrder         ReviewOrder @relation("ReviewOrderUrls", fields: [reviewOrderId], references: [id], onDelete: Cascade)
+
+  url                 String
+  quantity            Int      @default(1)
+  reviewContent       String?  @map("review_content")
+  reviewIndex         Int      @map("review_index")
+
+  status              String   @default("PENDING") // "PENDING", "ASSIGNED", "COMPLETED"
+
+  assignedEmployeeId  String?  @map("assigned_employee_id")
+  assignedEmployee    User?    @relation("ReviewUrlEmployee", fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
+  assignedAt          DateTime? @map("assigned_at")
+
+  completedAt         DateTime? @map("completed_at")
+  proofOfCompletion   String?  @map("proof_of_completion")
+
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([assignedEmployeeId])
+  @@index([reviewOrderId])
+}
+
+model EmployeeEarnings {
+  id                  String   @id @default(uuid())
+  userId              String   @unique @map("user_id")
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  balance             Decimal  @default(0) @db.Decimal(10, 2)
+  totalEarned         Decimal  @default(0) @map("total_earned") @db.Decimal(10, 2)
+  currentPeriodEarned Decimal  @default(0) @map("current_period_earned") @db.Decimal(10, 2)
+
+  status              String   @default("ACTIVE") // "ACTIVE", "FROZEN", "BANNED"
+
+  payoutMethod        String?  @map("payout_method") // "BANK", "PAYPAL", "CRYPTO", etc.
+  payoutDetails       String?  @map("payout_details") // JSON with payment details
+
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  transactions        EmployeeEarningTransaction[]
+  payoutRequests      EmployeePayoutRequest[]
+
+  @@index([status])
+  @@index([userId])
+}
+
+model EmployeeEarningTransaction {
+  id                  String   @id @default(uuid())
+  employeeEarningsId  String   @map("employee_earnings_id")
+  employeeEarnings    EmployeeEarnings @relation(fields: [employeeEarningsId], references: [id], onDelete: Cascade)
+
+  type                String // "EARN", "PAYOUT", "ADJUSTMENT", "BONUS"
+  amount              Decimal @db.Decimal(10, 2)
+  balanceAfter        Decimal @map("balance_after") @db.Decimal(10, 2)
+
+  description         String
+  referenceOrderId    String?  @map("reference_order_id")
+  referenceType       String?  @map("reference_type")
+  metadata            String?
+
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@index([employeeEarningsId])
+  @@index([createdAt])
+  @@index([type])
+}
+
+model EmployeeEarningRule {
+  id              String   @id @default(uuid())
+
+  orderType       String   @map("order_type") // "REVIEW", "COMMENT", "COMMENT_WITH_PHOTO"
+  reviewType      String?  @map("review_type") // "FACEBOOK", "GOOGLE", etc. (null = all)
+  reactionType    String?  @map("reaction_type") // "LIKE", "LOVE", etc. (null = all)
+
+  paymentAmount   Decimal  @map("payment_amount") @db.Decimal(10, 2)
+  currency        String   @default("EUR")
+
+  isActive        Boolean  @default(true) @map("is_active")
+  priority        Int      @default(0) // Higher priority checked first
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@index([priority])
+  @@index([orderType])
+}
+
+model EmployeePayoutRequest {
+  id                  String   @id @default(uuid())
+  employeeEarningsId  String   @map("employee_earnings_id")
+  employeeEarnings    EmployeeEarnings @relation(fields: [employeeEarningsId], references: [id])
+
+  amount              Decimal @db.Decimal(10, 2)
+  status              String   @default("PENDING") // "PENDING", "PROCESSING", "COMPLETED", "REJECTED"
+  rejectionReason     String?  @map("rejection_reason")
+
+  requestedAt         DateTime @default(now()) @map("requested_at")
+  processedAt         DateTime? @map("processed_at")
+  processedBy         String?  @map("processed_by")
+  metadata            String?
+
+  @@index([status])
+  @@index([employeeEarningsId])
 }

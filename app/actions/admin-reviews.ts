@@ -784,3 +784,89 @@ export async function getEmployeeOrderDetailAction(orderId: string) {
     return { success: false, error: error.message };
   }
 }
+
+// ============================================
+// TASK DISTRIBUTION CONTROL (NEW)
+// ============================================
+
+/**
+ * Toggle employee task distribution ON/OFF
+ * Separate from account activation - controls whether employee receives new tasks
+ */
+export async function toggleEmployeeTaskDistributionAction(userId: string) {
+  try {
+    const auth = await requireAuth({ role: 'ADMIN' });
+    if (!auth.success) return auth;
+
+    const supabaseAdmin = await createAdminClient();
+
+    const { data: current } = await (supabaseAdmin as any)
+      .from("employee_stats")
+      .select("accepting_tasks")
+      .eq("user_id", userId)
+      .single();
+
+    if (!current) {
+      // Create employee stats if not exists
+      await (supabaseAdmin as any)
+        .from("employee_stats")
+        .insert({
+          user_id: userId,
+          accepting_tasks: true,
+          is_available: true,
+          orders_completed: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      revalidatePath("/a/employees");
+
+      return { success: true, data: { acceptingTasks: true } };
+    }
+
+    const newStatus = !current.accepting_tasks;
+
+    const { error: updateError } = await (supabaseAdmin as any)
+      .from("employee_stats")
+      .update({ accepting_tasks: newStatus, updated_at: new Date().toISOString() })
+      .eq("user_id", userId);
+
+    if (updateError) throw updateError;
+
+    revalidatePath("/a/employees");
+
+    return { success: true, data: { acceptingTasks: Boolean(newStatus) } };
+  } catch (error: any) {
+    console.error("❌ [TASK DISTRIBUTION TOGGLE] Error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get employee task distribution status
+ */
+export async function getEmployeeTaskDistributionAction(userId: string) {
+  try {
+    const auth = await requireAuth();
+    if (!auth.success) return auth;
+
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("employee_stats")
+      .select("accepting_tasks")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return {
+      success: true,
+      data: {
+        acceptingTasks: data?.accepting_tasks ?? true
+      }
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

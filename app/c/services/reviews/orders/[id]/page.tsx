@@ -3,6 +3,7 @@
 import { useContext, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import { Clock } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { getReviewOrderDetailAction, submitClientFeedbackAction } from "@/app/actions/reviews";
@@ -36,6 +37,9 @@ export default function ReviewOrderDetailPage() {
       const result = await getReviewOrderDetailAction(orderId);
 
       if (result.success) {
+        console.log("=== ORDER DATA ===");
+        console.log(JSON.stringify(result.data, null, 2));
+        console.log("===================");
         setOrder(result.data);
       } else {
         error(result.error || "Failed to load order");
@@ -150,17 +154,94 @@ export default function ReviewOrderDetailPage() {
           </div>
         )}
 
-        {/* Review Content (for REVIEW orders) */}
-        {order.orderType === "REVIEW" && order.content && (
+        {/* Multi-URL Orders - Display all URLs with their content */}
+        {order.reviewUrls && order.reviewUrls.length > 0 && (
           <div>
-            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
-              {t("reviews.reviewContent", "Review Content")}
+            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3">
+              {t("reviews.urlsAndContent", "URLs and Review Content")}
             </h3>
-            <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-lg">
-              <p className="whitespace-pre-wrap">{order.content}</p>
+            <div className="space-y-4">
+              {order.reviewUrls.map((urlItem: any, index: number) => (
+                <div key={urlItem.id} className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 bg-zinc-50 dark:bg-zinc-900">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-medium bg-zinc-200 dark:bg-zinc-700 px-2 py-1 rounded">
+                      #{index + 1}
+                    </span>
+                    <span className={`text-xs font-medium px-2 py-1 rounded ${
+                      urlItem.status === 'COMPLETED' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                      urlItem.status === 'ASSIGNED' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                      'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                    }`}>
+                      {urlItem.status}
+                    </span>
+                    {urlItem.quantity > 1 && (
+                      <span className="text-xs text-zinc-500">
+                        {t("reviews.quantity", "Quantity")}: {urlItem.quantity}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mb-3">
+                    <h4 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                      {t("reviews.url", "URL")}
+                    </h4>
+                    <a
+                      href={urlItem.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-[#168BB0] hover:underline break-all"
+                    >
+                      {urlItem.url}
+                    </a>
+                  </div>
+
+                  {urlItem.reviewContent && (
+                    <div>
+                      <h4 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                        {t("reviews.reviewContent", "Review Content")}
+                      </h4>
+                      <p className="text-sm whitespace-pre-wrap bg-white dark:bg-zinc-800 p-3 rounded border border-zinc-200 dark:border-zinc-700">
+                        {urlItem.reviewContent}
+                      </p>
+                    </div>
+                  )}
+
+                  {urlItem.proofOfCompletion && (
+                    <div className="mt-3">
+                      <h4 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                        {t("reviews.proofOfCompletion", "Proof of Completion")}
+                      </h4>
+                      <a
+                        href={urlItem.proofOfCompletion}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-[#168BB0] hover:underline"
+                      >
+                        {t("reviews.viewProof", "View Proof")}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
+
+        {/* Review Content (for REVIEW orders) - OLD SYSTEM, keep for backwards compatibility */}
+        {!order.reviewUrls || order.reviewUrls.length === 0 ? (
+          <>
+            {order.orderType === "REVIEW" && order.content && (
+              <div>
+                <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
+                  {t("reviews.reviewContent", "Review Content")}
+                </h3>
+                <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-lg">
+                  <p className="whitespace-pre-wrap">{order.content}</p>
+                </div>
+              </div>
+            )}
+          </>
+        ) : null}
 
         {/* Comment Text (for COMMENT and COMMENT_WITH_PHOTO orders) */}
         {(order.orderType === "COMMENT" || order.orderType === "COMMENT_WITH_PHOTO") && order.commentText && (
@@ -279,10 +360,17 @@ export default function ReviewOrderDetailPage() {
 
       {/* Status Info */}
       {order.status === "PENDING" && (
-        <div className="bg-[#168BB0]/10 dark:bg-[#168BB0]/10 border border-[#168BB0]/20 dark:border-[#168BB0]/20 rounded-lg p-4">
-          <p className="text-sm text-[#168BB0] dark:text-[#45B0D2]">
-            {t("reviews.pendingInfo", "Your order is pending assignment to an employee. You'll be notified when work begins.")}
-          </p>
+        <div className="bg-gradient-to-r from-[#168BB0] to-[#1a9dc4] dark:from-[#168BB0]/90 dark:to-[#1a9dc4]/90 rounded-lg p-5 shadow-md border border-[#168BB0]/30">
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 dark:bg-white/10 rounded-full p-2 animate-pulse">
+              <Clock className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-base font-semibold text-white">
+                {t("reviews.pendingInfo", "Your order is pending assignment to an employee. You'll be notified when work begins.")}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
