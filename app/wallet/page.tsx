@@ -9,7 +9,7 @@ export const metadata = {
 };
 
 export default async function WalletPage() {
-  const auth = await requireAuth();
+  const auth = await requireAuth({ role: 'CLIENT' });
   if (!auth.success) return null;
 
   // Fetch initial data

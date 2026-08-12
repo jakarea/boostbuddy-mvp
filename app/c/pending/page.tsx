@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 export default async function PendingPage() {
-  const auth = await requireAuth();
+  const auth = await requireAuth({ role: 'CLIENT' });
 
   if (!auth.success) {
     redirect("/api/logout");

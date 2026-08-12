@@ -11,7 +11,7 @@ export const metadata = {
 
 export default async function ClientBillingPage() {
   const start = Date.now();
-  const auth = await requireAuth();
+  const auth = await requireAuth({ role: 'CLIENT' });
   if (!auth.success) return null;
 
   const response = await getClientBillingData(auth.user.id);

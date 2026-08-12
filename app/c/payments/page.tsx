@@ -13,7 +13,7 @@ export const metadata = {
 };
 
 export default async function ClientPaymentsPage() {
-  const auth = await requireAuth();
+  const auth = await requireAuth({ role: 'CLIENT' });
   if (!auth.success) return null;
 
   const [ordersRes, services, billingRes, invoicesRes, profilesRes] = await Promise.all([
