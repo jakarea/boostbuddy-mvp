@@ -854,14 +854,9 @@
     "created": "Creato",
     "lastUpdated": "Ultimo Aggiornamento",
     "completed": "Completato",
-    "yourFeedback": "Il Tuo Feedback",
-    "feedbackPrompt": "Quanto sei soddisfatto di questa recensione?",
-    "feedbackUnavailable": "Feedback disponibile dopo il completamento",
     "pendingInfo": "Il tuo ordine è in attesa di assegnazione a un dipendente. Sarai notificato quando il lavoro inizierà.",
     "inProgressInfo": "Un dipendente sta lavorando al tuo ordine. Sarai notificato quando sarà completato.",
     "orderCreated": "Ordine creato con successo! {credits} crediti dedotti.",
-    "feedbackSubmitted": "Feedback inviato",
-    "submitting": "Invio in corso...",
     "urlsAndContent": "URL e Contenuti delle Recensioni",
     "url": "URL",
     "viewProof": "Visualizza Prova",
@@ -871,11 +866,6 @@
       "IN_PROGRESS": "In Corso",
       "COMPLETED": "Completato",
       "CANCELLED": "Cancellato"
-    },
-    "feedback": {
-      "HAPPY": "Soddisfatto",
-      "UNHAPPY": "Insoddisfatto",
-      "ANGRY": "Arrabbiato"
     }
   },
   "credits": {

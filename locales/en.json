@@ -900,14 +900,9 @@
     "created": "Created",
     "lastUpdated": "Last Updated",
     "completed": "Completed",
-    "yourFeedback": "Your Feedback",
-    "feedbackPrompt": "How satisfied are you with this review?",
-    "feedbackUnavailable": "Feedback available after completion",
     "pendingInfo": "Your order is pending assignment to an employee. You'll be notified when work begins.",
     "inProgressInfo": "An employee is working on your order. You'll be notified when it's completed.",
     "orderCreated": "Order created successfully! {credits} credits deducted.",
-    "feedbackSubmitted": "Feedback submitted",
-    "submitting": "Submitting...",
     "urlsAndContent": "URLs and Review Content",
     "url": "URL",
     "viewProof": "View Proof",
@@ -917,11 +912,6 @@
       "IN_PROGRESS": "In Progress",
       "COMPLETED": "Completed",
       "CANCELLED": "Cancelled"
-    },
-    "feedback": {
-      "HAPPY": "Happy",
-      "UNHAPPY": "Unhappy",
-      "ANGRY": "Angry"
     }
   },
   "credits": {

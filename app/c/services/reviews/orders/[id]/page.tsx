@@ -6,17 +6,11 @@ import { useTranslation } from "react-i18next";
 import { Clock } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
-import { getReviewOrderDetailAction, submitClientFeedbackAction } from "@/app/actions/reviews";
+import { getReviewOrderDetailAction } from "@/app/actions/reviews";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDateTime } from "@/lib/dateUtils";
 import { getReactionEmoji, getReactionBadgeClasses } from "@/lib/reactionUtils";
-
-const FEEDBACK_OPTIONS = [
-  { value: "HAPPY", label: "Happy", color: "bg-green-500 hover:bg-green-600" },
-  { value: "UNHAPPY", label: "Unhappy", color: "bg-yellow-500 hover:bg-yellow-600" },
-  { value: "ANGRY", label: "Angry", color: "bg-red-500 hover:bg-red-600" }
-] as const;
 
 export default function ReviewOrderDetailPage() {
   const { user } = useAuth();
@@ -28,7 +22,6 @@ export default function ReviewOrderDetailPage() {
 
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<any>(null);
-  const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
   useEffect(() => {
     if (!user || !orderId) return;
@@ -51,25 +44,8 @@ export default function ReviewOrderDetailPage() {
     loadOrder();
   }, [user, orderId]);
 
-  const handleFeedback = async (feedback: "HAPPY" | "UNHAPPY" | "ANGRY") => {
-    setSubmittingFeedback(true);
-
-    const result = await submitClientFeedbackAction(orderId, feedback);
-
-    setSubmittingFeedback(false);
-
-    if (result.success) {
-      success(t("reviews.feedbackSubmitted", "Feedback submitted"));
-      setOrder({ ...order, clientFeedback: feedback });
-    } else {
-      error(result.error || "Failed to submit feedback");
-    }
-  };
-
   if (loading) return <LoadingScreen />;
   if (!order) return null;
-
-  const canSubmitFeedback = order.status === "COMPLETED" && !order.clientFeedback;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -119,13 +95,6 @@ export default function ReviewOrderDetailPage() {
               {t("reviews.quantity", "Quantity")}
             </h3>
             <p className="font-medium">{order.quantity}</p>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              {t("reviews.creditsConsumed", "Credits Consumed")}
-            </h3>
-            <p className="font-medium">{order.creditsConsumed}</p>
           </div>
 
           <div>
@@ -308,46 +277,6 @@ export default function ReviewOrderDetailPage() {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Feedback Card */}
-      <div className="bg-white dark:bg-zinc-800 rounded-lg p-6 shadow">
-        <h3 className="font-semibold mb-4">
-          {t("reviews.yourFeedback", "Your Feedback")}
-        </h3>
-
-        {order.clientFeedback ? (
-          <div className={`inline-block px-4 py-2 rounded-lg font-medium
-            ${order.clientFeedback === "HAPPY" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" :
-              order.clientFeedback === "UNHAPPY" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" :
-              "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"}`}>
-            {t(`reviews.feedback.${order.clientFeedback}`, order.clientFeedback) as string}
-          </div>
-        ) : canSubmitFeedback ? (
-          <div>
-            <p className="text-sm text-zinc-500 mb-4">
-              {t("reviews.feedbackPrompt", "How satisfied are you with this review?")}
-            </p>
-            <div className="flex flex-wrap gap-3">
-              {FEEDBACK_OPTIONS.map(option => (
-                <button
-                  key={option.value}
-                  onClick={() => handleFeedback(option.value)}
-                  disabled={submittingFeedback}
-                  className={`${option.color} text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50`}
-                >
-                  {submittingFeedback
-                    ? t("common.submitting", "Submitting...")
-                    : t(`reviews.feedback.${option.value}`, option.label)}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-zinc-500">
-            {t("reviews.feedbackUnavailable", "Feedback available after completion")}
-          </p>
-        )}
       </div>
 
       {/* Status Info */}

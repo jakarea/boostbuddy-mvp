@@ -736,49 +736,6 @@ export async function getReviewOrderDetailAction(orderId: string) {
 }
 
 /**
- * Submit client feedback
- */
-export async function submitClientFeedbackAction(orderId: string, feedback: "HAPPY" | "UNHAPPY" | "ANGRY") {
-  try {
-    const auth = await requireAuth();
-    if (!auth.success) return auth;
-
-    const supabaseAdmin = await createAdminClient();
-    const { error } = await (supabaseAdmin as any)
-      .from("review_orders")
-      .update({ client_feedback: feedback })
-      .eq("id", orderId)
-      .eq("user_id", auth.user.id)
-      .eq("status", "COMPLETED");
-
-    if (error) throw error;
-
-    revalidatePath("/c/services/reviews/orders");
-
-    // Send notification to admin channel about client feedback
-    try {
-      const { sendNotificationAction } = await import("./notifications");
-      const emoji = feedback === "HAPPY" ? "😊" : feedback === "UNHAPPY" ? "😕" : "😡";
-      await sendNotificationAction(
-        auth.user.email,
-        `${emoji} Client Feedback Received`,
-        `Client has submitted feedback "${feedback}" on order ${orderId}.`,
-        "TELEGRAM",
-        "REVIEWS_CLIENT_FEEDBACK",
-        "MEDIUM",
-        orderId
-      );
-    } catch (notifError) {
-      console.warn("Failed to send feedback notification:", notifError);
-    }
-
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-}
-
-/**
  * Get reviews dashboard data (optimized single call)
  * Returns credits balance, credit costs for all platforms, and recent orders
  */
