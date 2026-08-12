@@ -626,7 +626,10 @@
     "btn_pdf": "PDF",
     "btn_download_pdf": "Scarica PDF",
     "col_order_mobile": "Ordine",
-    "col_period_mobile": "Periodo"
+    "col_period_mobile": "Periodo",
+    "action": "Azione",
+    "are_you_sure": "Sei sicuro?",
+    "err_no_transactions": "Nessuna transazione registrata per questo cliente"
   },
   "admin_orders": {
     "title": "Registri dei Pagamenti",

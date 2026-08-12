@@ -671,7 +671,10 @@
     "btn_pdf": "PDF",
     "btn_download_pdf": "Download PDF",
     "col_order_mobile": "Order",
-    "col_period_mobile": "Period"
+    "col_period_mobile": "Period",
+    "action": "Action",
+    "are_you_sure": "Are you sure?",
+    "err_no_transactions": "No transactions recorded for this client"
   },
   "admin_orders": {
     "title": "Payment Records",
