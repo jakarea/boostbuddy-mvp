@@ -706,14 +706,6 @@ export async function submitUrlTaskCompletionAction(urlTaskId: string, proof: st
           admin_verified_at: now
         })
         .eq("id", task.review_order_id);
-
-      // Credit employee earnings
-      try {
-        const { creditEmployeeEarningsAction } = await import("./employee-earnings");
-        await creditEmployeeEarningsAction(auth.user.id, task.review_order_id);
-      } catch (earningsError) {
-        console.warn("Failed to credit earnings (non-blocking):", earningsError);
-      }
     }
 
     // Update employee stats
