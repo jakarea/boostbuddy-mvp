@@ -1,6 +1,7 @@
 "use server";
 
 import "server-only";
+import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 
 export type AuthenticatedUser = {
@@ -17,19 +18,9 @@ export type AuthResult<T> =
   | { success: false; error: string };
 
 /**
- * Centralized auth wrapper that combines user auth + profile fetch.
- * Replaces the pattern repeated 40+ times across action files.
- *
- * Usage:
- *   const auth = await requireAuth({ role: 'ADMIN' });
- *   if (!auth.success) return auth; // Return error to client
- *
- *   // Now auth.user is guaranteed to exist
- *   const user = auth.user;
+ * Cached internal auth function - only called once per request
  */
-export async function requireAuth(options?: {
-  role?: 'ADMIN' | 'CLIENT' | 'EMPLOYEE'
-}): Promise<AuthResult<never>> {
+const getAuthInternal = cache(async (): Promise<AuthResult<never>> => {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -48,11 +39,6 @@ export async function requireAuth(options?: {
     return { success: false, error: "User profile not found" };
   }
 
-  // Check role if required
-  if (options?.role && userData.role !== options.role) {
-    return { success: false, error: "Forbidden" };
-  }
-
   return {
     success: true,
     user: {
@@ -61,7 +47,35 @@ export async function requireAuth(options?: {
       name: userData.name || user.email?.split('@')[0] || 'User',
       role: userData.role as 'ADMIN' | 'CLIENT' | 'EMPLOYEE',
       isActive: userData.status === 'ACTIVE',
-      status: userData.status as 'ACTIVE' | 'PENDING' | 'DEACTIVATED'
+      status: userData.status as 'ACTIVE' | 'PENDING' | 'DEACTIVATED',
     }
   };
+});
+
+/**
+ * Centralized auth wrapper that combines user auth + profile fetch.
+ * Now uses React cache() to ensure only ONE database query per request.
+ *
+ * Usage:
+ *   const auth = await requireAuth({ role: 'ADMIN' });
+ *   if (!auth.success) return auth; // Return error to client
+ *
+ *   // Now auth.user is guaranteed to exist
+ *   const user = auth.user;
+ */
+export async function requireAuth(options?: {
+  role?: 'ADMIN' | 'CLIENT' | 'EMPLOYEE'
+}): Promise<AuthResult<never>> {
+  const authResult = await getAuthInternal();
+
+  if (!authResult.success) {
+    return authResult;
+  }
+
+  // Check role if required (cached check)
+  if (options?.role && authResult.user.role !== options.role) {
+    return { success: false, error: "Forbidden" };
+  }
+
+  return authResult;
 }
