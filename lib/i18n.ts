@@ -14,7 +14,10 @@ const loadLocaleAsync = async (lng: string) => {
 
   try {
     const translations = (await import(`../locales/${lng}.json`)).default;
-    i18n.addResourceBundle(lng, "translation", translations);
+    // Add each top-level namespace separately to support useTranslation(namespace)
+    Object.keys(translations).forEach((namespace) => {
+      i18n.addResourceBundle(lng, namespace, translations[namespace]);
+    });
     loadedLocales.add(lng);
     return true;
   } catch (error) {
@@ -29,18 +32,15 @@ i18n
   .use({
     type: "backend",
     read: async (lng: string, ns: string) => {
-      if (lng !== "en" && !loadedLocales.has(lng)) {
+      // Load each namespace separately
+      if (!loadedLocales.has(lng)) {
         await loadLocaleAsync(lng);
       }
       return true; // Resources loaded via addResourceBundle
     }
   })
   .init({
-    resources: {
-      en: {
-        translation: enTranslations
-      }
-    },
+    resources: {}, // Will be populated dynamically
     lng: "en",
     fallbackLng: "en",
     debug: false,
@@ -56,6 +56,11 @@ i18n
       caches: ["localStorage", "cookie"],
     },
   });
+
+// Load English translations on initialization
+Object.keys(enTranslations).forEach((namespace) => {
+  i18n.addResourceBundle("en", namespace, enTranslations[namespace as keyof typeof enTranslations]);
+});
 
 export default i18n;
 
