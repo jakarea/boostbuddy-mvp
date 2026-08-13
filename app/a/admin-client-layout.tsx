@@ -66,7 +66,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       items: [
         { href: "/a/clients", label: t("nav.clients", { defaultValue: "Clients" }), icon: Users },
         { href: "/a/employees", label: t("nav.employees", { defaultValue: "Employees" }), icon: UserCog },
-        { href: "/a/orders", label: t("nav.orders", { defaultValue: "Orders" }), icon: Package },
         { href: "/a/profiles", label: t("nav.profiles", { defaultValue: "Profiles" }), icon: Inbox },
       ],
     },
@@ -76,6 +75,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       label: t("nav.reviews_management", { defaultValue: "Reviews Management" }),
       icon: Eye,
       items: [
+        { href: "/a/orders", label: t("nav.orders", { defaultValue: "Orders" }), icon: Package },
         { href: "/a/reviews", label: t("nav.reviews_overview", { defaultValue: "Reviews Overview" }), icon: FileText },
         { href: "/a/reviews/employees", label: t("nav.employee_submissions", { defaultValue: "Employee Submissions" }), icon: UserCog },
       ],
@@ -99,6 +99,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       label: t("nav.finance", { defaultValue: "Finance" }),
       icon: WalletIcon,
       items: [
+        { href: "/a/payments", label: t("nav.payments", { defaultValue: "Payments" }), icon: Coins },
         { href: "/a/invoices", label: t("nav.invoices", { defaultValue: "Invoices" }), icon: FileText },
       ],
     },

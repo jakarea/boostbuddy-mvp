@@ -3,7 +3,7 @@
 import { useContext, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Clock } from "lucide-react";
+import { Clock, Copy } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { getReviewOrderDetailAction } from "@/app/actions/reviews";
@@ -11,6 +11,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDateTime } from "@/lib/dateUtils";
 import { getReactionEmoji, getReactionBadgeClasses } from "@/lib/reactionUtils";
+import { Button } from "@/components/ui/button";
 
 export default function ReviewOrderDetailPage() {
   const { user } = useAuth();
@@ -22,6 +23,11 @@ export default function ReviewOrderDetailPage() {
 
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<any>(null);
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    success("Copied to clipboard");
+  };
 
   useEffect(() => {
     if (!user || !orderId) return;
@@ -83,7 +89,12 @@ export default function ReviewOrderDetailPage() {
             <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
               {t("reviews.orderType", "Order Type")}
             </h3>
-            <p className="font-medium">{order.orderType.replace(/_/g, ' ')}</p>
+            <p className="font-medium">
+              {order.orderType === "COMMENT" ? "Reactions" :
+               order.orderType === "REVIEW" ? "Reviews" :
+               order.orderType === "COMMENT_WITH_PHOTO" ? "Photo + Reviews" :
+               order.orderType?.replace(/_/g, ' ')}
+            </p>
           </div>
 
           <div>
@@ -119,14 +130,25 @@ export default function ReviewOrderDetailPage() {
 
         {order.facebookUrl && (
           <div>
-            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              {t("reviews.facebookUrl", "Facebook URL")}
-            </h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                {t("reviews.facebookUrl", "Facebook URL")}
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => copyToClipboard(order.facebookUrl)}
+                className="shrink-0 gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                Copy
+              </Button>
+            </div>
             <a
               href={order.facebookUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#168BB0] hover:underline"
+              className="text-[#168BB0] hover:underline block"
             >
               {order.facebookUrl}
             </a>
@@ -137,11 +159,22 @@ export default function ReviewOrderDetailPage() {
         {order.reviewUrls && order.reviewUrls.length > 0 && (
           <div>
             {/* Shared Review Content (from order level) */}
-            {(order.orderType === "REVIEW" || order.orderType === "COMMENT_WITH_PHOTO") && order.reviewContent && (
+            {(order.orderType === "REVIEW" || order.orderType === "COMMENT_WITH_PHOTO") && order.reviewContent && order.reviewContent.trim() && (
               <div className="mb-4">
-                <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
-                  {t("reviews.reviewContent", "Review Content")}
-                </h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                    {t("reviews.reviewContent", "Review Content")}
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(order.reviewContent)}
+                    className="shrink-0 gap-2"
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copy
+                  </Button>
+                </div>
                 <p className="text-sm whitespace-pre-wrap bg-zinc-50 dark:bg-zinc-900 p-3 rounded border border-zinc-200 dark:border-zinc-700">
                   {order.reviewContent}
                 </p>
@@ -172,14 +205,24 @@ export default function ReviewOrderDetailPage() {
                       </span>
                     </div>
 
-                    <a
-                      href={urlItem.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-[#168BB0] hover:underline break-all block"
-                    >
-                      {urlItem.url}
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={urlItem.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-[#168BB0] hover:underline break-all flex-1"
+                      >
+                        {urlItem.url}
+                      </a>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(urlItem.url)}
+                        className="shrink-0"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
 
                     {urlItem.proofOfCompletion && (
                       <div className="mt-2">
@@ -203,11 +246,22 @@ export default function ReviewOrderDetailPage() {
         {/* Review Content (for REVIEW orders) - OLD SYSTEM, keep for backwards compatibility */}
         {!order.reviewUrls || order.reviewUrls.length === 0 ? (
           <>
-            {order.orderType === "REVIEW" && order.content && (
+            {order.orderType === "REVIEW" && order.content && order.content.trim() && (
               <div>
-                <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
-                  {t("reviews.reviewContent", "Review Content")}
-                </h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                    {t("reviews.reviewContent", "Review Content")}
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(order.content)}
+                    className="shrink-0 gap-2"
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copy
+                  </Button>
+                </div>
                 <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-lg">
                   <p className="whitespace-pre-wrap">{order.content}</p>
                 </div>
@@ -217,11 +271,22 @@ export default function ReviewOrderDetailPage() {
         ) : null}
 
         {/* Comment Text (for COMMENT and COMMENT_WITH_PHOTO orders) */}
-        {(order.orderType === "COMMENT" || order.orderType === "COMMENT_WITH_PHOTO") && order.commentText && (
+        {(order.orderType === "COMMENT" || order.orderType === "COMMENT_WITH_PHOTO") && order.commentText && order.commentText.trim() && (
           <div>
-            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
-              {t("reviews.commentText", "Comment Text")}
-            </h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                {t("reviews.commentText", "Comment Text")}
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => copyToClipboard(order.commentText)}
+                className="shrink-0 gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                Copy
+              </Button>
+            </div>
             <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-lg">
               <p className="whitespace-pre-wrap">{order.commentText}</p>
             </div>

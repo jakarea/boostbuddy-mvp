@@ -16,6 +16,7 @@ export const CACHE_KEYS = {
   ADMIN_EMPLOYEES: 'admin_employees',
   ADMIN_REVIEWS: 'admin_reviews',
   ADMIN_EMPLOYEE_PERFORMANCE: 'admin_employee_performance',
+  ADMIN_REVIEW_ORDERS: 'admin_review_orders',
 
   // Client
   CLIENT_DASHBOARD: 'client_dashboard',

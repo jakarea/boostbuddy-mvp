@@ -422,46 +422,35 @@ export async function fulfillCreditsPurchase(sessionId: string) {
       throw new Error(`Failed to create order in Supabase: ${orderError?.message || 'Unknown error'}. Code: ${orderError?.code || 'Unknown'}`);
     }
 
-    // Get current balance
-    const { data: user } = await (supabase
-      .from("users") as any)
-      .select("credits_balance, email")
-      .eq("id", userId)
-      .single();
+    // Get current balance and update with retry logic for race condition handling
+    const { updateCreditBalanceWithRetry } = await import("@/lib/credit-update");
 
-    const currentBalance = user?.credits_balance || 0;
-    const newBalance = currentBalance + creditsAmount;
+    const creditResult = await updateCreditBalanceWithRetry({
+      supabase,
+      userId,
+      creditsAmount,
+      description: `Purchased ${creditsAmount} credits`,
+      referenceId: order.id,
+      type: "PURCHASE",
+      retryOptions: {
+        maxRetries: 3,
+        initialDelay: 100,
+        maxDelay: 2000
+      }
+    });
 
-    // Update user balance with optimistic concurrency control to prevent race conditions
-    const { data: updateResult, error: balanceError } = await (supabase
-      .from("users") as any)
-      .update({ credits_balance: newBalance })
-      .eq("id", userId)
-      .eq("credits_balance", currentBalance)  // Only update if balance hasn't changed
-      .select("credits_balance")
-      .single();
-
-    if (balanceError || !updateResult) {
-      throw new Error(`Failed to update credit balance: ${balanceError?.message || 'Unknown error'}. The balance may have been modified by another transaction.`);
+    if (!creditResult.success) {
+      throw new Error(`Failed to update credit balance after ${creditResult.attempts} attempts: ${creditResult.error}`);
     }
 
-    // Create credit transaction AFTER successful balance update
-    await (supabase
-      .from("credit_transactions") as any)
-      .insert({
-        user_id: userId,
-        amount: creditsAmount,
-        balance_after: newBalance,
-        type: "PURCHASE",
-        description: `Purchased ${creditsAmount} credits`,
-        reference_id: order.id,
-      });
+    const newBalance = creditResult.newBalance!;
+    const userEmail = creditResult.userEmail;
 
     // Send notifications
     try {
       const { sendNotificationAction } = await import("./notifications");
       await sendNotificationAction(
-        user?.email || userId,
+        userEmail || userId,
         "💰 Credits Purchased Successfully",
         `You have purchased ${creditsAmount} credits. Your new balance is ${newBalance} credits.`,
         "TELEGRAM",
@@ -652,19 +641,20 @@ export async function getAllCreditTransactionsAction(filters?: {
 
     if (filters?.userSearch) {
       console.log("🔍 [TRANSACTIONS] Filtering by user search:", filters.userSearch);
-      // Get user IDs that match the search first
-      const trimmed = filters.userSearch.trim();
+      // Use safe search utility to prevent injection
+      const { searchUsersByNameOrEmail } = await import("@/lib/search");
 
-      // Sanitize input to prevent PostgREST filter manipulation
-      const sanitized = trimmed.replace(/[,\.\(\)%\\]/g, '');
+      const { userIds, error: searchError } = await searchUsersByNameOrEmail(
+        supabase,
+        filters.userSearch,
+        100
+      );
 
-      const { data: users } = await (supabase
-        .from("users") as any)
-        .select("id")
-        .or(`name.ilike.%${sanitized}%,email.ilike.%${sanitized}%`)
-        .limit(100);
+      if (searchError) {
+        console.error("🔍 [TRANSACTIONS] Search error:", searchError);
+        return { success: false, error: `Search failed: ${searchError}` };
+      }
 
-      const userIds = users?.map((u: any) => u.id) || [];
       console.log("🔍 [TRANSACTIONS] Found matching user IDs:", userIds.length);
 
       if (userIds.length > 0) {
@@ -726,62 +716,36 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
       return { success: false, error: "Adjustment amount cannot be zero" };
     }
 
-    const now = new Date().toISOString();
-
     const supabase = await createAdminClient();
 
-    // Get current user balance
+    // Use the retry utility for atomic credit balance update
+    const { updateCreditBalanceWithRetry } = await import("@/lib/credit-update");
+
+    const creditResult = await updateCreditBalanceWithRetry({
+      supabase,
+      userId: data.userId,
+      creditsAmount: data.amount,
+      description: `Admin adjustment: ${data.reason}`,
+      type: "ADMIN_ADJUST",
+      retryOptions: {
+        maxRetries: 3,
+        initialDelay: 100,
+        maxDelay: 2000
+      }
+    });
+
+    if (!creditResult.success) {
+      return { success: false, error: `Failed to adjust credits after ${creditResult.attempts} attempts: ${creditResult.error}` };
+    }
+
+    const newBalance = creditResult.newBalance!;
+
+    // Get user details for notification
     const { data: user } = await (supabase
       .from("users") as any)
-      .select("credits_balance, email, name")
+      .select("email, name")
       .eq("id", data.userId)
       .single();
-
-    if (!user) {
-      return { success: false, error: "User not found" };
-    }
-
-    const currentBalance = user.credits_balance || 0;
-    const newBalance = currentBalance + data.amount;
-
-    // Check if removal would make balance negative
-    if (newBalance < 0) {
-      return { success: false, error: "Cannot remove more credits than user has available" };
-    }
-
-    // Create transaction record
-    const { error: transactionError } = await (supabase
-      .from("credit_transactions") as any)
-      .insert({
-        user_id: data.userId,
-        amount: data.amount,
-        balance_after: newBalance,
-        type: data.amount > 0 ? "PURCHASE" : "SPEND",
-        description: `Admin adjustment: ${data.reason}`,
-        metadata: JSON.stringify({
-          adminId: auth.user.id,
-          adminEmail: auth.user.email,
-          previousBalance: currentBalance,
-          adjustmentType: data.amount > 0 ? "credit" : "debit",
-        }),
-      });
-
-    if (transactionError) throw transactionError;
-
-    // Update user balance with optimistic concurrency control to prevent race conditions
-    // If balance has changed since we read it, the update will affect 0 rows
-    const { data: updateResult, error: updateError } = await (supabase
-      .from("users") as any)
-      .update({ credits_balance: newBalance })
-      .eq("id", data.userId)
-      .eq("credits_balance", currentBalance);
-
-    if (updateError) throw updateError;
-
-    // Check if update failed due to concurrent modification
-    if (!updateResult || updateResult.length === 0) {
-      return { success: false, error: "Credit balance changed during adjustment. Please try again." };
-    }
 
     // Send notification to user
     const { sendNotificationAction } = await import("./notifications");
@@ -790,7 +754,7 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
       : "🔄 Credits Removed from Your Account";
 
     await sendNotificationAction(
-      user.email || data.userId,
+      user?.email || data.userId,
       notificationTitle,
       `Your credits balance has been adjusted by ${data.amount > 0 ? '+' : ''}${data.amount} credits. Reason: ${data.reason}. New balance: ${newBalance} credits.`,
       "TELEGRAM",
@@ -805,7 +769,7 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
     return {
       success: true,
       data: {
-        previousBalance: currentBalance,
+        previousBalance: newBalance - data.amount,
         newBalance: newBalance,
         adjustment: data.amount,
       }
@@ -842,7 +806,7 @@ export async function getCreditsOverviewAction() {
       supabase
         .from("credit_transactions")
         .select("amount")
-        .eq("type", "SPEND"),
+        .eq("type", "PURCHASE"),
 
       // Get active packages count
       supabase

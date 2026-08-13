@@ -42,6 +42,9 @@ export const RateLimitPresets = {
 
   // Form submissions
   FORM: { maxRequests: 10, windowMs: 60 * 60 * 1000, blockDurationMs: 30 * 60 * 1000 }, // 10 per hour, block for 30 min
+
+  // File uploads - moderate limit to prevent storage abuse
+  UPLOAD: { maxRequests: 10, windowMs: 5 * 60 * 1000, blockDurationMs: 15 * 60 * 1000 }, // 10 uploads per 5 min, block for 15 min
 };
 
 /**

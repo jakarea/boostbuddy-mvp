@@ -290,340 +290,365 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
   };
 
   return (
-    <div className="space-y-3">
-      {/* Header */}
+    <div className="space-y-4">
+      {/* Page Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
-          {t("employees.title", "Employee Performance")}
-        </h1>
-        <div className="flex items-center gap-1.5">
+        <div>
+          <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
+            {t("employees.title", "Employee Performance")}
+          </h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+            {t("employees.subtitle", "Manage your team and track performance")}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={refresh}
             disabled={!isValid}
-            className="gap-1 h-7 text-[11px]"
+            className="gap-2 h-9"
           >
-            <Loader2 className={`h-3 w-3 ${!isValid ? 'animate-spin' : ''}`} />
+            <Loader2 className={`h-4 w-4 ${!isValid ? 'animate-spin' : ''}`} />
             {t("employees.refresh", "Refresh")}
           </Button>
           <Button
             size="sm"
             onClick={() => setInviteOpen(true)}
-            className="gap-1 h-7 text-[11px]"
+            className="gap-2 h-9"
           >
-            <UserPlus className="h-3 w-3" />
-            {t("manage.invite", "Invite")}
+            <UserPlus className="h-4 w-4" />
+            {t("manage.invite", "Invite Employee")}
           </Button>
         </div>
       </div>
 
-      {/* Sorting & Search */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {/* Sort Buttons */}
-        <div className="flex items-center gap-1">
-          <span className="text-[11px] text-zinc-600">
-            {t("employees.sortBy", "Sort")}:
+      {/* Filters & Search Bar */}
+      <div className="flex items-center gap-3 bg-white dark:bg-zinc-800 rounded-xl p-3 shadow-sm border border-zinc-200 dark:border-zinc-700">
+        {/* Sort Options */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            {t("employees.sortBy", "Sort by")}:
           </span>
-          <div className="flex gap-0.5">
+          <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 rounded-lg p-0.5">
             <Button
               size="sm"
-              variant={sortBy === "completed" ? "default" : "outline"}
+              variant={sortBy === "completed" ? "default" : "ghost"}
               onClick={() => setSortBy("completed")}
-              className="h-6 text-[10px] px-2"
+              className="h-7 text-xs px-3"
             >
               {t("employees.sort.completed", "Completed")}
             </Button>
             <Button
               size="sm"
-              variant={sortBy === "recent" ? "default" : "outline"}
+              variant={sortBy === "recent" ? "default" : "ghost"}
               onClick={() => setSortBy("recent")}
-              className="h-6 text-[10px] px-2"
+              className="h-7 text-xs px-3"
             >
-              {t("employees.sort.recent", "Recent")}
+              {t("employees.sort.recent", "Recent Activity")}
             </Button>
           </div>
         </div>
 
-        {/* Search */}
-        <div className="flex-1 min-w-[200px]">
+        <div className="flex-1 min-w-[240px]">
           <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by name or email..."
-              className="w-full pl-7 pr-7 py-1 text-[11px] border border-zinc-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-[#168BB0]"
+              placeholder={t("employees.searchPlaceholder", "Search by name or email...")}
+              className="w-full pl-10 pr-10 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#168BB0] focus:border-transparent transition-all"
             />
             {searchTerm && (
               <button
                 onClick={handleClearSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
               >
-                <X className="h-3 w-3" />
+                <X className="h-4 w-4" />
               </button>
             )}
           </div>
         </div>
 
         {searchTerm && (
-          <div className="text-[10px] text-zinc-600 dark:text-zinc-400">
-            {employees.length} result{employees.length !== 1 ? 's' : ''}
+          <div className="text-xs text-zinc-600 dark:text-zinc-400 font-medium bg-zinc-100 dark:bg-zinc-900 px-3 py-1.5 rounded-lg">
+            {employees.length} {t("common.results", "results")}
           </div>
         )}
       </div>
 
-      {/* Employees List */}
+      {/* Employees Grid */}
       {sortedEmployees.length === 0 ? (
-        <Card className="p-8 text-center">
-          <UserCheck className="h-10 w-10 text-zinc-400 mx-auto mb-3" />
-          <h3 className="text-sm font-semibold mb-1">
+        <Card className="p-12 text-center border-zinc-200 dark:border-zinc-700">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center">
+              <UserCheck className="h-8 w-8 text-zinc-400" />
+            </div>
+          </div>
+          <h3 className="text-lg font-semibold mb-2 text-zinc-900 dark:text-zinc-50">
             {t("employees.noEmployees", "No Employees Found")}
           </h3>
-          <p className="text-xs text-zinc-500">
-            {t("employees.noEmployeesMessage", "No employee performance data available yet.")}
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+            {t("employees.noEmployeesMessage", "No employee performance data available yet. Invite your first employee to get started.")}
           </p>
+          <Button onClick={() => setInviteOpen(true)} className="gap-2">
+            <UserPlus className="h-4 w-4" />
+            {t("manage.inviteFirst", "Invite First Employee")}
+          </Button>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-1.5">
+        <div className="grid grid-cols-1 gap-4">
           {currentEmployees.map((employee) => (
-            <Card key={employee.id} className="p-2 hover:shadow-md transition-shadow">
-              {/* Header */}
-              <div className="flex items-start justify-between mb-1.5">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-50 truncate">
-                      {employee.employeeName}
-                    </h3>
-                    {!employee.isActive ? (
-                      <span className="px-1.5 py-0.5 bg-red-500/10 text-red-700 dark:text-red-400 rounded-full text-[10px] font-medium">
-                        {t("manage.status.deactivated", "Deactivated")}
-                      </span>
-                    ) : employee.isActive && !employee.acceptingTasks ? (
-                      <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-full text-[10px] font-medium">
-                        <PauseCircle className="h-2 w-2" />
-                        {t("manage.status.paused", "No Tasks")}
+            <Card key={employee.id} className="overflow-hidden hover:shadow-lg transition-all duration-200 border-zinc-200 dark:border-zinc-700">
+              {/* Header Section */}
+              <div className="bg-gradient-to-r from-zinc-50 to-white dark:from-zinc-800/50 dark:to-zinc-900 px-4 py-3 border-b border-zinc-200 dark:border-zinc-700">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h3 className="font-semibold text-base text-zinc-900 dark:text-zinc-50">
+                        {employee.employeeName}
+                      </h3>
+                      {!employee.isActive ? (
+                        <span className="flex items-center gap-1 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs font-medium border border-red-200 dark:border-red-800/30">
+                          <Power className="h-3 w-3" />
+                          {t("manage.status.deactivated", "Deactivated")}
+                        </span>
+                      ) : employee.isActive && !(employee.acceptingTasks ?? true) ? (
+                        <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs font-medium border border-amber-200 dark:border-amber-800/30">
+                          <PauseCircle className="h-3 w-3" />
+                          {t("manage.status.paused", "No Tasks")}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-medium border border-green-200 dark:border-green-800/30">
+                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                          {t("manage.status.active", "Active")}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400">
+                      <Mail className="h-3.5 w-3.5" />
+                      <span className="truncate">{employee.employeeEmail}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {employee.isAvailable ? (
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-xs font-semibold border border-green-200 dark:border-green-800/30">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        {t("employees.available", "Available")}
                       </span>
                     ) : (
-                      <span className="px-1.5 py-0.5 bg-green-500/10 text-green-700 dark:text-green-400 rounded-full text-[10px] font-medium">
-                        {t("manage.status.active", "Active")}
+                      <span className="px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-lg text-xs font-medium border border-zinc-200 dark:border-zinc-700">
+                        {t("employees.unavailable", "Unavailable")}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-0.5 mt-0.5">
-                    <Mail className="h-2.5 w-2.5 text-zinc-400" />
-                    <p className="text-[11px] text-zinc-500 truncate">
-                      {employee.employeeEmail}
-                    </p>
+                </div>
+                {isActiveRecently(employee.lastActiveAt) && (
+                  <div className="flex items-center gap-1 mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                    <Clock className="h-3 w-3" />
+                    <span>{t("employees.activeRecently", "Active recently")}</span>
                   </div>
-                </div>
-                <div className="flex flex-col items-end gap-0.5">
-                  {employee.isAvailable ? (
-                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-green-500/10 text-green-700 dark:text-green-400 rounded-full text-[10px] font-medium">
-                      <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></div>
-                      {t("employees.available", "Available")}
-                    </span>
-                  ) : (
-                    <span className="px-1.5 py-0.5 bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 rounded-full text-[10px] font-medium">
-                      {t("employees.unavailable", "Unavailable")}
-                    </span>
-                  )}
-                  {isActiveRecently(employee.lastActiveAt) && (
-                    <span className="flex items-center gap-0.5 text-[10px] text-zinc-500">
-                      <Clock className="h-2 w-2" />
-                      {t("employees.activeRecently", "Active")}
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
 
-              {/* Performance Stats */}
-              <div className="grid grid-cols-3 gap-1 mb-1.5">
-                <div className="text-center px-1.5 py-1 bg-green-500/10 dark:bg-green-950/20 rounded">
-                  <div className="flex items-center justify-center gap-0.5 text-green-600 dark:text-green-400">
-                    <CheckCircle className="h-2.5 w-2.5" />
-                    <span className="text-sm font-bold">{employee.ordersCompleted}</span>
+              {/* Main Content */}
+              <div className="p-4 space-y-4">
+                {/* Performance Stats */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-3 px-3 py-2.5 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl border border-green-200/50 dark:border-green-800/30 shadow-sm">
+                    <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-sm">
+                      <CheckCircle className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">{t("employees.completed", "Completed")}</p>
+                      <p className="text-lg font-bold text-green-700 dark:text-green-300">{employee.ordersCompleted}</p>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-zinc-600 dark:text-zinc-400">
-                    {t("employees.completed", "Done")}
-                  </p>
+                  <div className="flex items-center gap-3 px-3 py-2.5 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl border border-blue-200/50 dark:border-blue-800/30 shadow-sm">
+                    <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-sm">
+                      <TrendingUp className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">{t("employees.assignments", "Assignments")}</p>
+                      <p className="text-lg font-bold text-blue-700 dark:text-blue-300">
+                        {employeeAssignments[employee.id]?.filter(r => r.status === 'ASSIGNED' || r.status === 'IN_PROGRESS').length || 0}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* Assigned Reviews Section (Expandable) */}
-              <div className="pt-1 border-t border-zinc-200 dark:border-zinc-800">
-                <button
-                  onClick={() => toggleEmployeeExpanded(employee.id, employee.userId)}
-                  className="w-full flex items-center justify-between text-[10px] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
-                >
-                  <span className="flex items-center gap-1">
-                    <TrendingUp className="h-2.5 w-2.5" />
-                    {expandedEmployees.has(employee.id)
-                      ? `Hide Order History (${employeeAssignments[employee.id]?.length || 0})`
-                      : `View Order History (${employeeAssignments[employee.id]?.length || 0})`
-                    }
-                  </span>
-                  <ChevronLeft className={`h-3 w-3 transition-transform ${expandedEmployees.has(employee.id) ? 'rotate-90' : ''}`} />
-                </button>
+                {/* Assigned Reviews Section */}
+                <div className="border-t border-zinc-200 dark:border-zinc-700 pt-3">
+                  <button
+                    onClick={() => toggleEmployeeExpanded(employee.id, employee.userId)}
+                    className="w-full flex items-center justify-between text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors group"
+                  >
+                    <span className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      {expandedEmployees.has(employee.id)
+                        ? t("employees.hideHistory", "Hide Order History")
+                        : t("employees.viewHistory", "View Order History")
+                      }
+                      <span className="px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-full text-xs font-medium">
+                        {employeeAssignments[employee.id]?.length || 0}
+                      </span>
+                    </span>
+                    <ChevronLeft className={`h-4 w-4 transition-transform ${expandedEmployees.has(employee.id) ? 'rotate-90' : ''} group-hover:text-zinc-700 dark:group-hover:text-zinc-300`} />
+                  </button>
 
-                {expandedEmployees.has(employee.id) && (
-                  <div className="mt-2 space-y-2">
-                    {employeeAssignments[employee.id]?.length === 0 ? (
-                      <div className="text-[10px] text-zinc-500 text-center py-2">
-                        No assigned reviews found
-                      </div>
-                    ) : (
-                      <>
-                        {/* Active Assignments Section */}
-                        <div>
-                          <div className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            Current Assignments
-                          </div>
-                          <div className="space-y-1.5">
-                            {employeeAssignments[employee.id]
-                              .filter(r => r.status === 'ASSIGNED' || r.status === 'IN_PROGRESS')
-                              .map((review) => (
-                                <div key={review.id} className="bg-zinc-50 dark:bg-zinc-900 rounded p-1.5 border border-zinc-200 dark:border-zinc-800">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
-                                      review.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
-                                      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                                    }`}>
-                                      {review.status === 'IN_PROGRESS' ? 'IN PROGRESS' : review.status}
-                                    </span>
-                                    <span className="text-[9px] text-zinc-500">
-                                      Qty: {review.quantity}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-start gap-1 text-[10px]">
-                                    <span className="text-zinc-600 dark:text-zinc-400 min-w-0 truncate flex-1">
-                                      {review.url}
-                                    </span>
-                                    <span className="text-zinc-500">
-                                      {review.orderType.replace(/_/g, ' ')}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            {employeeAssignments[employee.id].filter(r => r.status === 'ASSIGNED' || r.status === 'IN_PROGRESS').length === 0 && (
-                              <div className="text-[10px] text-zinc-500 text-center py-1">
-                                No current assignments
-                              </div>
-                            )}
-                          </div>
+                  {expandedEmployees.has(employee.id) && (
+                    <div className="mt-3 space-y-3">
+                      {employeeAssignments[employee.id]?.length === 0 ? (
+                        <div className="text-center py-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700">
+                          <p className="text-sm text-zinc-500 dark:text-zinc-400">{t("employees.noAssignments", "No assigned reviews")}</p>
                         </div>
-
-                        {/* Completed Orders Section */}
-                        <div>
-                          <div className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            Completed Orders
-                          </div>
-                          <div className="space-y-1.5">
-                            {employeeAssignments[employee.id]
-                              .filter(r => r.status === 'COMPLETED')
-                              .map((review) => (
-                                <div key={review.id} className="bg-green-50 dark:bg-green-900/10 rounded p-1.5 border border-green-200 dark:border-green-900/30">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                      COMPLETED
-                                    </span>
-                                    <span className="text-[9px] text-zinc-500">
-                                      Qty: {review.quantity}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-start gap-1 text-[10px]">
-                                    <span className="text-zinc-600 dark:text-zinc-400 min-w-0 truncate flex-1">
-                                      {review.url}
-                                    </span>
-                                    <span className="text-zinc-500">
-                                      {review.orderType.replace(/_/g, ' ')}
-                                    </span>
-                                  </div>
-                                  {review.completedAt && (
-                                    <div className="text-[9px] text-zinc-500 mt-0.5">
-                                      Completed: {new Date(review.completedAt).toLocaleDateString()}
+                      ) : (
+                        <>
+                          {/* Active Assignments */}
+                          <div>
+                            <h4 className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-2 flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                              {t("employees.currentAssignments", "Current Assignments")}
+                            </h4>
+                            <div className="space-y-2">
+                              {employeeAssignments[employee.id]
+                                .filter(r => r.status === 'ASSIGNED' || r.status === 'IN_PROGRESS')
+                                .map((review) => (
+                                  <div key={review.id} className="bg-white dark:bg-zinc-800 rounded-lg p-3 border border-zinc-200 dark:border-zinc-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className={`px-2 py-1 rounded-md text-xs font-semibold ${
+                                        review.status === 'IN_PROGRESS'
+                                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                                          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                                      }`}>
+                                        {review.status === 'IN_PROGRESS' ? 'IN PROGRESS' : review.status}
+                                      </span>
+                                      <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                                        Qty: {review.quantity}
+                                      </span>
                                     </div>
-                                  )}
+                                    <div className="space-y-1">
+                                      <p className="text-xs text-zinc-700 dark:text-zinc-300 font-medium truncate" title={review.url}>
+                                        {review.url}
+                                      </p>
+                                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                        {review.orderType.replace(/_/g, ' ')}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              {employeeAssignments[employee.id].filter(r => r.status === 'ASSIGNED' || r.status === 'IN_PROGRESS').length === 0 && (
+                                <div className="text-center py-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-700">
+                                  <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("employees.noCurrentAssignments", "No current assignments")}</p>
                                 </div>
-                              ))}
-                            {employeeAssignments[employee.id].filter(r => r.status === 'COMPLETED').length === 0 && (
-                              <div className="text-[10px] text-zinc-500 text-center py-1">
-                                No completed orders yet
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
 
-              {/* Last Active & Member Since */}
-              <div className="flex items-center gap-3 text-[10px] text-zinc-500 pt-1 border-t border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-0.5">
-                  <Calendar className="h-2 w-2" />
-                  {employee.lastActiveAt ? (
-                    <span>
-                      {t("employees.lastActive", "Last: {{date}}", {
-                        date: formatDateShort(employee.lastActiveAt)
-                      })}
-                    </span>
-                  ) : (
-                    <span>{t("employees.neverActive", "Never")}</span>
+                          {/* Completed Orders */}
+                          <div>
+                            <h4 className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-2 flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                              {t("employees.completedOrders", "Completed Orders")}
+                            </h4>
+                            <div className="space-y-2">
+                              {employeeAssignments[employee.id]
+                                .filter(r => r.status === 'COMPLETED')
+                                .map((review) => (
+                                  <div key={review.id} className="bg-white dark:bg-zinc-800 rounded-lg p-3 border border-zinc-200 dark:border-zinc-700 hover:border-green-300 dark:hover:border-green-700 transition-colors">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="px-2 py-1 rounded-md text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                                        COMPLETED
+                                      </span>
+                                      <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                                        Qty: {review.quantity}
+                                      </span>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <p className="text-xs text-zinc-700 dark:text-zinc-300 font-medium truncate" title={review.url}>
+                                        {review.url}
+                                      </p>
+                                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                        {review.orderType.replace(/_/g, ' ')}
+                                      </p>
+                                      {review.completedAt && (
+                                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                          {t("employees.completedOn", "Completed: {{date}}", { date: new Date(review.completedAt).toLocaleDateString() })}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              {employeeAssignments[employee.id].filter(r => r.status === 'COMPLETED').length === 0 && (
+                                <div className="text-center py-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-700">
+                                  <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("employees.noCompletedOrders", "No completed orders yet")}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
-                <div className="flex items-center gap-0.5">
-                  <UserCheck className="h-2 w-2" />
-                  <span>
-                    {formatDateShort(employee.createdAt)}
-                  </span>
-                </div>
-              </div>
 
-              {/* Controls Row */}
-              <div className="flex items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-zinc-200 dark:border-zinc-800">
-                {/* Task Distribution Switch */}
-                <div className="flex items-center gap-1.5">
-                  <Label className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300">
-                    {t("manage.taskDistribution", "Tasks")}
-                  </Label>
-                  <Switch
-                    checked={employee.acceptingTasks}
-                    onCheckedChange={(checked: boolean) =>
-                      handleToggleTaskDistribution(employee.userId, checked)
-                    }
-                    disabled={!employee.isActive}
-                    className="scale-75"
-                  />
-                  <span className="text-[9px] text-zinc-500">
-                    {employee.acceptingTasks ? "ON" : "OFF"}
-                  </span>
+                {/* Activity Info */}
+                <div className="flex items-center gap-4 text-xs text-zinc-500 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-700 pt-3">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5" />
+                    <span>
+                      {employee.lastActiveAt
+                        ? t("employees.lastActive", "Last: {{date}}", { date: formatDateShort(employee.lastActiveAt) })
+                        : t("employees.neverActive", "Never")
+                      }
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <UserCheck className="h-3.5 w-3.5" />
+                    <span>{t("employees.memberSince", "Since: {{date}}", { date: formatDateShort(employee.createdAt) })}</span>
+                  </div>
                 </div>
 
-                {/* Activate / Deactivate */}
-                {employee.isActive ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-[10px] px-2 gap-1 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/20"
-                    onClick={() => handleToggleActive(employee)}
-                  >
-                    <Power className="h-2 w-2" />
-                    {t("manage.deactivate", "Deactivate")}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="h-6 text-[10px] px-2 gap-1"
-                    onClick={() => handleToggleActive(employee)}
-                  >
-                    <Power className="h-2 w-2" />
-                    {t("manage.activate", "Activate")}
-                  </Button>
-                )}
+                {/* Controls */}
+                <div className="flex items-center justify-between pt-3 border-t border-zinc-200 dark:border-zinc-700">
+                  <div className="flex items-center gap-3">
+                    <Label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      {t("manage.taskDistribution", "Task Distribution")}
+                    </Label>
+                    <Switch
+                      checked={employee.acceptingTasks ?? true}
+                      onCheckedChange={(checked: boolean) =>
+                        handleToggleTaskDistribution(employee.userId, checked)
+                      }
+                      disabled={!employee.isActive}
+                    />
+                    <span className={`text-xs font-semibold ${(employee.acceptingTasks ?? true) ? 'text-green-600 dark:text-green-400' : 'text-zinc-500'}`}>
+                      {(employee.acceptingTasks ?? true) ? t("common.on", "ON") : t("common.off", "OFF")}
+                    </span>
+                  </div>
+                  {employee.isActive ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs px-3 gap-1.5 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/30"
+                      onClick={() => handleToggleActive(employee)}
+                    >
+                      <Power className="h-3 w-3" />
+                      {t("manage.deactivate", "Deactivate")}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="h-8 text-xs px-3 gap-1.5"
+                      onClick={() => handleToggleActive(employee)}
+                    >
+                      <Power className="h-3 w-3" />
+                      {t("manage.activate", "Activate")}
+                    </Button>
+                  )}
+                </div>
               </div>
             </Card>
           ))}
@@ -632,25 +657,25 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
 
       {/* Pagination Controls */}
       {sortedEmployees.length > 0 && (
-        <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded p-1.5 shadow">
-          <div className="flex items-center gap-2 text-[10px] text-zinc-600 dark:text-zinc-400">
-            <span>
+        <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-xl p-3 shadow-sm border border-zinc-200 dark:border-zinc-700">
+          <div className="flex items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">
+            <span className="font-medium">
               {searchTerm
-                ? `${currentPage}/${totalPages} (${sortedEmployees.length})`
-                : `${currentPage}/${totalPages} (${localTotalCount})`
+                ? `${currentPage}/${totalPages} (${sortedEmployees.length} ${t("common.results", "results")})`
+                : `${currentPage}/${totalPages} (${localTotalCount} ${t("common.total", "total")})`
               }
             </span>
-            <div className="flex items-center gap-1">
-              <span className="text-zinc-500">Show:</span>
-              <div className="flex items-center gap-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-zinc-500">{t("common.show", "Show")}:</span>
+              <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 rounded-lg p-0.5">
                 {[10, 20, 50, 100].map((size) => (
                   <button
                     key={size}
                     onClick={() => handleItemsPerPageChange(size)}
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                    className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
                       itemsPerPage === size
-                        ? 'bg-[#168BB0] text-white'
-                        : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-600'
+                        ? 'bg-[#168BB0] text-white shadow-sm'
+                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
                     }`}
                   >
                     {size}
@@ -659,20 +684,20 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={goToPrevPage}
               disabled={currentPage === 1}
-              className="gap-0.5 h-6 px-1.5 text-[10px]"
+              className="gap-1.5 h-8"
             >
-              <ChevronLeft className="h-2.5 w-2.5" />
-              Prev
+              <ChevronLeft className="h-4 w-4" />
+              {t("common.previous", "Previous")}
             </Button>
 
-            {/* Page Numbers - limit display */}
-            <div className="flex items-center gap-0.5">
+            {/* Page Numbers */}
+            <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                 let pageNum;
                 if (totalPages <= 5) {
@@ -691,7 +716,7 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
                     variant={currentPage === pageNum ? "default" : "outline"}
                     size="sm"
                     onClick={() => goToPage(pageNum)}
-                    className="min-w-[24px] h-6 text-[10px]"
+                    className="min-w-[32px] h-8 text-sm"
                   >
                     {pageNum}
                   </Button>
@@ -704,10 +729,10 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
               size="sm"
               onClick={goToNextPage}
               disabled={currentPage === totalPages}
-              className="gap-0.5 h-6 px-1.5 text-[10px]"
+              className="gap-1.5 h-8"
             >
-              Next
-              <ChevronRight className="h-2.5 w-2.5" />
+              {t("common.next", "Next")}
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -715,31 +740,49 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
 
       {/* Summary Stats */}
       {employees.length > 0 && (
-        <Card className="p-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">
-            <div>
-              <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
-                {employees.length}
-              </p>
-              <p className="text-[10px] text-zinc-600 dark:text-zinc-400">
-                {t("employees.summary.total", "Total")}
-              </p>
-            </div>
-            <div>
-              <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                {employees.filter(e => e.isAvailable).length}
-              </p>
-              <p className="text-[10px] text-zinc-600 dark:text-zinc-400">
-                {t("employees.summary.available", "Available")}
-              </p>
-            </div>
-            <div>
-              <p className="text-lg font-bold text-[#168BB0] dark:text-[#45B0D2]">
-                {employees.reduce((sum, e) => sum + e.ordersCompleted, 0)}
-              </p>
-              <p className="text-[10px] text-zinc-600 dark:text-zinc-400">
-                {t("employees.summary.totalCompleted", "Completed")}
-              </p>
+        <Card className="overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 border-none shadow-lg">
+          <div className="p-6">
+            <h3 className="text-sm font-semibold text-white/90 mb-4 flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              {t("employees.summary.title", "Performance Overview")}
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                <div className="flex items-center justify-between mb-2">
+                  <UserCheck className="h-5 w-5 text-white/80" />
+                  <span className="text-xs text-white/60 font-medium">{t("employees.summary.total", "Total")}</span>
+                </div>
+                <p className="text-3xl font-bold text-white">{employees.length}</p>
+                <p className="text-xs text-white/70 mt-1">{t("employees.summary.employees", "employees")}</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center">
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  </div>
+                  <span className="text-xs text-white/60 font-medium">{t("employees.summary.available", "Available")}</span>
+                </div>
+                <p className="text-3xl font-bold text-white">{employees.filter(e => e.isAvailable).length}</p>
+                <p className="text-xs text-white/70 mt-1">{t("employees.summary.ready", "ready to work")}</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                <div className="flex items-center justify-between mb-2">
+                  <CheckCircle className="h-5 w-5 text-white/80" />
+                  <span className="text-xs text-white/60 font-medium">{t("employees.summary.totalCompleted", "Completed")}</span>
+                </div>
+                <p className="text-3xl font-bold text-white">{employees.reduce((sum, e) => sum + e.ordersCompleted, 0)}</p>
+                <p className="text-xs text-white/70 mt-1">{t("employees.summary.orders", "total orders")}</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                <div className="flex items-center justify-between mb-2">
+                  <TrendingUp className="h-5 w-5 text-white/80" />
+                  <span className="text-xs text-white/60 font-medium">{t("employees.summary.avgPerEmp", "Avg per Employee")}</span>
+                </div>
+                <p className="text-3xl font-bold text-white">
+                  {employees.length > 0 ? (employees.reduce((sum, e) => sum + e.ordersCompleted, 0) / employees.length).toFixed(1) : '0'}
+                </p>
+                <p className="text-xs text-white/70 mt-1">{t("employees.summary.completedOrders", "completed orders")}</p>
+              </div>
             </div>
           </div>
         </Card>
@@ -747,16 +790,16 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
 
       {/* Invite Employee Dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{t("manage.inviteDialog.title", "Invite Employee")}</DialogTitle>
-            <DialogDescription>
-              {t("manage.inviteDialog.description", "Send an invitation email. The employee will appear in this list after they sign in.")}
+            <DialogTitle className="text-lg">{t("manage.inviteDialog.title", "Invite New Employee")}</DialogTitle>
+            <DialogDescription className="text-sm">
+              {t("manage.inviteDialog.description", "Send an invitation email to add a new team member. They'll appear in this list after signing in.")}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleInvite} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="invite-name">
+              <Label htmlFor="invite-name" className="text-sm font-medium">
                 {t("manage.inviteDialog.nameLabel", "Full Name")}
               </Label>
               <Input
@@ -765,11 +808,12 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
                 type="text"
                 required
                 autoComplete="name"
-                placeholder={t("manage.inviteDialog.nameLabel", "Full Name")}
+                placeholder={t("manage.inviteDialog.namePlaceholder", "Enter employee's full name")}
+                className="h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="invite-email">
+              <Label htmlFor="invite-email" className="text-sm font-medium">
                 {t("manage.inviteDialog.emailLabel", "Email Address")}
               </Label>
               <Input
@@ -779,25 +823,30 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
                 required
                 autoComplete="email"
                 placeholder="employee@example.com"
+                className="h-10"
               />
             </div>
-            <DialogFooter>
+            <DialogFooter className="gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setInviteOpen(false)}
                 disabled={invitePending}
+                className="h-10"
               >
                 {t("common.cancel", "Cancel")}
               </Button>
-              <Button type="submit" disabled={invitePending}>
+              <Button type="submit" disabled={invitePending} className="h-10 gap-2">
                 {invitePending ? (
                   <>
-                    <div className="bb-loading-sm inline-block"></div>
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     {t("manage.inviteDialog.sending", "Sending...")}
                   </>
                 ) : (
-                  t("manage.inviteDialog.submit", "Send Invitation")
+                  <>
+                    <Mail className="h-4 w-4" />
+                    {t("manage.inviteDialog.submit", "Send Invitation")}
+                  </>
                 )}
               </Button>
             </DialogFooter>

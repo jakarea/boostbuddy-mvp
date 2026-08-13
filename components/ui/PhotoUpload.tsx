@@ -83,11 +83,15 @@ export default function PhotoUpload({
       <div className="flex flex-wrap gap-3">
         {photos.map((photo, index) => (
           <div key={photo} className="relative group">
-            <div className="w-32 h-32 rounded-lg overflow-hidden border-2 border-zinc-200 dark:border-zinc-700">
+            <div className="w-32 h-32 rounded-lg overflow-hidden border-2 border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800">
               <img
                 src={photo}
                 alt={`Photo ${index + 1}`}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  console.error('Failed to load image:', photo);
+                  (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"%3E%3Cpath fill="%23999" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l-4.5-2h3l-2-5h-2l2 5z"/%3E%3C/svg%3E';
+                }}
               />
             </div>
             <button

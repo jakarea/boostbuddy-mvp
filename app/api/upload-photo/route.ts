@@ -1,5 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth/server-auth";
+import { checkRateLimit, RateLimitPresets, getClientIp } from "@/lib/rate-limit";
+import { NextResponse } from "next/server";
 
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png'];
@@ -15,6 +17,27 @@ const generateSafeFileName = (originalName: string, userId: string, index: strin
 export async function POST(request: Request) {
   try {
     console.log("📤 [PHOTO UPLOAD] Starting photo upload...");
+
+    // Check rate limit first (before auth to prevent DoS on auth check)
+    const headers = request.headers;
+    const clientIp = getClientIp(headers);
+    const rateLimitResult = checkRateLimit(`upload:${clientIp}`, RateLimitPresets.UPLOAD);
+
+    if (!rateLimitResult.allowed) {
+      console.warn("⚠️ [PHOTO UPLOAD] Rate limit exceeded for:", clientIp);
+      return NextResponse.json(
+        { error: rateLimitResult.error || 'Too many upload attempts. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': RateLimitPresets.UPLOAD.maxRequests.toString(),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+            'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString()
+          }
+        }
+      );
+    }
 
     const auth = await requireAuth();
     if (!auth.success) {
@@ -64,8 +87,9 @@ export async function POST(request: Request) {
     // Upload to Supabase Storage 'comments' bucket
     console.log("📤 [PHOTO UPLOAD] Uploading to 'comments' bucket...");
 
+    const bucketName = 'comments';
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-      .from('comments')
+      .from(bucketName)
       .upload(safeFileName, buffer, {
         contentType: file.type,
         upsert: false
@@ -73,8 +97,9 @@ export async function POST(request: Request) {
 
     if (uploadError) {
       console.error("❌ [PHOTO UPLOAD] Supabase Storage error:", uploadError);
+      console.error("❌ [PHOTO UPLOAD] Make sure bucket '" + bucketName + "' exists and is public");
       return new Response(JSON.stringify({
-        error: 'Failed to upload file to storage',
+        error: 'Failed to upload file to storage. Please ensure the "comments" bucket exists in Supabase Storage and is set to public.',
         details: uploadError.message
       }), { status: 500 });
     }
@@ -83,21 +108,28 @@ export async function POST(request: Request) {
 
     // Get public URL for the uploaded file
     const { data: { publicUrl } } = supabaseAdmin.storage
-      .from('comments')
+      .from(bucketName)
       .getPublicUrl(uploadData.path);
 
     console.log("🔗 [PHOTO UPLOAD] Public URL generated:", publicUrl);
 
-    return new Response(JSON.stringify({
+    return NextResponse.json({
       success: true,
       url: publicUrl,
       path: uploadData.path
-    }), { status: 200 });
+    }, {
+      status: 200,
+      headers: {
+        'X-RateLimit-Limit': RateLimitPresets.UPLOAD.maxRequests.toString(),
+        'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+        'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+      }
+    });
 
   } catch (error: any) {
     console.error("❌ [PHOTO UPLOAD] Upload error:", error);
-    return new Response(JSON.stringify({
+    return NextResponse.json({
       error: error.message || 'Failed to upload file'
-    }), { status: 500 });
+    }, { status: 500 });
   }
 }

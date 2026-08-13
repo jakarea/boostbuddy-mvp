@@ -66,12 +66,21 @@ export async function getAllReviewOrdersAction(filters?: ReviewOrderFilter) {
       countQuery = countQuery.eq("assigned_employee_id", filters.employeeId);
     }
 
-    // Add search to count query if provided
+    // Prepare sanitized search term if provided
+    let sanitizedSearch = '';
     if (filters?.searchTerm && filters.searchTerm.trim()) {
-      const searchLower = filters.searchTerm.trim().toLowerCase();
-      // Sanitize input to prevent PostgREST filter manipulation
-      const sanitized = searchLower.replace(/[,\.\(\)%\\]/g, '');
-      countQuery = countQuery.or(`business_name.ilike.%${sanitized}%,id.ilike.%${sanitized}%`);
+      const { sanitizeSearchInput, isSafeSearchInput } = await import("@/lib/search");
+      sanitizedSearch = sanitizeSearchInput(filters.searchTerm);
+
+      if (!isSafeSearchInput(sanitizedSearch)) {
+        console.warn('[SECURITY] Unsafe search term rejected:', filters.searchTerm);
+        sanitizedSearch = '';
+      }
+    }
+
+    // Add search to count query if provided
+    if (sanitizedSearch) {
+      countQuery = countQuery.or(`business_name.ilike.%${sanitizedSearch}%,id.ilike.%${sanitizedSearch}%`);
     }
 
     // Build the main query with pagination
@@ -89,12 +98,9 @@ export async function getAllReviewOrdersAction(filters?: ReviewOrderFilter) {
       query = query.eq("assigned_employee_id", filters.employeeId);
     }
 
-    // Add search filter if provided
-    if (filters?.searchTerm && filters.searchTerm.trim()) {
-      const searchLower = filters.searchTerm.trim().toLowerCase();
-      // Sanitize input to prevent PostgREST filter manipulation
-      const sanitized = searchLower.replace(/[,\.\(\)%\\]/g, '');
-      query = query.or(`business_name.ilike.%${sanitized}%,id.ilike.%${sanitized}%`);
+    // Add search filter if provided (using same sanitized term)
+    if (sanitizedSearch) {
+      query = query.or(`business_name.ilike.%${sanitizedSearch}%,id.ilike.%${sanitizedSearch}%`);
     }
 
     // Parallelize count and data queries (independent operations)
@@ -314,7 +320,7 @@ export async function cancelReviewOrderAction(orderId: string, reason: string) {
         user_id: (order as any).user_id,
         amount: (order as any).credits_consumed,
         balance_after: newBalance,
-        type: "REFUND",
+        type: "PURCHASE",
         description: `Refund for cancelled order: ${reason}`,
         reference_id: orderId
       });
@@ -905,6 +911,97 @@ export async function getEmployeeTaskDistributionAction(userId: string) {
         acceptingTasks: data?.accepting_tasks ?? true
       }
     };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get single review order by ID (admin only)
+ * Includes full details with client and employee information
+ */
+export async function getReviewOrderByIdAction(orderId: string) {
+  try {
+    const auth = await requireAuth({ role: 'ADMIN' });
+    if (!auth.success) return auth;
+
+    const supabase = await createClient();
+
+    const { data: order, error } = await supabase
+      .from("review_orders")
+      .select(`
+        *,
+        users:user_id(name, email),
+        employees:assigned_employee_id(name, email),
+        review_urls(
+          id,
+          url,
+          quantity,
+          reaction_type,
+          review_index,
+          status,
+          assigned_employee_id,
+          assigned_at,
+          completed_at,
+          proof_of_completion
+        )
+      `)
+      .eq("id", orderId)
+      .single();
+
+    if (error) throw error;
+    if (!order) {
+      return { success: false, error: "Order not found" };
+    }
+
+    // Normalize field names from snake_case to camelCase
+    const normalizedOrder = {
+      ...order,
+      targetRating: order.target_rating,
+      facebookUrl: order.facebook_url,
+      businessName: order.business_name,
+      orderType: order.order_type,
+      reviewType: order.review_type,
+      reviewContent: order.review_content,
+      reviewInstructions: order.review_instructions,
+      proofOfCompletion: order.proof_of_completion,
+      creditsConsumed: order.credits_consumed,
+      assignedEmployeeId: order.assigned_employee_id,
+      assignedAt: order.assigned_at,
+      completedAt: order.completed_at,
+      adminVerificationStatus: order.admin_verification_status,
+      adminVerifiedAt: order.admin_verified_at,
+      clientFeedback: order.client_feedback,
+      content: order.content,
+      commentText: order.comment_text,
+      comments: order.comment_text ? order.comment_text.split('|||').map((c: string) => c.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\')) : [],
+      commentCount: order.comment_count || 1,
+      completedComments: order.completed_comments ? order.completed_comments.split(',').map((i: string) => parseInt(i)) : [],
+      photoUrls: order.photo_urls ? JSON.parse(order.photo_urls) : null,
+      photoReviews: order.photo_urls && order.order_type === 'COMMENT_WITH_PHOTO'
+        ? order.comment_text.split('|||').map((c: string, i: number) => ({
+            text: c.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\'),
+            photos: JSON.parse(order.photo_urls)[i] || []
+          }))
+        : null,
+      reviewUrls: Array.isArray(order.review_urls) ? order.review_urls.map((ru: any) => ({
+        id: ru.id,
+        url: ru.url,
+        quantity: ru.quantity,
+        reactionType: ru.reaction_type,
+        reviewIndex: ru.review_index,
+        status: ru.status,
+        assignedEmployeeId: ru.assigned_employee_id,
+        assignedAt: ru.assigned_at,
+        completedAt: ru.completed_at,
+        proofOfCompletion: ru.proof_of_completion
+      })) : [],
+      quantity: order.quantity,
+      createdAt: order.created_at,
+      updatedAt: order.updated_at
+    };
+
+    return { success: true, data: normalizedOrder };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

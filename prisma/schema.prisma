@@ -162,6 +162,7 @@ model CreditTransaction {
 
   @@index([userId])
   @@index([createdAt])
+  @@index([userId, type, createdAt])  // For history queries
 }
 
 // ============================================
@@ -220,6 +221,8 @@ model ReviewOrder {
   @@index([createdAt])
   @@index([assignedAt])
   @@index([adminVerificationStatus])
+  @@index([userId, status, createdAt])  // For client order queries
+  @@index([status, assignedEmployeeId])  // For admin queries
 }
 
 model EmployeeStats {
@@ -361,6 +364,7 @@ model ReviewUrl {
 
   url                 String
   quantity            Int      @default(1)
+  reactionType        String?  @map("reaction_type")  // For COMMENT orders: LIKE, LOVE, CARE, HAHA, WOW, SAD, ANGRY
   reviewContent       String?  @map("review_content")
   reviewIndex         Int      @map("review_index")
 
@@ -379,6 +383,7 @@ model ReviewUrl {
   @@index([status])
   @@index([assignedEmployeeId])
   @@index([reviewOrderId])
+  @@index([status, assignedEmployeeId, createdAt])  // For employee queries
 }
 
 model EmployeeEarnings {

@@ -796,7 +796,31 @@ export async function getEmployeeOrderHistoryAction(limit: number = 50) {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("review_orders")
-      .select("id, business_name, review_type, target_rating, credits_consumed, status, assigned_at, completed_at, proof_of_completion, created_at, admin_verification_status, admin_verified_at")
+      .select(`
+        id,
+        user_id,
+        business_name,
+        order_type,
+        review_type,
+        target_rating,
+        review_content,
+        review_instructions,
+        quantity,
+        credits_consumed,
+        status,
+        assigned_employee_id,
+        assigned_at,
+        completed_at,
+        proof_of_completion,
+        created_at,
+        updated_at,
+        admin_verification_status,
+        admin_verified_at,
+        users:user_id (
+          name,
+          email
+        )
+      `)
       .eq("assigned_employee_id", auth.user.id)
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -804,19 +828,30 @@ export async function getEmployeeOrderHistoryAction(limit: number = 50) {
     if (error) throw error;
 
     // Normalize field names to camelCase for frontend
-    const normalizedData = data?.map(order => ({
+    const normalizedData = data?.map((order: any) => ({
       id: order.id,
+      userId: order.user_id,
       businessName: order.business_name,
+      orderType: order.order_type,
       reviewType: order.review_type,
       targetRating: order.target_rating,
+      reviewContent: order.review_content,
+      reviewInstructions: order.review_instructions,
+      quantity: order.quantity,
       creditsConsumed: order.credits_consumed,
       status: order.status,
+      assignedEmployeeId: order.assigned_employee_id,
       assignedAt: order.assigned_at,
       completedAt: order.completed_at,
       proofOfCompletion: order.proof_of_completion,
       createdAt: order.created_at,
+      updatedAt: order.updated_at,
       adminVerificationStatus: order.admin_verification_status,
-      adminVerifiedAt: order.admin_verified_at
+      adminVerifiedAt: order.admin_verified_at,
+      users: Array.isArray(order.users) && order.users.length > 0 ? {
+        name: order.users[0].name,
+        email: order.users[0].email
+      } : undefined
     })) || [];
 
     return { success: true, data: normalizedData };
@@ -826,10 +861,7 @@ export async function getEmployeeOrderHistoryAction(limit: number = 50) {
 }
 
 /**
- * Get all review orders visible to employee:
- * - All PENDING orders (available to accept)
- * - Their own IN_PROGRESS, COMPLETED, CANCELLED orders
- * - Includes skip information and verification status
+ * Get available (unassigned) PENDING orders that employees can accept
  */
 export async function getEmployeeReviewOrdersAction() {
   try {
@@ -841,83 +873,227 @@ export async function getEmployeeReviewOrdersAction() {
     }
 
     const supabase = await createClient();
-    const employeeId = auth.user.id;
-
-    // Fetch employee stats
-    const { data: stats, error: statsError } = await supabase
-      .from("employee_stats")
-      .select("is_available, orders_completed")
-      .eq("user_id", employeeId)
-      .maybeSingle();
-
-    if (statsError) throw statsError;
 
     // Fetch PENDING orders (available to all employees)
     const { data: pendingOrders, error: pendingError } = await supabase
       .from("review_orders")
-      .select("id, business_name, business_url, review_type, target_rating, review_content, review_instructions, credits_consumed, status, created_at")
+      .select("id, user_id, business_name, business_url, order_type, review_type, target_rating, review_content, review_instructions, quantity, credits_consumed, status, created_at, updated_at, users:user_id(name, email)")
       .eq("status", "PENDING")
+      .is("assigned_employee_id", null)
       .order("created_at", { ascending: true });
 
     if (pendingError) throw pendingError;
 
-    // Fetch employee's own assigned orders (IN_PROGRESS, COMPLETED, CANCELLED)
-    const { data: assignedOrders, error: assignedError } = await supabase
-      .from("review_orders")
-      .select("id, business_name, business_url, review_type, target_rating, review_content, review_instructions, credits_consumed, status, created_at, updated_at, completed_at, assigned_at, proof_of_completion, admin_verification_status")
-      .eq("assigned_employee_id", employeeId)
-      .in("status", ["IN_PROGRESS", "COMPLETED", "CANCELLED"])
-      .order("created_at", { ascending: false });
-
-    if (assignedError) throw assignedError;
-
-    // Get skip information for all orders
-    const allOrders = [...(pendingOrders || []), ...(assignedOrders || [])];
-    const orderIds = allOrders.map(o => o.id);
-
-    let skipsMap = new Map<string, any[]>();
-
-    if (orderIds.length > 0) {
-      const { data: skips } = await supabase
-        .from("skipped_reviews")
-        .select("review_order_id, employee_id, reason, created_at, users:employee_id(name)")
-        .in("review_order_id", orderIds);
-
-      for (const skip of skips || []) {
-        if (!skipsMap.has(skip.review_order_id)) {
-          skipsMap.set(skip.review_order_id, []);
-        }
-        const skipsList = skipsMap.get(skip.review_order_id);
-        if (skipsList) {
-          skipsList.push({
-            employeeId: skip.employee_id,
-            employeeName: (skip.users as any)?.name || null,
-            reason: skip.reason,
-            createdAt: skip.created_at
-          });
-        }
-      }
-    }
-
-    // Combine orders with skip information
-    const ordersWithSkips = allOrders.map(order => ({
-      ...order,
-      skips: skipsMap.get(order.id) || []
-    }));
-
-    // Return employee stats and orders
-    const employeeStats = stats || {
-      is_available: true,
-      orders_completed: 0
-    };
+    // Normalize field names to camelCase
+    const normalizedOrders = pendingOrders?.map((order: any) => ({
+      id: order.id,
+      userId: order.user_id,
+      businessName: order.business_name,
+      businessUrl: order.business_url,
+      orderType: order.order_type,
+      reviewType: order.review_type,
+      targetRating: order.target_rating,
+      reviewContent: order.review_content,
+      reviewInstructions: order.review_instructions,
+      quantity: order.quantity,
+      creditsConsumed: order.credits_consumed,
+      status: order.status,
+      createdAt: order.created_at,
+      updatedAt: order.updated_at,
+      users: Array.isArray(order.users) && order.users.length > 0 ? {
+        name: order.users[0].name,
+        email: order.users[0].email
+      } : undefined
+    })) || [];
 
     return {
       success: true,
-      data: {
-        stats: employeeStats,
-        orders: ordersWithSkips
-      }
+      data: normalizedOrders
     };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Accept a review order (assign to employee and start progress)
+ */
+export async function acceptReviewOrderAction(orderId: string) {
+  try {
+    const auth = await requireAuth();
+    if (!auth.success) return auth;
+
+    if (auth.user.role !== 'EMPLOYEE') {
+      return { success: false, error: "Unauthorized - Employee only" };
+    }
+
+    const supabase = await createClient();
+    // Use admin client for update to bypass RLS
+    const supabaseAdmin = await createAdminClient();
+
+    // Check if order is still available (PENDING and unassigned)
+    const { data: order, error: fetchError } = await supabase
+      .from("review_orders")
+      .select("id, status, assigned_employee_id")
+      .eq("id", orderId)
+      .single();
+
+    if (fetchError || !order) {
+      return { success: false, error: "Order not found" };
+    }
+
+    // Order must be PENDING and unassigned
+    if (order.status !== "PENDING" || order.assigned_employee_id) {
+      return { success: false, error: "Order is no longer available" };
+    }
+
+    // Assign order to employee and set status to IN_PROGRESS
+    const { error: updateError, data: updatedData } = await supabaseAdmin
+      .from("review_orders")
+      .update({
+        assigned_employee_id: auth.user.id,
+        status: "IN_PROGRESS",
+        assigned_at: new Date().toISOString()
+      })
+      .eq("id", orderId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error("Update error:", updateError);
+      throw updateError;
+    }
+
+    console.log("Updated order:", updatedData);
+
+    return { success: true, data: { orderId } };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Complete a review order (submit proof and mark as completed)
+ */
+export async function completeReviewOrderAction(orderId: string, proofOfCompletion: string) {
+  try {
+    const auth = await requireAuth();
+    if (!auth.success) return auth;
+
+    if (auth.user.role !== 'EMPLOYEE') {
+      return { success: false, error: "Unauthorized - Employee only" };
+    }
+
+    if (!proofOfCompletion?.trim()) {
+      return { success: false, error: "Proof of completion is required" };
+    }
+
+    const supabase = await createClient();
+    // Use admin client for update to bypass RLS
+    const supabaseAdmin = await createAdminClient();
+
+    // Check if order is assigned to this employee and is IN_PROGRESS
+    const { data: order, error: fetchError } = await supabase
+      .from("review_orders")
+      .select("id, status, assigned_employee_id")
+      .eq("id", orderId)
+      .single();
+
+    if (fetchError || !order) {
+      return { success: false, error: "Order not found" };
+    }
+
+    if (order.assigned_employee_id !== auth.user.id) {
+      return { success: false, error: "You are not assigned to this order" };
+    }
+
+    if (order.status !== "IN_PROGRESS") {
+      return { success: false, error: "Order is not in progress" };
+    }
+
+    // Mark order as completed with proof
+    const { error: updateError, data: updatedData } = await supabaseAdmin
+      .from("review_orders")
+      .update({
+        status: "COMPLETED",
+        completed_at: new Date().toISOString(),
+        proof_of_completion: proofOfCompletion
+      })
+      .eq("id", orderId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error("Update error:", updateError);
+      throw updateError;
+    }
+
+    console.log("Completed order:", updatedData);
+
+    return { success: true, data: { orderId } };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get a single review order by ID
+ */
+export async function getReviewOrderByIdAction(orderId: string) {
+  try {
+    const auth = await requireAuth();
+    if (!auth.success) return auth;
+
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("review_orders")
+      .select("*, users:user_id(name, email), employees:assigned_employee_id(name, email), review_urls(id, url, quantity, reaction_type, review_index, status, assigned_employee_id, assigned_at, completed_at, proof_of_completion)")
+      .eq("id", orderId)
+      .single();
+
+    if (error) throw error;
+    if (!data) return { success: false, error: "Order not found" };
+
+    // Normalize field names - ensure we handle both array and single object returns
+    const usersData = Array.isArray(data.users) ? (data.users.length > 0 ? data.users[0] : null) : data.users;
+    const employeesData = Array.isArray(data.employees) ? (data.employees.length > 0 ? data.employees[0] : null) : data.employees;
+
+    const normalizedOrder = {
+      id: data.id,
+      userId: data.user_id,
+      businessName: data.business_name,
+      businessUrl: data.business_url,
+      orderType: data.order_type,
+      reviewType: data.review_type,
+      targetRating: data.target_rating,
+      reviewContent: data.review_content,
+      reviewInstructions: data.review_instructions,
+      quantity: data.quantity,
+      creditsConsumed: data.credits_consumed,
+      status: data.status,
+      assignedEmployeeId: data.assigned_employee_id,
+      assignedAt: data.assigned_at,
+      completedAt: data.completed_at,
+      proofOfCompletion: data.proof_of_completion,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      users: usersData,
+      employees: employeesData,
+      reviewUrls: Array.isArray(data.review_urls) ? data.review_urls.map((ru: any) => ({
+        id: ru.id,
+        url: ru.url,
+        quantity: ru.quantity,
+        reactionType: ru.reaction_type,
+        reviewIndex: ru.review_index,
+        status: ru.status,
+        assignedEmployeeId: ru.assigned_employee_id,
+        assignedAt: ru.assigned_at,
+        completedAt: ru.completed_at,
+        proofOfCompletion: ru.proof_of_completion
+      })) : []
+    };
+
+    return { success: true, data: normalizedOrder };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

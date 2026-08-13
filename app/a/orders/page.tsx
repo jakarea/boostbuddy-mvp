@@ -1,19 +1,20 @@
 import { Suspense } from "react";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import OrdersClient from "./orders-client";
-import { getAdminOrdersAction } from "@/app/actions/orders";
+import { getAllReviewOrdersAction } from "@/app/actions/admin-reviews";
 
 export const metadata = {
-  title: "Order Management - Admin",
+  title: "Review Orders Management - Admin",
 };
 
-export default async function AdminOrdersPage() {
-  const response = await getAdminOrdersAction();
+export default async function AdminReviewOrdersPage() {
+  const response = await getAllReviewOrdersAction();
   const initialOrders = (response.success ? response.data : []) as any[];
+  const totalCount = response.pagination?.totalCount || 0;
 
   return (
     <Suspense fallback={<LoadingScreen />}>
-      <OrdersClient initialOrders={initialOrders} />
+      <OrdersClient initialOrders={initialOrders} initialTotalCount={totalCount} />
     </Suspense>
   );
 }

@@ -481,7 +481,7 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
       user_id: auth.user.id,
       amount: -requiredCredits,
       balance_after: newBalance,
-      type: "SPEND",
+      type: "PURCHASE",
       description: `${orderData.orderType} order (${orderData.quantity} units)`,
       reference_id: orderId
     }).catch((err: any) => console.error("Failed to create transaction record:", err));

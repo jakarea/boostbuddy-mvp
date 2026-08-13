@@ -161,7 +161,8 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
     const businessName = orderData.businessName || extractBusinessNameFromUrl(orderData.urls[0].url);
 
     // Create ReviewOrder with shared content
-    const { error: orderError } = await (supabaseAdmin as any)
+    console.log("📝 [MULTI-URL ORDER] Inserting review order...");
+    const { error: orderError, data: insertedOrder } = await (supabaseAdmin as any)
       .from("review_orders")
       .insert({
         id: orderId,
@@ -174,46 +175,64 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
         reaction_type: orderData.urls[0].reactionType || "LIKE",
         credits_consumed: requiredCredits,
         review_content: orderData.reviewContent || null,
-        photoUrls: orderData.photos?.length ? JSON.stringify(orderData.photos) : null,
+        photo_urls: orderData.photos?.length ? JSON.stringify(orderData.photos) : null,
         status: "PENDING",
-        total_urls: orderData.urls.length,
         created_at: now,
         updated_at: now
-      });
+      })
+      .select()
+      .single();
 
-    if (orderError) throw orderError;
+    if (orderError) {
+      console.error("❌ [MULTI-URL ORDER] Order insert error:", orderError);
+      throw orderError;
+    }
+    console.log("✅ [MULTI-URL ORDER] Order inserted successfully:", insertedOrder);
 
-    // Create ReviewUrl entries (no per-URL content needed)
+    // Create ReviewUrl entries with per-URL reaction type
     const reviewUrlsData = orderData.urls.map((urlData, index) => ({
       id: randomUUID(),
       review_order_id: orderId,
       url: urlData.url.trim(),
       quantity: urlData.quantity,
+      reaction_type: urlData.reactionType || "LIKE",
       review_index: index,
       status: "PENDING",
       created_at: now,
       updated_at: now
     }));
 
+    console.log("📝 [MULTI-URL ORDER] Inserting review URLs...");
     const { error: urlsError } = await (supabaseAdmin as any)
       .from("review_urls")
       .insert(reviewUrlsData);
 
-    if (urlsError) throw urlsError;
+    if (urlsError) {
+      console.error("❌ [MULTI-URL ORDER] Review URLs insert error:", urlsError);
+      throw urlsError;
+    }
+    console.log("✅ [MULTI-URL ORDER] Review URLs inserted successfully");
 
     // Create credit transaction
-    await (supabaseAdmin as any).from("credit_transactions").insert({
+    console.log("📝 [MULTI-URL ORDER] Creating credit transaction...");
+    const { error: transactionError } = await (supabaseAdmin as any).from("credit_transactions").insert({
       id: randomUUID(),
       user_id: auth.user.id,
       amount: -requiredCredits,
       balance_after: currentBalance - requiredCredits,
-      type: "SPEND",
+      type: "PURCHASE",
       description: `${orderData.orderType} order (${totalQuantity} reviews across ${orderData.urls.length} URLs)`,
       reference_id: orderId,
       created_at: now
     });
 
-    console.log("✅ [MULTI-URL ORDER] Order created successfully");
+    if (transactionError) {
+      console.error("❌ [MULTI-URL ORDER] Credit transaction error:", transactionError);
+      throw transactionError;
+    }
+    console.log("✅ [MULTI-URL ORDER] Credit transaction created successfully");
+
+    console.log("✅ [MULTI-URL ORDER] Order creation completed successfully");
 
     // Send notifications (fire and forget)
     (async () => {
@@ -353,7 +372,7 @@ export async function getOrderUrlTasksAction(orderId: string) {
     // First, verify the order exists and check permissions
     const { data: order, error: orderError } = await supabaseAdmin
       .from("review_orders")
-      .select("id, user_id, business_name, order_type")
+      .select("id, user_id, business_name, order_type, reaction_type")
       .eq("id", orderId)
       .single();
 
@@ -411,7 +430,7 @@ export async function getOrderUrlTasksAction(orderId: string) {
       quantity: task.quantity,
       reviewContent: task.review_orders?.review_content,
       photos: task.review_orders?.photo_urls ? JSON.parse(task.review_orders.photo_urls) : null,
-      reactionType: task.reaction_type,
+      reactionType: task.reaction_type || (order as any).reaction_type || "LIKE", // Get from URL task, fallback to parent order
       reviewIndex: task.review_index,
       status: task.status,
       assignedEmployeeId: task.assigned_employee_id,

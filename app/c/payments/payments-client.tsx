@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingBag, CreditCard, HelpCircle, Receipt, Copy, RefreshCw, CheckCircle, AlertCircle, Download, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { ORDER_STATUS, ORDER_TYPE } from "@/app/a/orders/orders-client";
+import { ORDER_STATUS, ORDER_TYPE } from "@/app/a/payments/payments-client";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/context/ToastContext";
 import { getInvoiceDownloadUrlAction } from "@/app/actions/invoices";

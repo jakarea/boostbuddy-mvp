@@ -199,7 +199,9 @@ export default function NewReviewOrderPage() {
 
   if (loading) return <LoadingScreen />;
 
-  const totalQuantity = urls.reduce((sum, u) => sum + u.quantity, 0);
+  const totalQuantity = orderType === "REVIEW"
+    ? urls.length  // For REVIEW: each URL gets 1 review
+    : urls.reduce((sum, u) => sum + u.quantity, 0);  // For COMMENT/COMMENT_WITH_PHOTO: sum of quantities
   const requiredCredits = (creditPricing[orderType] || 0) * totalQuantity;
 
   return (
@@ -435,7 +437,8 @@ export default function NewReviewOrderPage() {
                       )}
                     </div>
 
-                    {/* Quantity */}
+                    {/* Quantity - Only for COMMENT and COMMENT_WITH_PHOTO types */}
+                    {orderType !== "REVIEW" && (
                     <div className="mb-3">
                       <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                         Quantity for this URL
@@ -449,6 +452,7 @@ export default function NewReviewOrderPage() {
                         className="w-full px-3 py-2 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 focus:border-[#168BB0] text-sm"
                       />
                     </div>
+                    )}
 
                     {/* Reaction Selector - Only for COMMENT type */}
                     {orderType === "COMMENT" && (
