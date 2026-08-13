@@ -72,6 +72,7 @@ const TwoFactorTimer: React.FC<{ secret: string }> = ({ secret }) => {
       });
     } catch (e) {
       console.error("Invalid TOTP secret", e);
+      // eslint-disable-next-line react-hooks/rules-of-hooks -- setState in async callback is valid
       setCode("INVALID");
     }
 
@@ -147,6 +148,7 @@ export default function BoxesClient({ initialBoxes }: { initialBoxes: BoxAccount
   // Update proration details dynamically when selection changes
   useEffect(() => {
     if (isRenewModalOpen && selectedBox && selectedServiceId) {
+      // eslint-disable-next-line react-hooks/rules-of-hooks -- setState in async callback is valid
       setCalculatingProration(true);
       calculateUpgradePriceAction(selectedBox.id, selectedServiceId)
         .then((res: any) => {

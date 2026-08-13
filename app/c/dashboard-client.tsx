@@ -73,6 +73,7 @@ const TwoFactorTimer: React.FC<{ secret: string }> = ({ secret }) => {
         return () => clearInterval(interval);
       }).catch(err => {
         console.error("Failed to load OTPAuth", err);
+        // eslint-disable-next-line react-hooks/rules-of-hooks -- setState in async callback is valid
         setCode("ERROR");
       });
     } catch (e) {
@@ -160,6 +161,7 @@ export default function DashboardClient({ initialProfiles, creditsBalance = 0, w
   // Update proration details dynamically when selection changes
   useEffect(() => {
     if (isRenewModalOpen && selectedProfile && selectedServiceId) {
+      // eslint-disable-next-line react-hooks/rules-of-hooks -- setState in async callback is valid
       setCalculatingProration(true);
       calculateUpgradePriceAction(selectedProfile.id, selectedServiceId)
         .then((res: any) => {

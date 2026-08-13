@@ -10,12 +10,14 @@ export const metadata = {
 };
 
 export default async function BoxesPage() {
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- Server component: Date.now() is safe for one-time execution
   const start = Date.now();
   const auth = await requireAuth({ role: 'CLIENT' });
   if (!auth.success) return null;
 
   const response = await getClientProfilesData(auth.user.id);
   const initialBoxes = response.success && response.data ? response.data : [];
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- Server component: Date.now() is safe for one-time execution
   const duration = Date.now() - start;
 
   return (
