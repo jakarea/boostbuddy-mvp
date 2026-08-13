@@ -148,40 +148,40 @@ export default function EmployeeOrderDetailPage() {
   const isOrderComplete = completedCount === orderData.urlTasks.length;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => router.push("/e/dashboard")}
-          className="gap-2"
+          className="gap-2 w-fit"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Dashboard
         </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">{orderData.businessName}</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold truncate">{orderData.businessName}</h1>
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
             {orderData.orderType === "REVIEW" && "Review Order"}
             {orderData.orderType === "COMMENT" && "Reaction Order"}
             {orderData.orderType === "COMMENT_WITH_PHOTO" && "Photo + Review Order"}
           </p>
         </div>
-        <div className="text-right">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Progress</p>
-          <p className="text-lg font-bold text-[#168BB0]">{completedCount}/{orderData.urlTasks.length}</p>
+        <div className="text-right sm:text-left">
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">Progress</p>
+          <p className="text-base sm:text-lg font-bold text-[#168BB0]">{completedCount}/{orderData.urlTasks.length}</p>
         </div>
       </div>
 
       {/* Order Complete Banner */}
       {isOrderComplete && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
-            <div>
-              <p className="font-semibold text-green-900 dark:text-green-100">Order Complete!</p>
-              <p className="text-sm text-green-700 dark:text-green-300">
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 sm:p-4">
+          <div className="flex items-start sm:items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5 sm:mt-0" />
+            <div className="flex-1">
+              <p className="font-semibold text-green-900 dark:text-green-100 text-sm sm:text-base">Order Complete!</p>
+              <p className="text-xs sm:text-sm text-green-700 dark:text-green-300">
                 All {orderData.urlTasks.length} URL tasks have been completed.
               </p>
             </div>
@@ -190,32 +190,32 @@ export default function EmployeeOrderDetailPage() {
       )}
 
       {/* URL Tasks List */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">URL Tasks</h2>
+      <div className="space-y-3 sm:space-y-4">
+        <h2 className="text-base sm:text-lg font-semibold">URL Tasks</h2>
         {orderData.urlTasks.map((task) => (
-          <div key={task.id} className="bg-white dark:bg-zinc-900 rounded-lg p-6 shadow border border-zinc-200 dark:border-zinc-800">
+          <div key={task.id} className="bg-white dark:bg-zinc-900 rounded-lg p-4 sm:p-6 shadow border border-zinc-200 dark:border-zinc-800">
             {/* Task Header */}
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#168BB0] text-white flex items-center justify-center text-sm font-bold">
+            <div className="flex items-start justify-between mb-3 sm:mb-4">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#168BB0] text-white flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0">
                   {task.reviewIndex + 1}
                 </div>
-                <div>
-                  <p className="font-medium">URL {task.reviewIndex + 1}</p>
-                  <p className="text-sm text-zinc-500">Quantity: {task.quantity}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm sm:font-medium truncate">URL {task.reviewIndex + 1}</p>
+                  <p className="text-xs sm:text-sm text-zinc-500">Quantity: {task.quantity}</p>
                 </div>
               </div>
               {getStatusBadge(task.status)}
             </div>
 
             {/* URL to review */}
-            <div className="bg-zinc-50 dark:bg-zinc-950 p-3 rounded-lg mb-4">
-              <p className="text-xs text-zinc-500 mb-1">URL to review:</p>
+            <div className="bg-zinc-50 dark:bg-zinc-950 p-2 sm:p-3 rounded-lg mb-3 sm:mb-4">
+              <p className="text-[10px] sm:text-xs text-zinc-500 mb-1">URL to review:</p>
               <a
                 href={task.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
+                className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
               >
                 {task.url}
               </a>
@@ -223,37 +223,37 @@ export default function EmployeeOrderDetailPage() {
 
             {/* Review Content with Copy Button */}
             {task.reviewContent && (
-              <div className="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-lg mb-4">
+              <div className="bg-zinc-50 dark:bg-zinc-950 p-3 sm:p-4 rounded-lg mb-3 sm:mb-4">
                 <div className="flex justify-between items-start gap-2 mb-2">
-                  <p className="text-xs text-zinc-500">Review to post:</p>
+                  <p className="text-[10px] sm:text-xs text-zinc-500">Review to post:</p>
                   <CopyReviewButton content={task.reviewContent} size="sm" />
                 </div>
-                <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">{task.reviewContent}</p>
+                <p className="text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">{task.reviewContent}</p>
               </div>
             )}
 
             {/* Reaction Type */}
             {task.reactionType && orderData.orderType !== "REVIEW" && (
-              <div className="mb-4">
-                <p className="text-xs text-zinc-500 mb-1">Reaction to post:</p>
+              <div className="mb-3 sm:mb-4">
+                <p className="text-[10px] sm:text-xs text-zinc-500 mb-1">Reaction to post:</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">{getReactionEmoji(task.reactionType)}</span>
-                  <span className="text-sm font-medium">{task.reactionType}</span>
+                  <span className="text-xl sm:text-2xl">{getReactionEmoji(task.reactionType)}</span>
+                  <span className="text-xs sm:text-sm font-medium">{task.reactionType}</span>
                 </div>
               </div>
             )}
 
             {/* Photos info */}
             {task.photos && task.photos.length > 0 && (
-              <div className="mb-4">
-                <p className="text-xs text-zinc-500 mb-1">Photos to upload:</p>
-                <div className="flex flex-wrap gap-2">
+              <div className="mb-3 sm:mb-4">
+                <p className="text-[10px] sm:text-xs text-zinc-500 mb-1">Photos to upload:</p>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {task.photos.map((photo, idx) => (
                     <img
                       key={idx}
                       src={photo}
                       alt={`Photo ${idx + 1}`}
-                      className="w-20 h-20 object-cover rounded border"
+                      className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded border"
                     />
                   ))}
                 </div>
@@ -262,11 +262,11 @@ export default function EmployeeOrderDetailPage() {
 
             {/* Completed Task - Show proof */}
             {task.status === "COMPLETED" && task.proofOfCompletion && (
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                <p className="text-sm font-medium text-green-900 dark:text-green-100 mb-2">
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 sm:p-4">
+                <p className="text-xs sm:text-sm font-medium text-green-900 dark:text-green-100 mb-1 sm:mb-2">
                   Completed at {formatDateTime(task.completedAt || "")}
                 </p>
-                <p className="text-sm text-green-700 dark:text-green-300">
+                <p className="text-xs sm:text-sm text-green-700 dark:text-green-300 break-all">
                   <strong>Proof:</strong> {task.proofOfCompletion}
                 </p>
               </div>
@@ -274,25 +274,25 @@ export default function EmployeeOrderDetailPage() {
 
             {/* In-Progress Task - Submit proof form */}
             {task.status === "ASSIGNED" && (
-              <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4">
-                <h3 className="text-sm font-medium mb-2">Submit Proof of Completion</h3>
+              <div className="border-t border-zinc-200 dark:border-zinc-800 pt-3 sm:pt-4">
+                <h3 className="text-xs sm:text-sm font-medium mb-2">Submit Proof of Completion</h3>
                 <textarea
                   value={proofs[task.id] || ""}
                   onChange={(e) => setProofs(prev => ({ ...prev, [task.id]: e.target.value }))}
                   placeholder="Paste screenshot URL or describe how you completed the review..."
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-sm resize-none"
-                  rows={3}
+                  className="w-full px-2.5 sm:px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-xs sm:text-sm resize-none"
+                  rows={2}
                 />
-                <div className="flex gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-2">
                   <button
                     onClick={() => handleSubmitProof(task.id)}
                     disabled={submittingTaskId === task.id || !proofs[task.id]?.trim()}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                    className="px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm font-medium"
                   >
                     {submittingTaskId === task.id ? "Submitting..." : "Submit Task"}
                   </button>
                 </div>
-                <p className="text-xs text-zinc-500 mt-2">
+                <p className="text-[10px] sm:text-xs text-zinc-500 mt-1 sm:mt-2">
                   Once submitted, this task cannot be modified.
                 </p>
               </div>
@@ -300,16 +300,16 @@ export default function EmployeeOrderDetailPage() {
 
             {/* Pending Task - Not assigned to anyone */}
             {task.status === "PENDING" && (
-              <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-lg p-3 sm:p-4">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                   This task is not assigned to anyone. You can accept it from the dashboard.
                 </p>
               </div>
             )}
 
             {/* Timestamps */}
-            <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-              <div className="flex gap-4 text-xs text-zinc-500">
+            <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-zinc-100 dark:border-zinc-800">
+              <div className="flex flex-wrap gap-x-2 sm:gap-x-4 gap-y-1 text-[10px] sm:text-xs text-zinc-500">
                 <span>Created: {formatDateTime(task.createdAt)}</span>
                 {task.assignedAt && <span>Assigned: {formatDateTime(task.assignedAt)}</span>}
                 {task.completedAt && <span>Completed: {formatDateTime(task.completedAt)}</span>}
