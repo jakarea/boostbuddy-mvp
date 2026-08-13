@@ -40,6 +40,7 @@ interface RoutingResult {
 
 /**
  * Load admin bot token for sending messages
+ * Uses only UI configuration from Admin panel
  */
 async function loadAdminBotToken(supabase: any): Promise<string | null> {
   try {
@@ -51,10 +52,11 @@ async function loadAdminBotToken(supabase: any): Promise<string | null> {
 
     // Type-safe access to app_settings value
     const appSettings = setting?.value ? JSON.parse(setting.value as string) as { bot_token?: string } : null;
-    const botToken = appSettings?.bot_token ?? process.env.TELEGRAM_BOT_TOKEN;
+    const botToken = appSettings?.bot_token;
     return botToken || null;
-  } catch {
-    return process.env.TELEGRAM_BOT_TOKEN || null;
+  } catch (error) {
+    console.warn("[TELEGRAM ROUTING] Could not load bot token from app_settings:", error);
+    return null;
   }
 }
 

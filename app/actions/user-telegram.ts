@@ -71,7 +71,7 @@ export async function saveUserTelegramConfigAction(chatId: string): Promise<{
 
     // Type-safe access to app_settings value
     const appSettings = setting?.value ? JSON.parse(setting.value as string) as { bot_token?: string } : null;
-    const botToken = appSettings?.bot_token ?? process.env.TELEGRAM_BOT_TOKEN;
+    const botToken = appSettings?.bot_token;
     if (!botToken) {
       return {
         success: false,
@@ -352,8 +352,8 @@ export async function sendUserTelegramTestAction(): Promise<{
       .maybeSingle();
 
     const appSettings = setting?.value ? JSON.parse(setting.value as string) as { bot_token?: string } : null;
-    const botToken = appSettings?.bot_token ?? process.env.TELEGRAM_BOT_TOKEN;
-    if (!botToken) return { success: false, error: "Admin Telegram bot is not configured yet." };
+    const botToken = appSettings?.bot_token;
+    if (!botToken) return { success: false, error: "Admin Telegram bot is not configured yet. Please configure it in the Admin panel." };
 
     const botId = botToken.split(":")[0]?.trim();
     if (botId && userConfig?.chat_id?.trim() === botId) {
@@ -420,7 +420,7 @@ export async function getTelegramBotUsernameAction(): Promise<{
     const supabase = await createClient();
     const { data: setting } = await supabase.from("app_settings").select("value").eq("key", "telegram_bot").maybeSingle();
     const appSettings = setting?.value ? JSON.parse(setting.value as string) as { bot_token?: string } : null;
-    const botToken = appSettings?.bot_token ?? process.env.TELEGRAM_BOT_TOKEN;
+    const botToken = appSettings?.bot_token;
     if (!botToken) return { success: true };
 
     const res = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);

@@ -62,15 +62,12 @@ async function triggerRealtimeNotification(notification: {
 }
 
 /**
- * Loads admin-level Telegram credentials (DB config > env vars).
- * Returns null when neither source is configured.
+ * Loads admin-level Telegram credentials from UI configuration only.
+ * Returns null when not configured via Admin panel.
  */
 async function loadAdminTelegramCredentials(
   supabase: ReturnType<typeof createAdminClient> | Awaited<ReturnType<typeof createClient>>
 ): Promise<TelegramCredentials | null> {
-  let botToken = process.env.TELEGRAM_BOT_TOKEN ?? "";
-  let chatId = process.env.TELEGRAM_CHAT_ID ?? "";
-
   try {
     const { data: setting } = await (supabase as any)
       .from("app_settings")
@@ -79,25 +76,26 @@ async function loadAdminTelegramCredentials(
       .maybeSingle();
 
     if (setting?.value) {
-      botToken = (setting.value as any).bot_token || botToken;
-      chatId = (setting.value as any).chat_id || chatId;
+      const botToken = (setting.value as any).bot_token;
+      const chatId = (setting.value as any).chat_id;
+      if (botToken && chatId) {
+        return { bot_token: botToken, chat_id: chatId };
+      }
     }
-  } catch {
-    // app_settings table may not exist yet — fall back to env values
+  } catch (error) {
+    console.warn("[TELEGRAM] Could not load credentials from app_settings:", error);
   }
 
-  if (!botToken || !chatId) return null;
-  return { bot_token: botToken, chat_id: chatId };
+  return null;
 }
 
 /**
  * Returns just the admin bot token (no chat ID) for per-user delivery.
+ * Uses only UI configuration from Admin panel.
  */
 async function loadAdminBotToken(
   supabase: ReturnType<typeof createAdminClient> | Awaited<ReturnType<typeof createClient>>
 ): Promise<string | null> {
-  let botToken = process.env.TELEGRAM_BOT_TOKEN ?? "";
-
   try {
     const { data: setting } = await (supabase as any)
       .from("app_settings")
@@ -106,13 +104,14 @@ async function loadAdminBotToken(
       .maybeSingle();
 
     if (setting?.value) {
-      botToken = (setting.value as any).bot_token || botToken;
+      const botToken = (setting.value as any).bot_token;
+      if (botToken) return botToken;
     }
-  } catch {
-    // silently continue
+  } catch (error) {
+    console.warn("[TELEGRAM] Could not load bot token from app_settings:", error);
   }
 
-  return botToken || null;
+  return null;
 }
 
 /**

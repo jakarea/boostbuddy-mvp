@@ -492,9 +492,17 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
     // Send notification (fire and forget - don't block on notification errors)
     (async () => {
       try {
-        // Only send if TELEGRAM_BOT_TOKEN is configured
-        if (!process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN.length < 10) {
-          console.log("Telegram notifications disabled - no bot token configured");
+        // Check if Telegram bot is configured via UI
+        const supabaseAdmin = createAdminClient();
+        const { data: setting } = await (supabaseAdmin as any)
+          .from("app_settings")
+          .select("value")
+          .eq("key", "telegram_bot")
+          .maybeSingle();
+
+        const appSettings = setting?.value ? JSON.parse(setting.value as string) as { bot_token?: string } : null;
+        if (!appSettings?.bot_token) {
+          console.log("Telegram notifications disabled - bot not configured in Admin panel");
           return;
         }
 
