@@ -92,9 +92,10 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
     key: CACHE_KEYS.ADMIN_EMPLOYEE_PERFORMANCE,
     fetcher: async (): Promise<{ employees: EmployeePerformance[]; totalCount: number }> => {
       const result = await getEmployeePerformanceAction();
-      if (result.success && result.data && Array.isArray(result.data)) {
-        const data = result.data as any;
-        return { employees: data as EmployeePerformance[], totalCount: data.totalCount || 0 };
+      if (result.success && result.data) {
+        const employees = result.data as EmployeePerformance[];
+        const totalCount = result.pagination?.totalCount || 0;
+        return { employees, totalCount };
       }
       return { employees: [], totalCount: 0 };
     },

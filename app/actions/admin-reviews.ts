@@ -453,19 +453,6 @@ export async function getEmployeePerformanceAction(filters?: { page?: number; pa
       .from("employee_stats")
       .select("user_id", { count: "exact", head: true });
 
-    if (filters?.searchTerm && filters.searchTerm.trim()) {
-      const searchLower = filters.searchTerm.trim().toLowerCase();
-      // We'll need to join with users for search, so let's do it differently
-      // Sanitize input to prevent PostgREST filter manipulation
-      const sanitized = searchLower.replace(/[,\.\(\)%\\]/g, '');
-      const { count } = await supabase
-        .from("users")
-        .select("id", { count: "exact", head: true })
-        .eq("role", "EMPLOYEE")
-        .or(`name.ilike.%${sanitized}%,email.ilike.%${sanitized}%`);
-      return { success: true, count, pagination: { page, pageSize, totalCount: count || 0, totalPages: Math.ceil((count || 0) / pageSize) } };
-    }
-
     const { count: totalCount, error: countError } = await countQuery;
 
     if (countError) throw countError;
@@ -601,13 +588,14 @@ export async function getReviewsOverviewAction() {
 
     const supabase = await createClient();
 
-    const [totalOrders, pendingOrders, inProgressOrders, completedOrders, revenue, employeeStats] = await Promise.all([
+    const [totalOrders, pendingOrders, inProgressOrders, completedOrders, revenue, employeeStats, employeeCompleted] = await Promise.all([
       supabase.from("review_orders").select("id", { count: "exact", head: true }),
       supabase.from("review_orders").select("id", { count: "exact", head: true }).eq("status", "PENDING"),
       supabase.from("review_orders").select("id", { count: "exact", head: true }).eq("status", "IN_PROGRESS"),
       supabase.from("review_orders").select("id", { count: "exact", head: true }).eq("status", "COMPLETED"),
-      supabase.from("review_orders").select("credits_consumed").select("credits_consumed"),
-      supabase.from("employee_stats").select("id", { count: "exact", head: true })
+      supabase.from("review_orders").select("credits_consumed"),
+      supabase.from("employee_stats").select("id", { count: "exact", head: true }),
+      supabase.from("review_urls").select("id", { count: "exact", head: true }).eq("status", "COMPLETED")
     ]);
 
     const totalRevenue = revenue.data?.reduce((sum: any, item: any) => {
@@ -623,7 +611,7 @@ export async function getReviewsOverviewAction() {
         completedOrders: completedOrders.count || 0,
         totalRevenue: totalRevenue,
         totalEmployees: employeeStats.count || 0,
-        employeeCompleted: 0
+        employeeCompleted: employeeCompleted.count || 0
       }
     };
   } catch (error: any) {
