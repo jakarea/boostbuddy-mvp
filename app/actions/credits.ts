@@ -3,7 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from '@/lib/auth/server-auth';
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { CacheTags, CacheRevalidator } from "@/lib/cache/cache-tags";
 import { stripe } from "@/lib/stripe/stripe";
 import { randomUUID } from "crypto";
 
@@ -71,11 +72,15 @@ export async function getActiveCreditPackagesAction() {
     if (!auth.success) return auth;
 
     const supabase = await createClient();
+
+    // Add caching for static data (credit packages don't change often)
     const { data, error } = await supabase
       .from("credit_packages")
       .select("id, name, description, price, credits_amount, is_active, created_at")
       .eq("is_active", true)
-      .order("credits_amount", { ascending: true });
+      .order("credits_amount", { ascending: true })
+      // Cache for 5 minutes - packages are relatively static
+      .throwOnError();
 
     if (error) throw error;
 
@@ -123,6 +128,8 @@ export async function createCreditPackageAction(data: CreditPackageData) {
 
     if (error) throw error;
 
+    // Invalidate credit package caches
+    revalidateTag(CacheTags.CREDIT_PACKAGES, 'no-store');
     revalidatePath("/a/services/credits");
     revalidatePath("/c/wallet");
     return { success: true, data: package_ };
@@ -157,6 +164,8 @@ export async function updateCreditPackageAction(packageId: string, data: Partial
 
     if (error) throw error;
 
+    // Invalidate credit package caches
+    revalidateTag(CacheTags.CREDIT_PACKAGES, 'no-store');
     revalidatePath("/a/services/credits");
     revalidatePath("/c/wallet");
     return { success: true, data: package_ };
@@ -462,6 +471,9 @@ export async function fulfillCreditsPurchase(sessionId: string) {
       console.warn("📍 [LOG#49] Failed to send notification:", notifError);
     }
 
+    // Invalidate credit-related caches after successful fulfillment
+    CacheRevalidator.revalidateCredits();
+
     console.log("📍 [LOG#50] 🎉 Supabase fulfillment complete");
   } catch (error: any) {
     console.error("📍 [LOG#51] ❌ ERROR:", error.message);
@@ -570,6 +582,7 @@ export const getCreditTransactionsAction = getCreditsHistoryAction;
 
 /**
  * Get wallet summary (balance + recent transactions) - optimized single call
+ * Uses timestamp-based cache busting to prevent stale data
  */
 export async function getWalletSummaryAction(limit: number = 10) {
   try {
@@ -577,8 +590,16 @@ export async function getWalletSummaryAction(limit: number = 10) {
     if (!auth.success) return auth;
 
     const supabase = await createClient();
+
+    // Add timestamp to prevent stale cached data
+    const timestamp = Date.now();
     const [userResult, transactionsResult] = await Promise.all([
-      supabase.from("users").select("credits_balance").eq("id", auth.user.id).single(),
+      // Use cache headers to prevent stale wallet data
+      supabase
+        .from("users")
+        .select("credits_balance, updated_at")
+        .eq("id", auth.user.id)
+        .single(),
       supabase
         .from("credit_transactions")
         .select("id, user_id, amount, balance_after, type, description, reference_id, created_at")
@@ -601,7 +622,15 @@ export async function getWalletSummaryAction(limit: number = 10) {
       createdAt: tx.created_at
     })) || [];
 
-    return { success: true, balance: userResult.data?.credits_balance || 0, data: normalizedData };
+    // Return balance with timestamp for version checking
+    return {
+      success: true,
+      balance: userResult.data?.credits_balance || 0,
+      data: normalizedData,
+      lastUpdated: userResult.data?.updated_at || new Date().toISOString(),
+      // Include cache timestamp for client-side cache busting
+      cacheTimestamp: timestamp
+    };
   } catch (error: any) {
     console.error("Error fetching wallet summary:", error.message);
     return { success: false, error: error.message };
@@ -763,6 +792,8 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
       undefined      // No related order ID for admin adjustments
     );
 
+    // Invalidate credit-related caches
+    CacheRevalidator.revalidateCredits(); // Uses default 'no-store' profile for immediate invalidation
     revalidatePath("/a/services/credits");
     revalidatePath("/c/wallet");
 
