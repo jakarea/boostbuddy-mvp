@@ -4,17 +4,25 @@ A modern, full-stack Next.js web application designed to manage client profiles,
 
 ## Features
 
-- **Next.js App Router Architecture**: Leverages Server Components and Server Actions for fast, secure data fetching and mutations.
-- **Role-Based Authentication**: Secure authentication via Supabase with distinct `ADMIN`, `CLIENT`, and `EMPLOYEE` user roles and protected routes.
-- **Credits System**: Complete credits-based payment system for reviews services with package management, balance tracking, and transaction history.
-- **Reviews Workflow**: Full review order management system with client submissions, employee assignment pool, skip tracking, and completion verification.
-- **Employee Management**: Dedicated employee accounts with availability toggles, performance tracking, and automated order distribution.
-- **Stripe Integration**: Automated checkout, payment processing, and webhooks for real-time order fulfillment (EUR currency for Box services, Credits packages for Reviews).
-- **Invoice Management**: Admin panel allows secure uploading of PDF invoices linked directly to client orders via Supabase Storage.
-- **Unified Notifications**: Multi-channel notification system supporting in-app alerts and Telegram delivery for reviews, orders, and system events.
-- **Internationalization (i18n)**: Multi-language support implemented using `react-i18next`.
-- **Telegram Notifications**: Real-time notifications dispatched to global admin channels and individual client chat IDs.
-- **Modern UI/UX**: Built with Tailwind CSS, Shadcn UI components, and SweetAlert2 for beautiful, responsive interactions and instant optimistic UI updates.
+### Core Functionality
+- **Next.js App Router Architecture**: Leverages Server Components and Server Actions for fast, secure data fetching and mutations
+- **Role-Based Authentication**: Secure authentication via Supabase with distinct `ADMIN`, `CLIENT`, and `EMPLOYEE` user roles and protected routes
+- **Multi-URL Reviews System**: Clients can create one review with content written once and assign it to multiple URLs (up to 10)
+- **Credits System**: Complete credits-based payment system for reviews services with package management, balance tracking, and transaction history
+- **Employee Management**: Dedicated employee accounts with availability toggles, performance tracking, order history visibility, and automated order distribution
+- **Stripe Integration**: Automated checkout, payment processing, and webhooks for real-time order fulfillment
+- **Invoice Management**: Admin panel allows secure uploading of PDF invoices linked directly to client orders via Supabase Storage
+- **Unified Notifications**: Multi-channel notification system supporting in-app alerts and Telegram delivery for reviews, orders, and system events
+- **Internationalization (i18n)**: Multi-language support (English/Italian) implemented using `react-i18next`
+- **SWR Caching**: Intelligent caching strategy for optimal performance across all panels
+- **Modern UI/UX**: Built with Tailwind CSS, Base UI components, and fully responsive design
+
+### Recent Enhancements (2024)
+- **Order History**: Employees can view their complete order history including current assignments and completed tasks
+- **Business Name Removal**: Simplified order details by removing business name field
+- **Feedback System Removal**: Streamlined UI by removing client feedback on completed reviews
+- **Responsive Design**: All pages fully responsive with mobile-first approach
+- **Data Loading Fixes**: Improved error handling and data validation across all panels
 
 ---
 
@@ -25,40 +33,58 @@ A modern, full-stack Next.js web application designed to manage client profiles,
 | **Next.js** | 16.2.9 | Core React Framework (App Router, Server Actions) |
 | **React** | 19.2.4 | UI Component Library |
 | **TypeScript** | 5.x | Static Typing for robust code quality |
-| **Supabase** | ^0.12.0 | Authentication (`@supabase/ssr`) and PostgreSQL DB |
+| **Supabase** | ^0.12.0 | Authentication and PostgreSQL DB |
 | **TailwindCSS** | 4.3.1 | Utility-first CSS styling framework |
-| **Shadcn UI** | (varied) | Accessible, reusable UI component foundation |
+| **Base UI** | (latest) | Accessible, reusable UI component foundation |
 | **Stripe** | ^22.2.1 | Payment Gateway for checkouts and webhooks |
-| **SweetAlert2**| ^11.26.25 | Beautiful, animated confirmation dialogs |
-| **i18next** | ^26.3.2 | Internationalization (i18n) framework |
-| **Prisma** | ^7.8.0 | *Legacy data modeling tool (Now using native Supabase)* |
+| **SWR** | ^2.2.0 | Data fetching and caching library |
+| **i18next** | ^26.3.2 | Internationalization framework |
 
 ---
 
 # Architecture Overview
 
-The application follows a modern Next.js Serverless Architecture:
+The application follows a modern Next.js Serverless Architecture with SWR caching for optimal performance.
 
-- **Overall Architecture**: The project uses the Next.js App Router. UI components are a mix of Server Components (for fast initial loads and SEO) and Client Components (for interactivity).
-- **Data Flow**: Instead of traditional API routes, the app uses **Server Actions** (`/app/actions`) to mutate data securely on the server. Data is fetched directly from Supabase via `@supabase/supabase-js`.
-- **Authentication Flow**: `@supabase/ssr` handles cookie-based sessions. Authentication state is tracked globally via `AuthContext`.
-- **API Flow**: Only required external webhooks (like Stripe) and specific session management routes (Logout) utilize Next.js API Routes (`/app/api`).
-- **Server vs Client Components**: Layouts and complex data views are rendered on the server. Interactive elements (like buttons, modals, forms) are marked with `"use client"`.
+### Core Patterns
 
 ```mermaid
 graph TD
-    Client[Client Browser] -->|HTTP Requests| Middleware(Next.js Middleware)
+    Client[Client Browser] -->|HTTP Requests| Middleware[Next.js Middleware]
     Middleware -->|Validates Session| AppRouter[Next.js App Router]
-    
+
     AppRouter -->|Renders| ServerComponents[Server Components]
     AppRouter -->|Executes| ServerActions[Server Actions]
-    
+
     ServerActions -->|Queries| SupabaseDB[(Supabase PostgreSQL)]
     ServerActions -->|Uploads| SupabaseStorage[Supabase Storage]
-    
+
+    ClientComponents[Client Components] -->|SWR Cache| SWRCache[SWR Cache Layer]
+    SWRCache -->|Stale Data| ServerActions
+
     StripeWebhook[Stripe Webhook] -->|POST| APIRoute[API Route /api/webhooks]
     APIRoute -->|Updates Order| SupabaseDB
 ```
+
+### Data Fetching Strategy
+
+**Server Components** (Initial Load):
+- Use `createClient()` from `lib/supabase/server` directly
+- Data fetched server-side for fast initial page loads
+- Passed to client components as `initialData` prop
+
+**Client Components** (Interactive Updates):
+- Use SWR with server actions as fetchers
+- Automatic revalidation when data becomes stale
+- Optimistic UI updates for better UX
+
+**Cache Keys** (SWR):
+- `CACHE_KEYS.ADMIN_DASHBOARD` - Admin stats (2 min TTL)
+- `CACHE_KEYS.ADMIN_REVIEWS` - Reviews overview (2 min TTL)
+- `CACHE_KEYS.ADMIN_EMPLOYEE_PERFORMANCE` - Employee stats (2 min TTL)
+- `CACHE_KEYS.CLIENT_DASHBOARD` - Client profiles (3 min TTL)
+- `CACHE_KEYS.EMPLOYEE_DASHBOARD` - Employee tasks (1 min TTL)
+- `CACHE_KEYS.CLIENT_REVIEWS_DASHBOARD` - Reviews dashboard (2 min TTL)
 
 ---
 
@@ -66,23 +92,54 @@ graph TD
 
 ```text
 /
-├── app/                  # Next.js App Router (Pages, Layouts, Server Actions)
-│   ├── actions/          # Next.js Server Actions (Database mutations)
-│   ├── admin/            # Admin Dashboard (Profiles, Orders, Services)
-│   ├── api/              # API Routes (Stripe Webhooks, Logout)
-│   ├── auth/             # Supabase Auth Callbacks
-│   └── dashboard/        # Client Dashboard (Payments, Invoices, Settings)
-├── components/           # Shared React Components
-│   ├── admin/            # Admin-specific components
-│   ├── providers/        # Global context providers
-│   └── ui/               # Shadcn UI generic components
-├── context/              # React Context (AuthContext, ToastContext)
-├── lib/                  # Utilities and Services
-│   ├── auth/             # Auth helper functions
-│   ├── stripe/           # Stripe server configuration
-│   └── supabase/         # Supabase client, server, and middleware wrappers
-├── prisma/               # Legacy SQLite database schema definition
-└── public/               # Static assets
+├── app/                          # Next.js App Router (Pages, Layouts, Server Actions)
+│   ├── actions/                   # Server Actions (Database mutations)
+│   │   ├── admin-reviews.ts      # Admin reviews management
+│   │   ├── admin-earnings.ts    # DELETED - Earnings removed
+│   │   ├── employee-earnings.ts # DELETED - Earnings removed
+│   │   ├── employee-dashboard.ts # Employee dashboard data
+│   │   ├── reviews.ts            # Reviews CRUD operations
+│   │   ├── reviews-multiurl.ts   # Multi-URL review orders
+│   │   └── ...
+│   ├── admin/                     # Admin Dashboard Routes
+│   │   ├── dashboard/page.tsx     # Admin overview/stats
+│   │   ├── reviews/page.tsx       # Reviews management
+│   │   ├── reviews/employees/     # Employee performance page
+│   │   ├── clients/page.tsx       # Client management
+│   │   ├── services/page.tsx     # Services management
+│   │   └── ...
+│   ├── client/                     # DELETED - Using /c instead
+│   ├── c/                          # Client Panel Routes
+│   │   ├── dashboard/page.tsx     # Client dashboard
+│   │   ├── services/reviews/       # Reviews services
+│   │   ├── wallet/                 # Wallet & credits
+│   │   ├── payments/               # Payment history
+│   │   └── ...
+│   ├── e/                          # Employee Panel Routes
+│   │   ├── dashboard/page.tsx     # Employee dashboard
+│   │   ├── orders/page.tsx        # Order history
+│   │   ├── orders/[id]/page.tsx   # Order detail (with task completion)
+│   │   ├── pending/page.tsx        # Account pending state
+│   │   └── notifications/page.tsx # Notifications
+│   ├── api/                       # API Routes (Webhooks, Logout)
+│   └── auth/                      # Supabase Auth Callbacks
+├── components/                    # Shared React Components
+│   ├── ui/                         # Base UI components
+│   ├── providers/                  # Context providers
+│   ├── reviews/                   # Reviews-specific components
+│   └── ...
+├── context/                       # React Context (Auth, Toast, Confirm)
+├── lib/                           # Utilities and Services
+│   ├── auth/                      # Auth helpers
+│   ├── supabase/                  # Supabase clients (server, admin, middleware)
+│   ├── cache/                     # SWR caching configuration
+│   ├── constants.ts               # App-wide constants
+│   └── ...
+├── locales/                        # Translation files
+│   ├── en.json                    # English translations
+│   └── it.json                    # Italian translations
+├── prisma/                        # Data schema (legacy, using Supabase directly)
+└── public/                        # Static assets
 ```
 
 ---
@@ -91,397 +148,537 @@ graph TD
 
 The application uses Supabase (PostgreSQL) as its primary database.
 
-## Database Overview
+## Core Tables
 
-### User Roles & Credits System
-
-| Table | Purpose | Primary Key | Foreign Keys |
-|-------|---------|-------------|--------------|
-| `users` | Stores core user accounts, roles (ADMIN/CLIENT/EMPLOYEE), credits balance, and employee settings | `id` | - |
-| `billing_info` | Stores billing address and tax codes | `id` | `userId` -> `users.id` |
-| `credit_packages` | Credits packages available for purchase (Reviews services) | `id` | - |
-| `credit_transactions` | Complete financial ledger with running balance for all credit operations | `id` | `userId` -> `users.id` |
+### Users & Authentication
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `users` | User accounts, roles, credits | `id`, `email`, `role` (ADMIN/CLIENT/EMPLOYEE), `creditsBalance` |
 
 ### Reviews System
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `review_orders` | Client review submissions | `id`, `userId`, `orderType`, `reviewContent`, `photos`, `status`, `totalUrls`, `creditsConsumed` |
+| `review_urls` | Individual URLs within orders | `id`, `reviewOrderId`, `url`, `quantity`, `status`, `assignedEmployeeId`, `proofOfCompletion` |
+| `employee_stats` | Employee performance tracking | `id`, `userId`, `ordersCompleted`, `lastActiveAt`, `isAvailable` |
 
-| Table | Purpose | Primary Key | Foreign Keys |
-|-------|---------|-------------|--------------|
-| `review_orders` | Client review submissions with business details, review content, and employee assignment | `id` | `userId` -> `users.id`, `assignedEmployeeId` -> `users.id` |
-| `skipped_reviews` | Tracks which employees skipped which review orders (prevents re-assignment) | `id` | `employeeId` -> `users.id`, `reviewOrderId` -> `review_orders.id` |
-| `employee_stats` | Employee performance tracking and availability management | `id` | `userId` -> `users.id` |
+### Credits System
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `credit_packages` | Available credit packages | `id`, `credits`, `price`, `EUR` |
+| `credit_transactions` | Financial ledger | `id`, `userId`, `type` (PURCHASE/SPEND/REFUND/ADMIN_ADJUST), `amount`, `balanceAfter` |
 
 ### Box Services (Legacy)
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `services` | Subscription services (EUR) | `id`, `name`, `price`, `duration` |
+| `profile_accounts` | Client profiles (IXBrowser) | `id`, `assignedClientId`, `serviceId` |
+| `orders` | Orders (Stripe + Credits) | `id`, `userId`, `serviceId`, `status` (PAID/FAILED) |
+| `invoices` | PDF invoices | `id`, `userId`, `orderId`, `fileUrl` |
 
-| Table | Purpose | Primary Key | Foreign Keys |
-|-------|---------|-------------|--------------|
-| `services` | Available subscription services (Box profiles - EUR based) | `id` | - |
-| `profile_accounts` | Client profiles (e.g., IXBrowser) assigned to users | `id` | `assignedClientId`, `serviceId` |
-| `orders` | Stripe checkout sessions and purchases (Box services + Credits packages) | `id` | `userId`, `serviceId`, `profileAccountId`, `creditPackageId` |
-| `invoices` | PDF invoices uploaded by admins for orders | `id` | `userId`, `orderId` |
+### System
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `notifications` | In-app + Telegram notifications | `id`, `userId`, `type`, `message`, `read` |
 
-### System & Notifications
+---
 
-| Table | Purpose | Primary Key | Foreign Keys |
-|-------|---------|-------------|--------------|
-| `notifications` | Unified notification system (in-app + Telegram delivery) | `id` | `userId` -> `users.id` |
-| `notification_logs`| History of system notifications sent | `id` | - |
-| `app_settings` | Global application configuration | `id` | - |
+# Multi-URL Reviews System
 
-```mermaid
-erDiagram
-    users ||--o| billing_info : "has one"
-    users ||--o{ credit_transactions : "ledger entries"
-    users ||--o| employee_stats : "performance"
-    users ||--o{ review_orders : "creates (client)"
-    users ||--o{ review_orders : "handles (employee)"
-    users ||--o{ skipped_reviews : "skips"
-    users ||--o{ notifications : "receives"
+The reviews system was redesigned to support creating one review with content written once and assigning it to multiple URLs.
 
-    users ||--o{ profile_accounts : "assigned to"
-    users ||--o{ orders : "places"
-    users ||--o{ invoices : "receives"
+## Order Types
 
-    credit_packages ||--o{ orders : "purchased via"
+| Type | Description | Credits | Content Required |
+|------|-------------|---------|------------------|
+| `REVIEW` | Text reviews on Facebook | 10 per URL | ✅ Review text |
+| `COMMENT` | Reactions only (no text) | 5 per URL | ❌ No text |
+| `COMMENT_WITH_PHOTO` | Reviews with photo | 20 per URL | ✅ Review + Photo |
 
-    services ||--o{ profile_accounts : "linked to"
-    services ||--o{ orders : "purchased via"
+## Order Creation Flow
 
-    review_orders ||--o{ skipped_reviews : "skipped by"
-    review_orders ||--o| notifications : "related to"
+1. **Client Selects Order Type** - Choose from REVIEW, COMMENT, or COMMENT_WITH_PHOTO
+2. **Write Review Content** - For REVIEW and COMMENT_WITH_PHOTO types, write content ONCE
+3. **Upload Photo** - For COMMENT_WITH_PHOTO, upload ONE photo
+4. **Add Multiple URLs** - Add up to 10 URLs with quantities per URL
+5. **Credit Validation** - System verifies sufficient credits balance
+6. **Submit Order** - Order created with shared content applied to all URLs
 
-    orders ||--o{ invoices : "generates"
-    profile_accounts ||--o{ orders : "renewed via"
+## Order Structure
+
+```typescript
+{
+  orderType: "REVIEW" | "COMMENT" | "COMMENT_WITH_PHOTO",
+  reviewContent: string,      // Shared across all URLs (written once)
+  photos: string[],             // Shared across all URLs (one upload)
+  urls: [
+    { url: "https://facebook.com/page1", quantity: 50 },
+    { url: "https://facebook.com/page2", quantity: 25 },
+    // ... up to 10 URLs
+  ]
+}
 ```
+
+## Order States
+
+| Status | Description | Visible To |
+|--------|-------------|------------|
+| `PENDING` | New order in pool, awaiting assignment | Client, Admin |
+| `IN_PROGRESS` | Employee working on tasks | Client, Admin, Employee |
+| `COMPLETED` | All URL tasks completed | Client, Admin, Employee |
+| `CANCELLED` | Order cancelled by admin | Client, Admin |
+
+## Employee Task Flow
+
+1. **Dashboard View** - Available tasks shown on employee dashboard
+2. **Accept Task** - Employee clicks to accept a URL task
+3. **View Details** - See the Facebook URL, review content, and requirements
+4. **Complete Review** - Post the review on Facebook
+5. **Submit Proof** - Submit screenshot URL as proof of completion
+6. **Task Completed** - Admin can verify and mark as complete
+
+---
+
+# Employee Performance & Order History
+
+The employee performance page provides admins with visibility into each employee's workload and history.
+
+## Features
+
+- **Order History View**: Expandable sections showing:
+  - **Current Assignments**: ASSIGNED and IN_PROGRESS tasks with URLs and quantities
+  - **Completed Orders**: COMPLETED tasks with completion dates
+- **Real-Time Availability**: Toggle employee availability on/off
+- **Task Distribution Control**: Enable/disable task distribution per employee
+- **Account Management**: Activate/deactivate employee accounts
+- **Performance Stats**: View completed orders count and last active date
+
+## Order Status Display
+
+In the order history, each task shows:
+- Task number and URL
+- Status badge (ASSIGNED, IN_PROGRESS, COMPLETED)
+- Quantity for that URL
+- Review content (from shared order content)
+- Completion date (if completed)
+- Proof of completion (if submitted)
 
 ---
 
 # Authentication
 
-- **Login / Signup Flow**: Standard email/password authentication using Supabase.
-- **Session Management**: Supabase tokens are persisted in HttpOnly cookies using `@supabase/ssr`.
-- **Middleware**: `lib/supabase/middleware.ts` intercepts all requests. It redirects unauthenticated users away from `/dashboard` and restricts `/admin` routes exclusively to users with the `ADMIN` role.
-- **Logout Flow**: Utilizes a highly optimized optimistic logout flow. The UI clears instantly on the client side, while the session is destroyed via a background API call to `/api/logout`.
+## User Roles
+
+| Role | Code | Permissions | Routes |
+|------|------|------------|--------|
+| **ADMIN** | `ADMIN` | Full system access | `/a/*` |
+| **CLIENT** | `CLIENT` | Profile management, Orders, Reviews | `/c/*` |
+| **EMPLOYEE** | `EMPLOYEE` | Task acceptance, Completion | `/e/*` |
+
+## Auth Flow
+
+1. **Login/Signup** → Supabase handles credentials
+2. **Session Created** → JWT stored in HttpOnly cookie
+3. **Middleware Validation** → Every request validated
+4. **Route Protection** → Role-based access control
+5. **Client Components** → Access user via `useAuth()` hook
+
+## Auth Context
+
+```typescript
+const { user, isLoading, signIn, signUp, signOut } = useAuth();
+```
+
+Provides global access to:
+- `user` - Current user object with role, email, etc.
+- `isLoading` - Authentication state
+- `signIn()` / `signUp()` - Authentication functions
+- `signOut()` - Logout function
 
 ---
 
-# Supabase
+# Credits System
 
-- **Auth**: Manages user identities and JWTs.
-- **Database**: Direct PostgreSQL access for Server Actions.
-- **Storage**: Uses an `invoices` bucket. Admins have upload/delete permissions, while authenticated clients have read access to their own invoices.
-- **Realtime / Edge Functions**: *Not found in repository.*
-- **SQL Migrations**: Schema managed natively in Supabase dashboard. *(Local migration files not found in repo).*
+The Credits System provides a flexible payment alternative to direct EUR purchases for Reviews services.
 
----
+## Credit Packages
 
-# Environment Variables
+| Credits | Price (EUR) |
+|---------|-------------|
+| 10 | 1.00 |
+| 25 | 2.00 |
+| 50 | 3.50 |
+| 100 | 6.00 |
+| 250 | 12.00 |
 
-| Variable | Required | Description |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase Project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase Anonymous Key (Safe for client) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Admin Key for Supabase (Server-side ONLY) |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Yes | Stripe Public Key |
-| `STRIPE_SECRET_KEY` | Yes | Stripe Secret Key |
-| `STRIPE_WEBHOOK_SECRET` | Yes | Stripe Webhook Signature Key |
-| `TELEGRAM_BOT_TOKEN` | No | Fallback Bot Token for notifications |
-| `TELEGRAM_CHAT_ID` | No | Fallback Admin Chat ID for notifications |
-| `NEXT_PUBLIC_SITE_URL` | Yes | Base URL for redirects (e.g. localhost:3400) |
+## Review Costs
 
----
+| Order Type | Cost per URL | Notes |
+|------------|--------------|-------|
+| REVIEW | 10 credits | Text review only |
+| COMMENT | 5 credits | Reaction only |
+| COMMENT_WITH_PHOTO | 20 credits | Review + photo |
 
-# Installation
+## Transaction Flow
 
-```bash
-# Clone the repository
-git clone <repository-url>
+1. **Purchase** → Client buys package via Stripe
+2. **Credit** → `PURCHASE` transaction created, balance updated
+3. **Spend** → Review order created, `SPEND` transaction created
+4. **Balance** → `users.creditsBalance` cached value updated
 
-# Install dependencies using npm
-npm install
+## Balance Calculation
+
+Balance is always calculated from the ledger (`credit_transactions` table):
+```typescript
+balance = SUM(credit_transactions.amount WHERE userId = ?)
 ```
 
 ---
 
-# Running Project
+# SWR Caching Strategy
+
+SWR (Stale-While-Revalidate) caching is implemented across all panels for optimal performance.
+
+## Cache Configuration
+
+| Panel | Cache Key | TTL | Purpose |
+|-------|-----------|-----|---------|
+| Admin | `ADMIN_DASHBOARD` | 2 min | Stats, pending clients |
+| Admin | `ADMIN_REVIEWS` | 2 min | Reviews overview |
+| Admin | `ADMIN_EMPLOYEE_PERFORMANCE` | 2 min | Employee stats, history |
+| Client | `CLIENT_DASHBOARD` | 3 min | Profiles, services |
+| Client | `CLIENT_REVIEWS_DASHBOARD` | 2 min | Reviews dashboard |
+| Client | `CLIENT_WALLET` | 3 min | Balance, transactions |
+| Employee | `EMPLOYEE_DASHBOARD` | 1 min | Tasks, stats (frequent) |
+
+## Usage Pattern
+
+```typescript
+const { data, refresh, isValid } = useSWR({
+  key: CACHE_KEYS.ADMIN_DASHBOARD,
+  fetcher: async () => {
+    const result = await getAdminDashboardStatsAction();
+    if (result.success) return result.data;
+    return initialData; // Fallback on error
+  },
+  ttl: 2 * 60 * 1000, // 2 minutes
+  initialData: serverData,
+});
+```
+
+## Benefits
+
+- **Reduced Server Load**: Caching prevents repeated queries
+- **Better UX**: Instant page navigation with cached data
+- **Automatic Refresh**: Stale data revalidated in background
+- **Offline Support**: Shows cached data during network issues
+
+---
+
+# Installation & Setup
+
+## Prerequisites
+
+- Node.js 18+
+- npm or yarn
+- Supabase project
+- Stripe account
+
+## Environment Variables
+
+Create `.env.local`:
 
 ```bash
-# Development (runs on port 3400 with expanded memory limit)
-npm run dev
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# Build for Production
+# Stripe
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your-publishable-key
+STRIPE_SECRET_KEY=your-secret-key
+STRIPE_WEBHOOK_SECRET=your-webhook-secret
+
+# Telegram (Optional)
+TELEGRAM_BOT_TOKEN=your-bot-token
+TELEGRAM_CHAT_ID=your-chat-id
+
+# App
+NEXT_PUBLIC_SITE_URL=http://localhost:3400
+```
+
+## Installation
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd boostbuddy-mvp
+
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+```
+
+## Build & Deploy
+
+```bash
+# Build for production
 npm run build
 
-# Start Production Server
+# Start production server
 npm start
 
-# Run Linter
+# Run linter
 npm run lint
 ```
 
 ---
 
-# Important Packages
-
-| Package | Purpose | Where Used |
-|---|---|---|
-| `@supabase/ssr` | Cookie-based Auth for Next.js | Middleware, Auth layouts, Server Actions |
-| `stripe` | Payment processing & webhooks | `app/api/webhooks`, `app/actions/stripe.ts` |
-| `lucide-react` | SVG Icons | Application-wide |
-| `sweetalert2` | Beautiful confirmation dialogs | `admin` and `dashboard` client components |
-| `react-i18next` | Localization and Translations | Layouts, Client Components, Server Actions |
-| `tailwind-merge` & `clsx` | Dynamic class merging | Shadcn UI components (`lib/utils.ts`) |
-
----
-
-# Coding Standards
-
-- **Server Actions**: All DB mutations must live in `app/actions/` and include `"use server"` at the top. They must verify authentication using `requireAuth()` before executing logic.
-- **Client Components**: Only use `"use client"` when interactivity (hooks, state, event listeners) is required.
-- **UI Components**: Rely on `components/ui/` (Shadcn) to maintain consistent design. Avoid inline styles; use Tailwind CSS.
-- **Alerts**: Do NOT use browser default `alert()` or `confirm()`. Always use `SweetAlert2` (`Swal.fire`) for confirmation dialogs.
-
----
-
-# State Management
-
-- **Global State**: Managed via React Context. `AuthContext` provides global access to the current `user` and `isLoading` states.
-- **Local State**: Managed via `useState` and `useMemo` in Client Components (used heavily for pagination and filtering).
-- **Server State**: Next.js App Router cache handles server state. Mutations call `revalidatePath()` to instantly refresh server-rendered data.
-
----
-
-# API Documentation
-
-Most data logic is handled by Next.js Server Actions. Standard API routes are limited to specific use cases:
-
-### 1. Stripe Webhook
-- **Method**: `POST`
-- **Endpoint**: `/api/webhooks/stripe`
-- **Purpose**: Listens for `checkout.session.completed` events to fulfill orders and activate services.
-- **Authentication**: Validated via `STRIPE_WEBHOOK_SECRET` signature.
-
-### 2. Logout Route
-- **Method**: `POST` / `GET`
-- **Endpoint**: `/api/logout`
-- **Purpose**: Clears HttpOnly Supabase session cookies on the server.
-- **Authentication**: None required.
-
----
-
-# Components
-
-- **`TopHeader`**: Responsive navigation bar showing user profile, notifications, and mobile sidebar toggle.
-- **`SidebarLayout` / `AdminLayout` / `DashboardLayout`**: Structural wrappers that provide responsive sidebars, route grouping, and layout persistence.
-- **`ProfilesList`**: Reusable data table component for rendering paginated client profiles.
-
----
-
-# Custom Hooks
-
-- **`useAuth()`**: Accesses the global `AuthContext`.
-  - *Returns*: `{ user, isLoading, signOut }`
-  - *Usage*: `const { user, isLoading } = useAuth();`
-- **`useToast()`**: Accesses the custom Toast notification system.
-  - *Returns*: `{ success, error, info }`
-  - *Usage*: `const { success } = useToast(); success("Saved!");`
-
----
-
-# Utilities
-
-- **`cn(...inputs)`**: Located in `lib/utils.ts`. Merges Tailwind classes dynamically without style conflicts using `clsx` and `tailwind-merge`.
-- **`requireAuth(options)`**: Located in `lib/auth/server-auth.ts`. Validates server-side auth and role permissions before allowing a Server Action to execute.
-
----
-
-# Services
-
-- **Supabase Clients (`lib/supabase/*`)**:
-  - `client.ts`: Used in browser environments.
-  - `server.ts`: Used in Server Components and Server Actions.
-  - `admin.ts`: Uses Service Role Key to bypass RLS for administrative tasks.
-  - `middleware.ts`: Edge-compatible client for route protection.
-
----
-
-# Middleware
-
-`lib/supabase/middleware.ts` runs on the Edge runtime for every request.
-- Updates the Supabase session cookie to prevent expiration.
-- Prevents unauthenticated users from accessing `/admin` and `/dashboard`.
-- Enforces Role-Based Access Control (RBAC) to ensure standard clients cannot access `/admin` routes.
-
----
-
-# Deployment
-
-- **Vercel Deployment**: The project is optimized for Vercel. Pushing to the `master` branch automatically triggers a production build.
-- **Environment Setup**: Ensure all variables from `.env.example` are configured in the Vercel project settings.
-- **Build Output**: Generates static pages where possible, and provisions Serverless Functions for dynamic App Router pages.
-
----
-
-# Security
-
-- **Authentication**: Enforced via Supabase JWTs stored in HttpOnly cookies.
-- **Authorization**: Hardened via `requireAuth({ role: 'ADMIN' })` in Server Actions.
-- **XSS/CSRF**: Mitigated natively by Next.js Server Actions and React's auto-escaping.
-- **Environment Secrets**: API keys (Stripe Secret, Supabase Service Role) are never exposed to the client bundle.
-
----
-
-# Performance
-
-- **Caching**: Leverages Next.js Data Cache and Full Route Cache.
-- **Optimistic UI**: Buttons utilize `useTransition` and `SweetAlert2` to provide instant user feedback while network requests resolve in the background.
-
----
-
 # Development Workflow
 
-### Adding a new Server Action
-1. Create the function in `app/actions/`.
-2. Add `"use server"` at the top of the file.
-3. Call `const auth = await requireAuth();` to secure the endpoint.
-4. Perform the Supabase query.
-5. Call `revalidatePath('/your-route')` if the UI needs to update.
-
----
-
-# Known Limitations
-
-- **Prisma SQLite Database**: The `prisma/schema.prisma` file manages a local SQLite database for development. Production uses Supabase PostgreSQL with schema managed in the Supabase dashboard.
-- **Realtime Subscriptions**: Notifications currently require a page refresh. Integrating Supabase Realtime subscriptions would allow for live UI updates.
-
----
-
-# Credits System Architecture
-
-The Credits System provides a flexible payment alternative to direct EUR purchases for Reviews services.
-
-## Credits Workflow
-
-1. **Purchase Credits**: Users buy credit packages via Stripe checkout
-2. **Credit Ledger**: Every transaction is logged in `credit_transactions` with running balance
-3. **Consume Credits**: Credits are deducted when users create review orders
-4. **Balance Cache**: `users.creditsBalance` stores calculated balance for performance
-
-## Credit Transaction Types
-
-| Type | Description | Amount Sign |
-|------|-------------|--------------|
-| `PURCHASE` | User bought credits package | Positive (+) |
-| `SPEND` | User created review order | Negative (-) |
-| `REFUND` | Admin refund credits | Positive (+) |
-| `ADMIN_ADJUST` | Manual balance adjustment | +/- |
-
-## Balance Calculation
+## Adding a New Server Action
 
 ```typescript
-// Source of truth: Always calculate from ledger
-const balance = await db.creditTransaction.aggregate({
-  where: { userId },
-  _sum: { amount: true }
-});
+// app/actions/your-action.ts
+"use server";
 
-// Update cache for performance
-await db.user.update({
-  where: { id: userId },
-  data: { creditsBalance: balance._sum.amount || 0 }
-});
+import { requireAuth } from "@/lib/auth/server-auth";
+import { createClient } from "@/lib/supabase/server";
+
+export async function yourAction() {
+  const auth = await requireAuth();
+  if (!auth.success) return auth;
+
+  const supabase = await createClient();
+
+  // Your logic here
+
+  return { success: true, data: result };
+}
 ```
 
----
-
-# Reviews System Architecture
-
-The Reviews System manages client review requests with automated employee distribution.
-
-## Reviews Workflow
-
-1. **Client Creates Order**: Client submits review with business details and content
-2. **Credit Validation**: System verifies sufficient credits balance
-3. **Order Pool**: Review enters pending pool (no employee assigned)
-4. **Employee Distribution**: All available employees notified simultaneously
-5. **First Claim**: First employee to claim gets the assignment
-6. **Skip Tracking**: Skipped orders tracked to prevent re-notification
-7. **Completion**: Employee marks as complete with proof submission
-8. **Performance Update**: Employee stats updated (orders completed)
-
-## Review Order States
-
-| Status | Description | Employee Assigned |
-|--------|-------------|-------------------|
-| `PENDING` | New order in pool | No |
-| `IN_PROGRESS` | Employee working on it | Yes |
-| `COMPLETED` | Review finished and verified | Yes |
-| `CANCELLED` | Order cancelled by admin | Maybe |
-
-## Employee Availability
+## Adding a New Page Route
 
 ```typescript
-// Employee can receive new orders if:
-isAvailable === true
+// app/admin/new-page/page.tsx
+import { requireAuth } from "@/lib/auth/server-auth";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
-// Admin can toggle availability without deactivating account:
-// isAvailable = false → Employee taking time off
-// isAvailable = true  → Employee back to work
+export default async function NewPage() {
+  const auth = await requireAuth({ role: 'ADMIN' });
+  if (!auth.success) return <LoadingScreen />;
+
+  // Fetch data server-side
+
+  return <div>{/* Your UI */}</div>;
+}
 ```
 
----
+## Adding Translations
 
-# Troubleshooting
+1. Add to `locales/en.json`:
+```json
+{
+  "yourNamespace": {
+    "yourKey": "Your English text",
+    "yourKey2": "Another text {{variable}}"
+  }
+}
+```
 
-- **Auth Cookie Issues**: If users are repeatedly logged out, ensure `NEXT_PUBLIC_SITE_URL` correctly matches the deployment domain to prevent Cross-Origin cookie drops.
-- **Build Errors (Type Checking)**: Run `npm run lint` locally before pushing. Next.js enforces strict type checking during the `vercel build` step.
+2. Add to `locales/it.json`:
+```json
+{
+  "yourNamespace": {
+    "yourKey": "Il tuo testo inglese",
+    "yourKey2": "Altro testo {{variable}}"
+  }
+}
+```
 
----
-
-# Quick Start for New Developers
-
-- [ ] Clone project (`git clone`)
-- [ ] Install dependencies (`npm install`)
-- [ ] Duplicate `.env.local` and populate Supabase/Stripe keys.
-- [ ] Run database migrations (`npx prisma migrate deploy`)
-- [ ] Generate Prisma client (`npx prisma generate`)
-- [ ] Run the development server (`npm run dev`)
-- [ ] Verify Supabase connection by logging in via the `/` route.
-
-## Database Migration Notes
-
-The project uses Prisma with SQLite for local development. The following migrations have been applied:
-
-- `20260617063720_init` - Initial database schema
-- `20260725031215_add_credits_reviews_system` - Credits system, Reviews workflow, Employee management, Unified notifications
-
-**Important**: These migrations are safe and preserve all existing data. New fields have sensible defaults (creditsBalance=0, acceptingOrders=true).
+3. Use in component:
+```typescript
+const { t } = useTranslation("yourNamespace");
+t("yourKey")
+t("yourKey2", { variable: "value" })
+```
 
 ---
 
 # Best Practices
 
-- Always use `createClient()` from `@/lib/supabase/server` when inside a Server Component.
-- Never use the `admin.ts` (Service Role) client unless absolutely necessary (e.g., updating another user's email address), as it bypasses all Row Level Security.
-- Do not use standard `window.confirm()`. Always use `Swal.fire()` for user prompts.
+## Security
+- ✅ Always use `requireAuth()` in Server Actions
+- ✅ Never expose service role key to client
+- ✅ Use `createAdminClient()` sparingly (admin operations only)
+- ✅ Validate user input before database operations
+- ✅ Use environment variables for secrets
 
-## Credits System Best Practices
+## Performance
+- ✅ Use Server Components when possible
+- ✅ Implement SWR caching for frequently accessed data
+- ✅ Use `useTransition` for optimistic UI updates
+- ✅ Lazy load heavy components with dynamic imports
+- ✅ Implement proper pagination for large datasets
 
-- **Balance Source of Truth**: Always calculate balance from `credit_transactions` ledger, never rely solely on `users.creditsBalance` cache
-- **Atomic Operations**: When consuming credits, always create the transaction and update the order in a single transaction
-- **Validation**: Verify sufficient credits before allowing review order creation
-- **Race Conditions**: Use database constraints and proper transaction ordering to prevent credit overspend
+## UI/UX
+- ✅ Mobile-first responsive design
+- ✅ Use Tailwind breakpoints (`sm:`, `md:`, `lg:`)
+- ✅ Provide loading states and empty states
+- ✅ Show meaningful error messages
+- ✅ Use toast notifications for user feedback
+- ✅ Implement optimistic UI updates
 
-## Reviews System Best Practices
-
-- **Skip Tracking**: Always record skips in `skipped_reviews` to prevent re-assigning to same employee
-- **Employee Distribution**: Notify all available employees simultaneously for fair order distribution
-- **Performance Tracking**: Update `employee_stats` on every order completion/skip for accurate metrics
-- **Status Transitions**: Follow strict state progression: PENDING → IN_PROGRESS → COMPLETED
+## Code Quality
+- ✅ Use TypeScript for type safety
+- ✅ Follow ESLint rules
+- ✅ Keep functions small and focused
+- ✅ Use descriptive variable names
+- ✅ Add comments for complex logic
+- ✅ Handle errors gracefully
 
 ---
 
-# Contributing Guidelines
+# Deployment
 
-- Create feature branches originating from `master`.
-- Ensure Next.js Server Actions are wrapped in `try/catch` blocks and return structured objects `{ success: boolean, error?: string }`.
-- Verify mobile responsiveness (Tailwind `md:`, `sm:` breakpoints) before submitting pull requests.
+## Vercel Deployment
+
+The project is optimized for Vercel deployment:
+
+1. **Push to master** → Auto-triggers build
+2. **Environment Variables** → Configure in Vercel dashboard
+3. **Build Output** → Serverless Functions + Static pages
+4. **Edge Functions** → Middleware runs on edge
+
+## Build Optimization
+
+- Static pages pre-rendered at build time
+- Serverless Functions for dynamic routes
+- Automatic code splitting
+- Tree-shaking removes unused code
+- Asset optimization (images, CSS, JS)
+
+---
+
+# Panel Routes
+
+## Admin Panel (`/a/*`)
+
+| Route | Purpose | Key Features |
+|------|---------|--------------|
+| `/a/dashboard` | Admin overview | Stats, pending clients, expiring profiles |
+| `/a/reviews` | Reviews overview | Total orders, pending, in progress, completed stats |
+| `/a/reviews/employees` | Employee management | Performance stats, order history, availability |
+| `/a/clients` | Client management | List, search, activate/deactivate |
+| `/a/orders` | Order management | Filter, search, order details |
+| `/a/services` | Service management | Pricing, duration, manage services |
+| `/a/invoices` | Invoice management | Upload, link to orders |
+| `/a/notifications` | Notification logs | View all sent notifications |
+
+## Client Panel (`/c/*`)
+
+| Route | Purpose | Key Features |
+|------|---------|--------------|
+| `/c/dashboard` | Client dashboard | Assigned profiles, expiring soon |
+| `/c/services/reviews` | Reviews hub | Create orders, view history |
+| `/c/services/reviews/orders` | Order list | Filter by status, pagination |
+| `/c/services/reviews/orders/[id]` | Order details | View status, URLs, content |
+| `/c/services/reviews/new-order` | Create order | Multi-URL form with content sharing |
+| `/c/wallet` | Wallet | Balance, purchase credits, view packages |
+| `/c/wallet/transactions` | Transaction history | Filter by type, pagination |
+| `/c/payments` | Payment history | View Stripe payments |
+| `/c/invoices` | Invoice history | Download linked invoices |
+| `/c/notifications` | Notifications | Expiration alerts, order updates |
+
+## Employee Panel (`/e/*`)
+
+| Route | Purpose | Key Features |
+|------|---------|--------------|
+| `/e/dashboard` | Employee dashboard | Available tasks, stats, toggle availability |
+| `/e/orders` | Order history | View all assigned orders |
+| `/e/orders/[id]` | Order detail | Accept task, view content, submit proof |
+| `/e/notifications` | Notifications | Order updates, system alerts |
+| `/e/pending` | Pending state | Shows when account not active |
+
+---
+
+# Troubleshooting
+
+## Common Issues
+
+### Auth Cookies Not Persisting
+- **Issue**: Users repeatedly logged out
+- **Fix**: Ensure `NEXT_PUBLIC_SITE_URL` matches deployment domain exactly
+
+### Build Errors on Vercel
+- **Issue**: TypeScript errors during build
+- **Fix**: Run `npm run lint` locally before pushing
+
+### Data Not Loading
+- **Issue**: Pages showing empty data
+- **Check**: Server action returns success
+- **Check**: SWR cache key matches
+- **Check**: User has correct role
+
+### Stripe Webhook Failures
+- **Issue**: Orders not updating after payment
+- **Fix**: Verify `STRIPE_WEBHOOK_SECRET` matches Stripe dashboard
+- **Fix**: Check webhook endpoint is accessible
+
+---
+
+# API Documentation
+
+## Server Actions
+
+Most data logic is handled by Next.js Server Actions in `app/actions/`:
+
+### Reviews Actions
+- `createMultiUrlReviewOrderAction()` - Create review with multiple URLs
+- `getReviewOrderDetailAction(orderId)` - Get order details
+- `getClientReviewOrdersAction()` - Get client's orders
+- `submitUrlTaskCompletionAction()` - Employee submits task proof
+- `acceptUrlTaskAction(taskId)` - Employee accepts task
+
+### Admin Actions
+- `getReviewsOverviewAction()` - Reviews overview stats
+- `getEmployeePerformanceAction()` - Employee performance data
+- `getEmployeeAssignedReviewsAction(userId)` - Employee order history
+- `inviteEmployeeAction()` - Invite new employee
+- `setEmployeeActiveStatusAction()` - Activate/deactivate employee
+
+### Client Actions
+- `getReviewsDashboardAction()` - Reviews dashboard data
+- `getWalletSummaryAction()` - Wallet balance and transactions
+- `purchaseCreditsAction()` - Initiate Stripe checkout
+
+### Employee Actions
+- `getEmployeeDashboardDataAction()` - Dashboard tasks and stats
+- `toggleTaskDistributionAction()` - Enable/disable task receiving
+- `getEmployeeOrderHistoryAction()` - Employee's order history
+
+## API Routes
+
+### Stripe Webhook
+- **Endpoint**: `POST /api/webhooks/stripe`
+- **Purpose**: Process payment events, activate services
+- **Auth**: Stripe webhook signature
+
+### Logout
+- **Endpoint**: `POST /api/logout`
+- **Purpose**: Clear session cookies
+- **Auth**: None required
+
+---
+
+# License
+
+Proprietary - All rights reserved
+
+---
+
+# Support
+
+For technical support or questions, contact the development team.
