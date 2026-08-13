@@ -70,6 +70,7 @@ interface AssignedReview {
   quantity: number;
   status: string;
   assignedAt: string;
+  completedAt?: string;
   orderId: string;
   orderType: string;
 }
@@ -458,44 +459,101 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
                   <span className="flex items-center gap-1">
                     <TrendingUp className="h-2.5 w-2.5" />
                     {expandedEmployees.has(employee.id)
-                      ? `Hide Assigned Reviews (${employeeAssignments[employee.id]?.length || 0})`
-                      : `View Assigned Reviews (${employeeAssignments[employee.id]?.length || 0})`
+                      ? `Hide Order History (${employeeAssignments[employee.id]?.length || 0})`
+                      : `View Order History (${employeeAssignments[employee.id]?.length || 0})`
                     }
                   </span>
                   <ChevronLeft className={`h-3 w-3 transition-transform ${expandedEmployees.has(employee.id) ? 'rotate-90' : ''}`} />
                 </button>
 
                 {expandedEmployees.has(employee.id) && (
-                  <div className="mt-2 space-y-1.5">
+                  <div className="mt-2 space-y-2">
                     {employeeAssignments[employee.id]?.length === 0 ? (
                       <div className="text-[10px] text-zinc-500 text-center py-2">
                         No assigned reviews found
                       </div>
                     ) : (
-                      employeeAssignments[employee.id]?.map((review) => (
-                        <div key={review.id} className="bg-zinc-50 dark:bg-zinc-900 rounded p-1.5 border border-zinc-200 dark:border-zinc-800">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
-                              review.status === 'COMPLETED' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                              review.status === 'ASSIGNED' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                              'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-                            }`}>
-                              {review.status}
-                            </span>
-                            <span className="text-[9px] text-zinc-500">
-                              Qty: {review.quantity}
-                            </span>
+                      <>
+                        {/* Active Assignments Section */}
+                        <div>
+                          <div className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            Current Assignments
                           </div>
-                          <div className="flex items-start gap-1 text-[10px]">
-                            <span className="text-zinc-600 dark:text-zinc-400 min-w-0 truncate flex-1">
-                              {review.url}
-                            </span>
-                            <span className="text-zinc-500">
-                              {review.orderType.replace(/_/g, ' ')}
-                            </span>
+                          <div className="space-y-1.5">
+                            {employeeAssignments[employee.id]
+                              .filter(r => r.status === 'ASSIGNED' || r.status === 'IN_PROGRESS')
+                              .map((review) => (
+                                <div key={review.id} className="bg-zinc-50 dark:bg-zinc-900 rounded p-1.5 border border-zinc-200 dark:border-zinc-800">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                                      review.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                                      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                    }`}>
+                                      {review.status === 'IN_PROGRESS' ? 'IN PROGRESS' : review.status}
+                                    </span>
+                                    <span className="text-[9px] text-zinc-500">
+                                      Qty: {review.quantity}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-start gap-1 text-[10px]">
+                                    <span className="text-zinc-600 dark:text-zinc-400 min-w-0 truncate flex-1">
+                                      {review.url}
+                                    </span>
+                                    <span className="text-zinc-500">
+                                      {review.orderType.replace(/_/g, ' ')}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            {employeeAssignments[employee.id].filter(r => r.status === 'ASSIGNED' || r.status === 'IN_PROGRESS').length === 0 && (
+                              <div className="text-[10px] text-zinc-500 text-center py-1">
+                                No current assignments
+                              </div>
+                            )}
                           </div>
                         </div>
-                      ))
+
+                        {/* Completed Orders Section */}
+                        <div>
+                          <div className="text-[10px] font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            Completed Orders
+                          </div>
+                          <div className="space-y-1.5">
+                            {employeeAssignments[employee.id]
+                              .filter(r => r.status === 'COMPLETED')
+                              .map((review) => (
+                                <div key={review.id} className="bg-green-50 dark:bg-green-900/10 rounded p-1.5 border border-green-200 dark:border-green-900/30">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                      COMPLETED
+                                    </span>
+                                    <span className="text-[9px] text-zinc-500">
+                                      Qty: {review.quantity}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-start gap-1 text-[10px]">
+                                    <span className="text-zinc-600 dark:text-zinc-400 min-w-0 truncate flex-1">
+                                      {review.url}
+                                    </span>
+                                    <span className="text-zinc-500">
+                                      {review.orderType.replace(/_/g, ' ')}
+                                    </span>
+                                  </div>
+                                  {review.completedAt && (
+                                    <div className="text-[9px] text-zinc-500 mt-0.5">
+                                      Completed: {new Date(review.completedAt).toLocaleDateString()}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            {employeeAssignments[employee.id].filter(r => r.status === 'COMPLETED').length === 0 && (
+                              <div className="text-[10px] text-zinc-500 text-center py-1">
+                                No completed orders yet
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </>
                     )}
                   </div>
                 )}

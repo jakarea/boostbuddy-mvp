@@ -534,7 +534,7 @@ export async function getEmployeeAssignedReviewsAction(userId: string) {
         )
       `)
       .eq("assigned_employee_id", userId)
-      .in("status", ["ASSIGNED", "IN_PROGRESS"])
+      .in("status", ["ASSIGNED", "IN_PROGRESS", "COMPLETED"])
       .order("assigned_at", { ascending: false });
 
     if (error) throw error;
@@ -546,6 +546,7 @@ export async function getEmployeeAssignedReviewsAction(userId: string) {
       quantity: item.quantity,
       status: item.status,
       assignedAt: item.assigned_at,
+      completedAt: item.completed_at,
       orderId: item.review_order_id,
       orderType: item.review_orders?.order_type || 'REVIEW',
       businessName: item.review_orders?.business_name
