@@ -123,7 +123,7 @@ export type ProfileAccountRecord = {
   client_email?: string;
 };
 
-export default function DashboardClient({ initialProfiles, creditsBalance = 0 }: { initialProfiles: ProfileAccountRecord[]; creditsBalance?: number }) {
+export default function DashboardClient({ initialProfiles, creditsBalance = 0, walletError = false, profilesError = false }: { initialProfiles: ProfileAccountRecord[]; creditsBalance?: number; walletError?: boolean; profilesError?: boolean }) {
   const { t } = useTranslation("client_dashboard");
   const { t: tStatus } = useTranslation("status");
   const { success, info, error, warning } = useToast();
@@ -304,6 +304,23 @@ export default function DashboardClient({ initialProfiles, creditsBalance = 0 }:
           Refresh
         </Button>
       </div>
+
+      {/* Error indicators for failed data loads */}
+      {(walletError || profilesError) && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/30 rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+            <div className="text-sm">
+              <span className="font-medium text-amber-800 dark:text-amber-300">
+                {walletError && profilesError ? "Some data failed to load" : walletError ? "Wallet data failed to load" : "Profile data failed to load"}
+              </span>
+              <span className="text-amber-600 dark:text-amber-400 ml-2">
+                {" "}Please refresh to try again.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Account Summary Statistics - Show skeleton during loading */}
       {!profiles ? (

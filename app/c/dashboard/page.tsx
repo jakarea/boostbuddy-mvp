@@ -21,12 +21,14 @@ export default async function DashboardPage() {
 
   const initialProfiles = profilesRes.success && profilesRes.data ? profilesRes.data : [];
   const creditsBalance = walletRes.success && walletRes.balance !== undefined ? walletRes.balance : 0;
+  const walletError = !walletRes.success;
+  const profilesError = !profilesRes.success;
   const duration = Date.now() - start;
 
   return (
     <Suspense fallback={<LoadingScreen />}>
       <ServerFetchTimeLogger pageName="/c/dashboard" fetchTimeMs={duration} />
-      <DashboardClient initialProfiles={initialProfiles} creditsBalance={creditsBalance} />
+      <DashboardClient initialProfiles={initialProfiles} creditsBalance={creditsBalance} walletError={walletError} profilesError={profilesError} />
     </Suspense>
   );
 }
