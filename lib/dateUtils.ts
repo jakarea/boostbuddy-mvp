@@ -115,6 +115,17 @@ export function formatDateShort(dateStr: string): string {
 }
 
 /**
+ * Format date in "DD-MonthName-YYYY" format (e.g., "12-March-2026")
+ */
+export function formatDateWithMonthName(dateStr: string): string {
+  const date = new Date(dateStr);
+  const day = date.getDate();
+  const month = date.toLocaleDateString("en-US", { month: "long" });
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
+/**
  * Format date in long format (Month DD, YYYY)
  */
 export function formatDateLong(dateStr: string): string {

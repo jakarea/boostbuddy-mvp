@@ -8,17 +8,24 @@ interface PhotoUploadProps {
   maxPhotos?: number;
   currentPhotos?: string[];
   disabled?: boolean;
+  size?: 'normal' | 'small';  // Add size prop
 }
 
 export default function PhotoUpload({
   onPhotosChange,
   maxPhotos = 2,
   currentPhotos = [],
-  disabled = false
+  disabled = false,
+  size = 'normal'
 }: PhotoUploadProps) {
   const [photos, setPhotos] = useState<string[]>(currentPhotos);
   const [uploading, setUploading] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Size configurations
+  const sizeConfig = size === 'small'
+    ? { boxWidth: 'w-16', boxHeight: 'h-16', iconSize: 'h-4 w-4', textSize: 'text-[10px]' }
+    : { boxWidth: 'w-32', boxHeight: 'h-32', iconSize: 'h-6 w-6', textSize: 'text-xs' };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -83,7 +90,7 @@ export default function PhotoUpload({
       <div className="flex flex-wrap gap-3">
         {photos.map((photo, index) => (
           <div key={photo} className="relative group">
-            <div className="w-32 h-32 rounded-lg overflow-hidden border-2 border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800">
+            <div className={`${sizeConfig.boxWidth} ${sizeConfig.boxHeight} rounded-lg overflow-hidden border-2 border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800`}>
               <img
                 src={photo}
                 alt={`Photo ${index + 1}`}
@@ -106,7 +113,7 @@ export default function PhotoUpload({
         ))}
 
         {uploading !== null ? (
-          <div className="w-32 h-32 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex items-center justify-center">
+          <div className={`${sizeConfig.boxWidth} ${sizeConfig.boxHeight} rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex items-center justify-center`}>
             <div className="bb-loading-sm"></div>
           </div>
         ) : photos.length < maxPhotos ? (
@@ -114,10 +121,10 @@ export default function PhotoUpload({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled}
-            className="w-32 h-32 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col items-center justify-center gap-2 hover:border-[#168BB0] dark:hover:border-[#168BB0] hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`${sizeConfig.boxWidth} ${sizeConfig.boxHeight} rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col items-center justify-center gap-2 hover:border-[#168BB0] dark:hover:border-[#168BB0] hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
           >
-            <Upload className="h-6 w-6 text-zinc-400" />
-            <span className="text-xs text-zinc-500">Upload Photo</span>
+            <Upload className={`${sizeConfig.iconSize} text-zinc-400`} />
+            <span className={`${sizeConfig.textSize} text-zinc-500`}>{size === 'small' ? 'Upload' : 'Upload Photo'}</span>
           </button>
         ) : null}
       </div>

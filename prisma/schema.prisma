@@ -363,9 +363,10 @@ model ReviewUrl {
   reviewOrder         ReviewOrder @relation("ReviewOrderUrls", fields: [reviewOrderId], references: [id], onDelete: Cascade)
 
   url                 String
-  quantity            Int      @default(1)
-  reactionType        String?  @map("reaction_type")  // For COMMENT orders: LIKE, LOVE, CARE, HAHA, WOW, SAD, ANGRY
-  reviewContent       String?  @map("review_content")
+  quantity            Int      @default(1)  // Number of reviews for this URL
+  reactionType        String?  @map("reaction_type")  // For COMMENT orders: LIKE, LOVE, CARE, WOW
+  reviewContent       String?  @map("review_content")  // JSON array of review texts for this URL
+  photoUrls           String?  @map("photo_urls")  // JSON array of photo arrays (each review can have photos)
   reviewIndex         Int      @map("review_index")
 
   status              String   @default("PENDING") // "PENDING", "ASSIGNED", "COMPLETED"

@@ -3,7 +3,7 @@
 import { useContext, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Clock, Copy } from "lucide-react";
+import { Clock, Copy, Download } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { getReviewOrderDetailAction } from "@/app/actions/reviews";
@@ -27,6 +27,42 @@ export default function ReviewOrderDetailPage() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     success("Copied to clipboard");
+  };
+
+  const copyImageUrl = async (imageUrl: string) => {
+    try {
+      // Fetch the image as a blob
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+
+      // Create a ClipboardItem and write to clipboard
+      await navigator.clipboard.write([
+        new ClipboardItem({ [blob.type]: blob })
+      ]);
+      success("Image copied to clipboard");
+    } catch (err) {
+      // If copying image fails, fallback to copying URL
+      copyToClipboard(imageUrl);
+    }
+  };
+
+  const downloadImage = async (imageUrl: string, filename: string = "image.jpg") => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      success("Image downloaded");
+    } catch (err) {
+      // Fallback: open in new tab
+      window.open(imageUrl, '_blank');
+    }
   };
 
   useEffect(() => {
@@ -155,32 +191,9 @@ export default function ReviewOrderDetailPage() {
           </div>
         )}
 
-        {/* Multi-URL Orders - Display shared content and URLs */}
+        {/* Multi-URL Orders - Display URLs with their review content */}
         {order.reviewUrls && order.reviewUrls.length > 0 && (
           <div>
-            {/* Shared Review Content (from order level) */}
-            {(order.orderType === "REVIEW" || order.orderType === "COMMENT_WITH_PHOTO") && order.reviewContent && order.reviewContent.trim() && (
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                    {t("reviews.reviewContent", "Review Content")}
-                  </h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copyToClipboard(order.reviewContent)}
-                    className="shrink-0 gap-2"
-                  >
-                    <Copy className="h-4 w-4" />
-                    Copy
-                  </Button>
-                </div>
-                <p className="text-sm whitespace-pre-wrap bg-zinc-50 dark:bg-zinc-900 p-3 rounded border border-zinc-200 dark:border-zinc-700">
-                  {order.reviewContent}
-                </p>
-              </div>
-            )}
-
             {/* URLs Section */}
             <div>
               <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3">
@@ -224,8 +237,55 @@ export default function ReviewOrderDetailPage() {
                       </Button>
                     </div>
 
+                    {/* Review Content for this URL - Display each review separately */}
+                    {urlItem.reviewContent && urlItem.reviewContent.trim() && (() => {
+                      // Try to parse as JSON array
+                      let reviews: string[] = [];
+                      try {
+                        const parsed = JSON.parse(urlItem.reviewContent);
+                        if (Array.isArray(parsed)) {
+                          reviews = parsed;
+                        } else {
+                          reviews = [urlItem.reviewContent];
+                        }
+                      } catch {
+                        // Not JSON, treat as single review
+                        reviews = [urlItem.reviewContent];
+                      }
+
+                      return reviews.length > 0 ? (
+                        <div className="mt-3">
+                          <h4 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2">
+                            {t("reviews.reviewContent", "Review Content")}
+                          </h4>
+                          <div className="space-y-2">
+                            {reviews.map((review, reviewIndex) => (
+                              <div key={reviewIndex} className="bg-white dark:bg-zinc-800 p-2 rounded border border-zinc-200 dark:border-zinc-700">
+                                <div className="flex items-start justify-between gap-2">
+                                  <span className="text-xs font-medium text-zinc-400">
+                                    #{reviewIndex + 1}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => copyToClipboard(review)}
+                                    className="shrink-0 h-6 px-2"
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                                <p className="text-sm whitespace-pre-wrap mt-1 break-all">
+                                  {review}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
+
                     {urlItem.proofOfCompletion && (
-                      <div className="mt-2">
+                      <div className="mt-2 flex items-center gap-2">
                         <a
                           href={urlItem.proofOfCompletion}
                           target="_blank"
@@ -234,6 +294,14 @@ export default function ReviewOrderDetailPage() {
                         >
                           {t("reviews.viewProof", "View Proof")}
                         </a>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyImageUrl(urlItem.proofOfCompletion)}
+                          className="shrink-0 h-6 px-2"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -300,19 +368,43 @@ export default function ReviewOrderDetailPage() {
               {t("reviews.photos", "Photos")}
             </h3>
             <div className="grid grid-cols-2 gap-4">
-              {order.photoUrls.map((url: string, index: number) => (
-                <div key={index} className="relative">
-                  <img
-                    src={url}
-                    alt={`Photo ${index + 1}`}
-                    className="w-full h-auto rounded-lg border border-zinc-200 dark:border-zinc-700"
-                    onError={(e) => {
-                      console.error(`Failed to load photo ${index + 1}:`, url);
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                </div>
-              ))}
+              {order.photoUrls.map((url: string, index: number) => {
+                // Extract filename from URL or use default
+                const filename = `photo-${index + 1}.jpg`;
+                return (
+                  <div key={index} className="relative group">
+                    <img
+                      src={url}
+                      alt={`Photo ${index + 1}`}
+                      className="w-full h-auto rounded-lg border border-zinc-200 dark:border-zinc-700"
+                      onError={(e) => {
+                        console.error(`Failed to load photo ${index + 1}:`, url);
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                    {/* Copy button - top right */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyImageUrl(url)}
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-zinc-800/90 shadow-sm"
+                      title="Copy image"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    {/* Download button - bottom right */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => downloadImage(url, filename)}
+                      className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-zinc-800/90 shadow-sm"
+                      title="Download image"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

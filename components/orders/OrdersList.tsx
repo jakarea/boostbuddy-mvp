@@ -21,10 +21,9 @@ import {
   AlertCircle,
   FileText,
   Coins,
-  UserCheck,
-  Eye
+  UserCheck
 } from "lucide-react";
-import { formatDateShort } from "@/lib/dateUtils";
+import { formatDateWithMonthName } from "@/lib/dateUtils";
 import Link from "next/link";
 
 // Constants
@@ -186,7 +185,7 @@ export default function OrdersList({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -319,7 +318,7 @@ export default function OrdersList({
         </select>
       </div>
 
-      {/* Orders List - Compact Table */}
+      {/* Orders List - Responsive Table */}
       {orders.length === 0 ? (
         <Card className="p-12 text-center border-zinc-200 dark:border-zinc-700">
           <Package className="h-12 w-12 text-zinc-400 mx-auto mb-4" />
@@ -332,112 +331,197 @@ export default function OrdersList({
           </p>
         </Card>
       ) : (
-        <Card className="overflow-hidden border-zinc-200 dark:border-zinc-700">
-          {/* Table Header */}
-          <div className="bg-zinc-50 dark:bg-zinc-900 px-4 py-3 border-b border-zinc-200 dark:border-zinc-700 grid grid-cols-10 gap-3 text-xs font-semibold text-zinc-600 dark:text-zinc-400">
-            <div className="col-span-3">{t("orders.orderId", "Order ID")}</div>
-            <div className="col-span-2">{t("orders.type", "Type")}</div>
-            <div className="col-span-1 text-center">{t("orders.qty", "Qty")}</div>
-            <div className="col-span-1">{t("orders.status", "Status")}</div>
-            <div className="col-span-1 text-right">{t("orders.created", "Created")}</div>
-            <div className="col-span-2"></div>
+        <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-x-auto">
+          {/* Table Header - Hidden on mobile */}
+          <div className="hidden md:block bg-zinc-50 dark:bg-zinc-900 px-4 py-3 border-b border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-400 min-w-[800px]">
+            <div className={`grid gap-4 items-stretch ${role === "CLIENT"
+              ? "grid-cols-[2fr,3fr,1.5fr,1fr,1fr,1fr,1fr]" // CLIENT: 7 columns - Order ID, Type, Employee, Qty, Credits, Status, Created
+              : "grid-cols-[3fr,4fr,1fr,1fr,1fr]" // EMPLOYEE: 5 columns - Order ID, Type, Qty, Status, Created
+            }`}>
+              {role === "CLIENT" ? (
+                <>
+                  <div>{t("orders.orderId", "Order ID")}</div>
+                  <div>{t("orders.type", "Type")}</div>
+                  <div>{t("orders.employee", "Employee")}</div>
+                  <div className="text-center">{t("orders.qty", "Qty")}</div>
+                  <div className="text-center">{t("orders.credits", "Credits")}</div>
+                  <div>{t("orders.status", "Status")}</div>
+                  <div className="text-right">{t("orders.created", "Created")}</div>
+                </>
+              ) : (
+                <>
+                  <div>{t("orders.orderId", "Order ID")}</div>
+                  <div>{t("orders.type", "Type")}</div>
+                  <div className="text-center">{t("orders.qty", "Qty")}</div>
+                  <div>{t("orders.status", "Status")}</div>
+                  <div className="text-right">{t("orders.created", "Created")}</div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Table Body */}
           <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
             {orders.map((order) => (
-              <div
+              <Link
                 key={order.id}
-                className="px-4 py-3 grid grid-cols-10 gap-3 items-center hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
+                href={`${detailPageBasePath}/${order.id}`}
+                className="block hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
               >
-                {/* Order ID with Review Type Icon */}
-                <div className="col-span-3 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs" title={order.reviewType || 'REVIEW'}>
-                      {getReviewTypeIcon(order.reviewType || 'REVIEW')}
-                    </span>
-                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50 truncate">{order.id.substring(0, 8)}...</p>
+                {/* Desktop Layout */}
+                <div className={`hidden md:grid px-4 py-3 gap-4 items-center min-w-[800px] ${role === "CLIENT"
+                  ? "grid-cols-[2fr,3fr,1.5fr,1fr,1fr,1fr,1fr]" // CLIENT: 7 columns
+                  : "grid-cols-[3fr,4fr,1fr,1fr,1fr]" // EMPLOYEE: 5 columns
+                }`}
+                >
+                  {/* Order ID with Review Type Icon */}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs" title={order.reviewType || 'REVIEW'}>
+                        {getReviewTypeIcon(order.reviewType || 'REVIEW')}
+                      </span>
+                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50 truncate">{order.id.substring(0, 8)}...</p>
+                    </div>
                   </div>
-                </div>
 
-                {role === "EMPLOYEE" ? (
-                  <>
-                    {/* Type */}
-                    <div className="col-span-2">
-                      <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                        {order.orderType ? order.orderType.replace(/_/g, ' ') : 'REVIEW'}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* Client (for client view - show themselves) */}
-                    <div className="col-span-3 min-w-0">
-                      <p className="text-sm text-zinc-700 dark:text-zinc-300 truncate">{order.users?.name || 'Unknown'}</p>
-                      <p className="text-xs text-zinc-500 truncate">{order.users?.email || ''}</p>
-                    </div>
+                  {role === "CLIENT" ? (
+                    <>
+                      {/* Type */}
+                      <div className="min-w-0">
+                        <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                          {order.orderType ? order.orderType.replace(/_/g, ' ') : 'REVIEW'}
+                        </span>
+                      </div>
 
-                    {/* Type */}
-                    <div className="col-span-2">
-                      <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                        {order.orderType ? order.orderType.replace(/_/g, ' ') : 'REVIEW'}
-                      </span>
-                    </div>
+                      {/* Employee */}
+                      <div className="min-w-0">
+                        {order.employees ? (
+                          <div className="flex items-center gap-1 text-sm">
+                            <UserCheck className="h-3 w-3 text-green-600 dark:text-green-400" />
+                            <span className="text-zinc-700 dark:text-zinc-300 truncate">{order.employees.name}</span>
+                          </div>
+                        ) : order.status === 'PENDING' ? (
+                          <span className="text-xs text-zinc-500 italic">Unassigned</span>
+                        ) : (
+                          <span className="text-xs text-zinc-400">—</span>
+                        )}
+                      </div>
 
-                    {/* Employee (for client view) */}
-                    <div className="col-span-1">
-                      {order.employees ? (
-                        <div className="flex items-center gap-1 text-sm">
-                          <UserCheck className="h-3 w-3 text-green-600 dark:text-green-400" />
-                          <span className="text-zinc-700 dark:text-zinc-300 truncate">{order.employees.name}</span>
+                      {/* Quantity */}
+                      <div className="text-center">
+                        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{order.quantity || 1}</span>
+                      </div>
+
+                      {/* Credits */}
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-1 text-sm text-zinc-600 dark:text-zinc-400">
+                          <Coins className="h-3 w-3" />
+                          <span>{order.creditsConsumed || 0}</span>
                         </div>
-                      ) : order.status === 'PENDING' ? (
-                        <span className="text-xs text-zinc-500 italic">Unassigned</span>
-                      ) : (
-                        <span className="text-xs text-zinc-400">—</span>
-                      )}
-                    </div>
-                  </>
-                )}
+                      </div>
 
-                {/* Quantity */}
-                <div className="col-span-1 text-center">
-                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{order.quantity || 1}</span>
+                      {/* Status */}
+                      <div className="min-w-0">
+                        {getStatusBadge(order.status || 'PENDING')}
+                      </div>
+
+                      {/* Created Date */}
+                      <div className="text-right text-xs text-zinc-500">
+                        {order.createdAt ? formatDateWithMonthName(order.createdAt) : 'N/A'}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Type */}
+                      <div className="min-w-0">
+                        <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                          {order.orderType ? order.orderType.replace(/_/g, ' ') : 'REVIEW'}
+                        </span>
+                      </div>
+
+                      {/* Quantity */}
+                      <div className="text-center">
+                        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{order.quantity || 1}</span>
+                      </div>
+
+                      {/* Status */}
+                      <div className="min-w-0">
+                        {getStatusBadge(order.status || 'PENDING')}
+                      </div>
+
+                      {/* Created Date */}
+                      <div className="text-right text-xs text-zinc-500">
+                        {order.createdAt ? formatDateWithMonthName(order.createdAt) : 'N/A'}
+                      </div>
+                    </>
+                  )}
                 </div>
 
-                {/* Credits (only for client view) */}
-                {role === "CLIENT" && (
-                  <div className="col-span-1">
-                    <div className="flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-                      <Coins className="h-3 w-3" />
-                      <span>{order.creditsConsumed || 0}</span>
+                {/* Mobile Card Layout */}
+                <div className="md:hidden px-4 py-3 space-y-3">
+                  {/* Header Row */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs" title={order.reviewType || 'REVIEW'}>
+                        {getReviewTypeIcon(order.reviewType || 'REVIEW')}
+                      </span>
+                      <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{order.id.substring(0, 8)}...</p>
+                    </div>
+                    {getStatusBadge(order.status || 'PENDING')}
+                  </div>
+
+                  {/* Details Row */}
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-500">{t("orders.type", "Type")}:</span>
+                      <span className="text-zinc-700 dark:text-zinc-300 font-medium">
+                        {order.orderType ? order.orderType.replace(/_/g, ' ') : 'REVIEW'}
+                      </span>
+                    </div>
+
+                    {role === "CLIENT" && (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="text-zinc-500">{t("orders.employee", "Employee")}:</span>
+                          <div className="flex items-center gap-1">
+                            {order.employees ? (
+                              <>
+                                <UserCheck className="h-3 w-3 text-green-600 dark:text-green-400" />
+                                <span className="text-zinc-700 dark:text-zinc-300">{order.employees.name}</span>
+                              </>
+                            ) : (
+                              <span className="text-zinc-500 italic text-xs">Unassigned</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-zinc-500">{t("orders.qty", "Qty")}:</span>
+                          <span className="text-zinc-700 dark:text-zinc-300 font-medium">{order.quantity || 1}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-zinc-500">{t("orders.credits", "Credits")}:</span>
+                          <div className="flex items-center gap-1">
+                            <Coins className="h-3 w-3 text-zinc-400" />
+                            <span className="text-zinc-700 dark:text-zinc-300 font-medium">{order.creditsConsumed || 0}</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-500">{t("orders.created", "Created")}:</span>
+                      <span className="text-zinc-700 dark:text-zinc-300 font-medium text-xs">
+                        {order.createdAt ? formatDateWithMonthName(order.createdAt) : 'N/A'}
+                      </span>
                     </div>
                   </div>
-                )}
-
-                {/* Status */}
-                <div className="col-span-1">
-                  {getStatusBadge(order.status || 'PENDING')}
                 </div>
-
-                {/* Created Date */}
-                <div className="col-span-1 text-right text-xs text-zinc-500">
-                  {order.createdAt ? formatDateShort(order.createdAt) : 'N/A'}
-                </div>
-
-                {/* View Button */}
-                <div className="col-span-2 text-right">
-                  <Link href={`${detailPageBasePath}/${order.id}`} className="inline-flex">
-                    <Button variant="outline" size="sm" className="gap-1 h-8 text-xs">
-                      <Eye className="h-3 w-3" />
-                      {t("orders.view", "View")}
-                    </Button>
-                  </Link>
-                </div>
-              </div>
+              </Link>
             ))}
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Pagination */}

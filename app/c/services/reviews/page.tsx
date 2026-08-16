@@ -158,11 +158,16 @@ export default function ReviewsDashboardPage() {
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <h4 className="font-medium">{order.businessName || order.facebookUrl || 'Order'}</h4>
-                    <p className="text-sm text-zinc-500">
-                      {order.reviewType} {/* Rating - Hidden from UI */}
-                    </p>
-                    <p className="text-xs text-zinc-400">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="px-2 py-0.5 bg-zinc-100 dark:bg-zinc-700 rounded text-xs font-bold">
+                        {order.orderType === "COMMENT" ? "Reactions" :
+                         order.orderType === "REVIEW" ? "Reviews" :
+                         order.orderType === "COMMENT_WITH_PHOTO" ? "Photo + Reviews" :
+                         order.orderType?.replace(/_/g, ' ') || 'N/A'}
+                      </span>
+                      <span className="text-zinc-500">{order.reviewType}</span>
+                    </div>
+                    <p className="text-xs text-zinc-400 mt-1">
                       {formatDateShort(order.createdAt)}
                     </p>
                   </div>

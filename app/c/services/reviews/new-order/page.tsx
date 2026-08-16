@@ -6,22 +6,20 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { createMultiUrlReviewOrderAction } from "@/app/actions/reviews-multiurl";
 import {
-  getReviewCreditCostAction,
   getReviewOrderSetupAction
 } from "@/app/actions/reviews";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import PhotoUpload from "@/components/ui/PhotoUpload";
 import { REACTIONS, type ReactionType } from "@/lib/reactionUtils";
 import { useTranslation } from "react-i18next";
-import { devLog } from "@/lib/utils/devLog";
-import { Plus, X, CreditCard, Sparkles, ChevronRight, Info, Minus } from "lucide-react";
+import { Plus, X, CreditCard, Sparkles, ChevronRight } from "lucide-react";
 
 type OrderType = "REVIEW" | "COMMENT" | "COMMENT_WITH_PHOTO";
 
 interface ReviewUrlData {
   url: string;
-  quantity: number;
-  reactionType?: ReactionType;
+  quantity: number; // Kept for backward compatibility with REVIEW/COMMENT_WITH_PHOTO
+  reactionType?: ReactionType; // Kept for backward compatibility
 }
 
 const ORDER_TYPE_LABELS: Record<OrderType, { label: string; description: string; icon: string }> = {
@@ -36,6 +34,22 @@ export default function NewReviewOrderPage() {
   const { t } = useTranslation();
   const router = useRouter();
 
+  // Inline shake animation styles
+  const shakeStyle = `
+    @keyframes shake {
+      0%, 100% { transform: translateX(0) rotate(0deg); }
+      25% { transform: translateX(-2px) rotate(-3deg); }
+      50% { transform: translateX(2px) rotate(3deg); }
+      75% { transform: translateX(-2px) rotate(-3deg); }
+    }
+    .emoji-shake-always {
+      animation: shake 0.6s ease-in-out infinite;
+    }
+    .button-wrapper:hover .emoji-shake-hover {
+      animation: shake 0.6s ease-in-out infinite;
+    }
+  `;
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -44,15 +58,23 @@ export default function NewReviewOrderPage() {
     { url: "", quantity: 1, reactionType: "LIKE" as ReactionType }
   ]);
 
-  // Shared review content and photos (written once, applied to all URLs)
-  const [sharedReviewContent, setSharedReviewContent] = useState("");
-  const [sharedPhotos, setSharedPhotos] = useState<string[]>([]);
+  // Single reaction type for COMMENT orders (shared across all URLs)
+  const [singleReactionType, setSingleReactionType] = useState<ReactionType>("LIKE" as ReactionType);
+  // Single quantity for COMMENT and COMMENT_WITH_PHOTO orders only
+  const [singleQuantity, setSingleQuantity] = useState(5);
+
+  // Per-URL reviews and photos structure
+  const [urlReviews, setUrlReviews] = useState<Array<{ reviews: string[]; photos: string[][] }>>([
+    { reviews: [""], photos: [[]] }
+  ]);
 
   const [fieldErrors, setFieldErrors] = useState<{
     urls?: Record<number, boolean>;
-    reviewContent?: boolean;
-    photos?: boolean;
+    reviews?: Record<number, boolean>; // Index-based errors for multiple reviews
+    photos?: Record<number, Record<number, boolean>>; // Nested structure: urlIndex -> reviewIndex
+    quantity?: boolean;
     credits?: boolean;
+    maxReviews?: boolean;
   }>({});
 
   const [creditPricing, setCreditPricing] = useState<Record<OrderType, number>>({
@@ -96,8 +118,9 @@ export default function NewReviewOrderPage() {
   }, [user]);
 
   const addUrl = () => {
-    if (urls.length >= 10) {
-      toastError(t("Maximum 10 URLs allowed per order", "Maximum 10 URLs allowed per order"));
+    const maxUrls = 10; // Max 10 URLs for all order types
+    if (urls.length >= maxUrls) {
+      toastError(t(`Maximum ${maxUrls} URLs allowed per order`, `Maximum ${maxUrls} URLs allowed per order`));
       return;
     }
 
@@ -109,6 +132,9 @@ export default function NewReviewOrderPage() {
         reactionType: "LIKE" as ReactionType
       }
     ]);
+
+    // Add empty reviews array for the new URL
+    setUrlReviews([...urlReviews, { reviews: [""], photos: [[]] }]);
   };
 
   const removeUrl = (index: number) => {
@@ -116,10 +142,15 @@ export default function NewReviewOrderPage() {
     setUrls(newUrls.length > 0 ? newUrls : [
       { url: "", quantity: 1, reactionType: "LIKE" as ReactionType }
     ]);
+
+    // Remove reviews for this URL
+    const newUrlReviews = urlReviews.filter((_, i) => i !== index);
+    setUrlReviews(newUrlReviews.length > 0 ? newUrlReviews : [{ reviews: [""], photos: [[]] }]);
+
     setFieldErrors({ ...fieldErrors, urls: { ...fieldErrors.urls, [index]: false } });
   };
 
-  const updateUrl = (index: number, field: keyof ReviewUrlData, value: any) => {
+  const updateUrl = (index: number, field: keyof ReviewUrlData, value: string | number | ReactionType) => {
     const newUrls = [...urls];
     newUrls[index] = { ...newUrls[index], [field]: value };
     setUrls(newUrls);
@@ -129,7 +160,11 @@ export default function NewReviewOrderPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const newErrors: typeof fieldErrors = {};
+    // Validate single quantity for COMMENT orders only
+    if (orderType === "COMMENT" && (singleQuantity < 1 || singleQuantity > 50)) {
+      setFieldErrors({ quantity: true });
+      return;
+    }
 
     // Validate URLs
     const urlErrors: Record<number, boolean> = {};
@@ -137,22 +172,64 @@ export default function NewReviewOrderPage() {
       if (!urlData.url || !/^(https?:\/\/)?(www\.)?(facebook|fb)\.com\/.+/i.test(urlData.url)) {
         urlErrors[index] = true;
       }
-      // Validate quantity
-      if (urlData.quantity < 1 || urlData.quantity > 100) {
-        urlErrors[index] = true;
-      }
+      // Quantity validation is now handled at the shared quantity level
     });
 
-    // Validate shared review content for REVIEW and COMMENT_WITH_PHOTO
-    if ((orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO") && !sharedReviewContent?.trim()) {
-      setFieldErrors({ reviewContent: true });
-      return;
-    }
+    // Validate per-URL reviews and photos for REVIEW and COMMENT_WITH_PHOTO
+    if (orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO") {
+      let totalReviews = 0;
+      const reviewErrors: Record<number, boolean> = {};
+      const photoErrors: Record<number, Record<number, boolean>> = {};
 
-    // Validate shared photos for COMMENT_WITH_PHOTO
-    if (orderType === "COMMENT_WITH_PHOTO" && (!sharedPhotos || sharedPhotos.length === 0)) {
-      setFieldErrors({ photos: true });
-      return;
+      urlReviews.forEach((urlData, urlIndex) => {
+        const validUrlReviews = urlData.reviews.filter(r => r.trim().length > 0);
+        totalReviews += validUrlReviews.length;
+
+        // Check max 10 reviews per URL
+        if (validUrlReviews.length > 10) {
+          setFieldErrors({ maxReviews: true });
+          return;
+        }
+
+        // Validate each review content
+        urlData.reviews.forEach((content, reviewIndex) => {
+          if (!content?.trim()) {
+            reviewErrors[reviewIndex] = true;
+          }
+        });
+
+        // For COMMENT_WITH_PHOTO, validate photos for each review
+        if (orderType === "COMMENT_WITH_PHOTO") {
+          urlData.reviews.forEach((content, reviewIndex) => {
+            if (content?.trim() && (!urlData.photos[reviewIndex] || urlData.photos[reviewIndex].length === 0)) {
+              if (!photoErrors[urlIndex]) photoErrors[urlIndex] = {};
+              photoErrors[urlIndex][reviewIndex] = true;
+            }
+          });
+        }
+      });
+
+      // Check total max 50 reviews across all URLs
+      if (totalReviews > 50) {
+        setFieldErrors({ maxReviews: true });
+        return;
+      }
+
+      // Check if at least one review is filled
+      if (totalReviews === 0) {
+        setFieldErrors({ reviews: { 0: true } });
+        return;
+      }
+
+      if (Object.keys(reviewErrors).length > 0) {
+        setFieldErrors({ reviews: reviewErrors });
+        return;
+      }
+
+      if (Object.keys(photoErrors).length > 0) {
+        setFieldErrors({ photos: photoErrors });
+        return;
+      }
     }
 
     if (Object.keys(urlErrors).length > 0) {
@@ -170,15 +247,29 @@ export default function NewReviewOrderPage() {
     setSubmitting(true);
 
     try {
+      // For COMMENT orders, use single reaction type and quantity
+      // For REVIEW and COMMENT_WITH_PHOTO, use per-URL reviews and photos
       const payload = {
         orderType,
-        reviewContent: sharedReviewContent || undefined,
-        photos: sharedPhotos || undefined,
-        urls: validUrls.map((u) => ({
-          url: u.url.trim(),
-          quantity: u.quantity,
-          reactionType: u.reactionType
-        }))
+        urls: validUrls.map((u, urlIndex) => {
+          const urlData = urlReviews[urlIndex] || { reviews: [""], photos: [] };
+          const validUrlReviews = urlData.reviews.filter(r => r.trim().length > 0);
+          // Build photos array: each element is an array of photos for that review
+          const validUrlPhotos: string[][] = [];
+          validUrlReviews.forEach((_, reviewIndex) => {
+            const photos = urlData.photos[reviewIndex] || [];
+            validUrlPhotos.push(Array.isArray(photos) ? photos : [photos].filter(p => p));
+          });
+
+          return {
+            url: u.url.trim(),
+            quantity: orderType === "COMMENT" ? singleQuantity : validUrlReviews.length,
+            reactionType: orderType === "COMMENT" ? singleReactionType : u.reactionType,
+            // Include per-URL reviews and photos
+            reviewContents: validUrlReviews.length > 0 ? validUrlReviews : undefined,
+            photos: orderType === "COMMENT_WITH_PHOTO" ? validUrlPhotos : undefined
+          };
+        })
       };
 
       const result = await createMultiUrlReviewOrderAction(payload);
@@ -199,13 +290,22 @@ export default function NewReviewOrderPage() {
 
   if (loading) return <LoadingScreen />;
 
-  const totalQuantity = orderType === "REVIEW"
-    ? urls.length  // For REVIEW: each URL gets 1 review
-    : urls.reduce((sum, u) => sum + u.quantity, 0);  // For COMMENT/COMMENT_WITH_PHOTO: sum of quantities
+  // Calculate total quantity based on order type
+  // COMMENT: singleQuantity × numberOfURLs
+  // REVIEW: sum of all valid reviews across all URLs
+  // COMMENT_WITH_PHOTO: sum of all valid reviews across all URLs
+  const totalReviewsCount = urlReviews.reduce((sum, urlData) => {
+    return sum + urlData.reviews.filter(r => r.trim().length > 0).length;
+  }, 0);
+
+  const totalQuantity = orderType === "COMMENT"
+    ? singleQuantity * urls.length  // For COMMENT: single quantity × URLs
+    : totalReviewsCount;  // For REVIEW and COMMENT_WITH_PHOTO: sum of all reviews
   const requiredCredits = (creditPricing[orderType] || 0) * totalQuantity;
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
+      <style>{shakeStyle}</style>
       {/* Header */}
       <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
         <div className="max-w-3xl mx-auto px-4 py-4">
@@ -284,10 +384,11 @@ export default function NewReviewOrderPage() {
                   type="button"
                   onClick={() => {
                     setOrderType(option.type);
-                    // Reset URLs and shared content when changing order type
+                    // Reset URLs and per-URL reviews when changing order type
                     setUrls([{ url: "", quantity: 1, reactionType: "LIKE" as ReactionType }]);
-                    setSharedReviewContent("");
-                    setSharedPhotos([]);
+                    setSingleReactionType("LIKE" as ReactionType);
+                    setSingleQuantity(5);
+                    setUrlReviews([{ reviews: [""], photos: [[]] }]);
                     setFieldErrors({});
                   }}
                   className={`relative p-3 rounded-lg border text-left transition-all ${
@@ -317,67 +418,6 @@ export default function NewReviewOrderPage() {
 
           {/* Form Fields */}
           <div className="p-4 space-y-4">
-            {/* Shared Review Content Section - For REVIEW and COMMENT_WITH_PHOTO */}
-            {(orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO") && (
-              <div>
-                <label className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="text-[#168BB0">✍️</span>
-                    Review Content
-                    <span className="text-red-500">*</span>
-                  </span>
-                </label>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-                  Write your review content once. It will be used for all URLs.
-                </p>
-                <textarea
-                  rows={3}
-                  maxLength={500}
-                  value={sharedReviewContent}
-                  onChange={(e) => {
-                    setSharedReviewContent(e.target.value);
-                    setFieldErrors({ ...fieldErrors, reviewContent: false });
-                  }}
-                  placeholder="Enter your review content..."
-                  className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-zinc-800 resize-none text-sm ${
-                    fieldErrors.reviewContent
-                      ? 'border-red-300 dark:border-red-700 focus:border-red-500'
-                      : 'border-zinc-200 dark:border-zinc-700 focus:border-[#168BB0]'
-                  }`}
-                />
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  {sharedReviewContent.length}/500 characters
-                </p>
-              </div>
-            )}
-
-            {/* Shared Photo Upload - For COMMENT_WITH_PHOTO */}
-            {orderType === "COMMENT_WITH_PHOTO" && (
-              <div className={fieldErrors.photos ? "border border-red-500 rounded p-2" : ""}>
-                <label className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="text-[#168BB0">📸</span>
-                    Photo
-                    <span className="text-red-500">*</span>
-                  </span>
-                </label>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-                  Upload one photo. It will be used for all URLs.
-                </p>
-                <PhotoUpload
-                  onPhotosChange={(photos) => {
-                    setSharedPhotos(photos);
-                    setFieldErrors({ ...fieldErrors, photos: false });
-                  }}
-                  maxPhotos={1}
-                  currentPhotos={sharedPhotos}
-                />
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  {sharedPhotos.length}/1 photo required
-                </p>
-              </div>
-            )}
-
             {/* URLs Section */}
             <div>
               <label className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
@@ -388,15 +428,92 @@ export default function NewReviewOrderPage() {
                 </span>
               </label>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-                Add multiple URLs. The review above will be posted to all URLs. Total: {totalQuantity} reviews
+                {orderType === "COMMENT"
+                  ? `Add multiple URLs. Each URL will get ${singleQuantity} ${singleReactionType.toLowerCase()} reaction${singleQuantity !== 1 ? 's' : ''}. Total: ${totalQuantity} reaction${totalQuantity !== 1 ? 's' : ''}`
+                  : `Add multiple URLs. Each URL can have its own reviews. Total: ${totalQuantity} review${totalQuantity !== 1 ? 's' : ''}`
+                }
                 {urls.length > 1 && (
                   <span className="text-[#168BB0] ml-1">({urls.length} URLs)</span>
                 )}
               </p>
 
+              {/* Single Reaction Selector - Only for COMMENT type, displayed above URLs */}
+              {orderType === "COMMENT" && (
+                <div className="mb-4 p-4 border border-[#168BB0]/30 rounded-lg bg-[#168BB0]/5">
+                  <label className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="text-[#1877F2">👍</span>
+                      Reaction Type
+                      <span className="text-red-500">*</span>
+                    </span>
+                  </label>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-3">
+                    Select the reaction type. This will be applied to all URLs.
+                  </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {REACTIONS.map((reaction) => (
+                      <button
+                        key={reaction.type}
+                        type="button"
+                        onClick={() => setSingleReactionType(reaction.type)}
+                        className={`button-wrapper p-2 rounded-lg border text-center transition-all ${
+                          singleReactionType === reaction.type
+                            ? 'border-[#168BB0] bg-[#168BB0]/10'
+                            : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
+                        }`}
+                      >
+                        <div className={`text-xl mb-1 ${singleReactionType === reaction.type ? 'emoji-shake-always' : 'emoji-shake-hover'}`}>{reaction.emoji}</div>
+                        <div className="text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 uppercase">{reaction.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Single Quantity Selector - Only for COMMENT type */}
+              {orderType === "COMMENT" ? (
+                <div className="mb-4 p-4 border border-[#168BB0]/30 rounded-lg bg-[#168BB0]/5">
+                  <label className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="text-[#168BB0">📊</span>
+                      Quantity per URL
+                      <span className="text-red-500">*</span>
+                    </span>
+                  </label>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-3">
+                    How many reactions for EACH URL? This quantity will be applied to all URLs.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={singleQuantity}
+                      onChange={(e) => {
+                        setSingleQuantity(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)));
+                        setFieldErrors({ ...fieldErrors, quantity: false });
+                      }}
+                      className={`w-24 px-3 py-2 rounded-lg border bg-white dark:bg-zinc-800 text-sm text-center font-semibold ${
+                        fieldErrors.quantity
+                          ? 'border-red-300 dark:border-red-700 focus:border-red-500'
+                          : 'border-zinc-200 dark:border-zinc-700 focus:border-[#168BB0]'
+                      }`}
+                    />
+                    <span className="text-xs text-zinc-600 dark:text-zinc-400">
+                      reactions per URL
+                    </span>
+                  </div>
+                  {fieldErrors.quantity && (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">Quantity must be between 1 and 50</p>
+                  )}
+                </div>
+              ) : null}
+
               <div className="space-y-3">
-                {urls.map((urlData, index) => (
-                  <div key={index} className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 bg-zinc-50/50 dark:bg-zinc-800/50">
+                {urls.map((urlData, index) => {
+                  const currentUrlReviews = urlReviews[index] || { reviews: [""], photos: [] };
+                  return (
+                  <div key={index} className={`border border-zinc-200 dark:border-zinc-700 rounded-lg ${(orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO") ? 'p-4' : 'p-3'} bg-zinc-50/50 dark:bg-zinc-800/50`}>
                     {/* URL Header */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
@@ -420,7 +537,7 @@ export default function NewReviewOrderPage() {
                     </div>
 
                     {/* URL Input */}
-                    <div className="mb-3">
+                    <div className="mb-0">
                       <input
                         type="url"
                         placeholder="https://www.facebook.com/page..."
@@ -437,50 +554,156 @@ export default function NewReviewOrderPage() {
                       )}
                     </div>
 
-                    {/* Quantity - Only for COMMENT and COMMENT_WITH_PHOTO types */}
-                    {orderType !== "REVIEW" && (
-                    <div className="mb-3">
-                      <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                        Quantity for this URL
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="100"
-                        value={urlData.quantity}
-                        onChange={(e) => updateUrl(index, 'quantity', Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
-                        className="w-full px-3 py-2 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 focus:border-[#168BB0] text-sm"
-                      />
-                    </div>
-                    )}
+                    {/* Reviews Section - For REVIEW and COMMENT_WITH_PHOTO types, shown for ALL URLs */}
+                    {(orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO") && (
+                      <div className="mt-4 space-y-3">
+                        {/* Multiple Reviews Input for this URL */}
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <label className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="text-[#168BB0">✍️</span>
+                                Reviews for URL {index + 1}
+                              </span>
+                            </label>
+                            <span className="text-[10px] text-zinc-500">
+                              {currentUrlReviews.reviews.filter(r => r.trim()).length}/10
+                            </span>
+                          </div>
+                          {fieldErrors.maxReviews && (
+                            <p className="mb-2 text-[10px] text-red-600 dark:text-red-400">Maximum 10 reviews per URL</p>
+                          )}
+                          <div className="space-y-3">
+                            {currentUrlReviews.reviews.map((content, reviewIndex) => (
+                              <div key={reviewIndex} className="group relative bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 transition-all hover:border-[#168BB0]/30">
+                                {/* Header with index and remove button */}
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-[#168BB0] to-[#0F7493] text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
+                                      {reviewIndex + 1}
+                                    </div>
+                                    <span className="text-[10px] font-medium text-zinc-600 dark:text-zinc-400">
+                                      {orderType === "COMMENT_WITH_PHOTO" ? 'Comment' : 'Review'} {reviewIndex + 1}
+                                    </span>
+                                  </div>
+                                  {currentUrlReviews.reviews.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newUrlReviews = [...urlReviews];
+                                        const urlReviewsData = [...newUrlReviews[index].reviews];
+                                        const urlPhotosData = [...newUrlReviews[index].photos];
+                                        const newReviews = urlReviewsData.filter((_, i) => i !== reviewIndex);
+                                        const newPhotos = urlPhotosData.filter((_, i) => i !== reviewIndex);
+                                        newUrlReviews[index] = { reviews: newReviews.length > 0 ? newReviews : [""], photos: newPhotos.length > 0 ? newPhotos : [] };
+                                        setUrlReviews(newUrlReviews);
+                                        const newPhotoErrors = { ...fieldErrors.photos };
+                                        if (newPhotoErrors[index]) {
+                                          delete newPhotoErrors[index][reviewIndex];
+                                        }
+                                        setFieldErrors({ ...fieldErrors, reviews: { ...fieldErrors.reviews, [reviewIndex]: false }, photos: newPhotoErrors });
+                                      }}
+                                      className="p-1 text-zinc-400 hover:text-red-500 rounded transition-colors"
+                                      title="Remove review"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
 
-                    {/* Reaction Selector - Only for COMMENT type */}
-                    {orderType === "COMMENT" && (
-                      <div className="mb-3">
-                        <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                          Reaction
-                        </label>
-                        <div className="grid grid-cols-7 gap-1">
-                          {REACTIONS.map((reaction) => (
+                                {/* Content and Photo row */}
+                                <div className="flex gap-3 items-start">
+                                  {/* Review Content */}
+                                  <div className="flex-1 min-w-0">
+                                    <textarea
+                                      rows={2}
+                                      maxLength={500}
+                                      value={content}
+                                      onChange={(e) => {
+                                        const newUrlReviews = [...urlReviews];
+                                        newUrlReviews[index] = {
+                                          ...newUrlReviews[index],
+                                          reviews: [...newUrlReviews[index].reviews]
+                                        };
+                                        newUrlReviews[index].reviews[reviewIndex] = e.target.value;
+                                        setUrlReviews(newUrlReviews);
+                                        const newPhotoErrors = { ...fieldErrors.photos };
+                                        if (newPhotoErrors[index]) {
+                                          delete newPhotoErrors[index][reviewIndex];
+                                        }
+                                        setFieldErrors({ ...fieldErrors, reviews: { ...fieldErrors.reviews, [reviewIndex]: false }, photos: newPhotoErrors, maxReviews: false });
+                                      }}
+                                      placeholder={`Enter your ${orderType === "COMMENT_WITH_PHOTO" ? 'comment' : 'review'} content...`}
+                                      className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-zinc-800 resize-none text-sm leading-relaxed ${
+                                        fieldErrors.reviews?.[reviewIndex] || fieldErrors.photos?.[index]?.[reviewIndex]
+                                          ? 'border-red-300 dark:border-red-700 focus:border-red-500'
+                                          : 'border-zinc-200 dark:border-zinc-700 focus:border-[#168BB0] focus:ring-1 focus:ring-[#168BB0]/10'
+                                      }`}
+                                      style={{ maxWidth: '400px' }}
+                                    />
+                                    <p className="mt-1.5 text-[10px] text-zinc-400 dark:text-zinc-500 flex justify-between">
+                                      <span>{content.length}/500 characters</span>
+                                      {(fieldErrors.reviews?.[reviewIndex] || fieldErrors.photos?.[index]?.[reviewIndex]) && (
+                                        <span className="text-red-500 text-[9px]">Required</span>
+                                      )}
+                                    </p>
+                                  </div>
+
+                                  {/* Photo Upload - Only for COMMENT_WITH_PHOTO */}
+                                  {orderType === "COMMENT_WITH_PHOTO" && (
+                                    <div className="flex-shrink-0">
+                                      <PhotoUpload
+                                        onPhotosChange={(photos) => {
+                                          const newUrlReviews = [...urlReviews];
+                                          newUrlReviews[index] = {
+                                            ...newUrlReviews[index],
+                                            reviews: [...newUrlReviews[index].reviews],
+                                            photos: [...newUrlReviews[index].photos]
+                                          };
+                                          newUrlReviews[index].photos[reviewIndex] = photos;
+                                          setUrlReviews(newUrlReviews);
+                                          const newPhotoErrors = { ...fieldErrors.photos, [index]: { ...fieldErrors.photos?.[index] } };
+                                          delete newPhotoErrors[index][reviewIndex];
+                                          setFieldErrors({ ...fieldErrors, photos: newPhotoErrors });
+                                        }}
+                                        maxPhotos={1}
+                                        currentPhotos={currentUrlReviews.photos[reviewIndex] || []}
+                                        size="small"
+                                      />
+                                      {fieldErrors.photos?.[index]?.[reviewIndex] && (
+                                        <p className="mt-1 text-[9px] text-red-500 text-center">Photo required</p>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {currentUrlReviews.reviews.length < 10 && (
                             <button
-                              key={reaction.type}
                               type="button"
-                              onClick={() => updateUrl(index, 'reactionType', reaction.type)}
-                              className={`p-1.5 rounded-lg border text-center transition-all ${
-                                urlData.reactionType === reaction.type
-                                  ? 'border-[#168BB0] bg-[#168BB0]/10'
-                                  : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
-                              }`}
+                              onClick={() => {
+                                const newUrlReviews = [...urlReviews];
+                                newUrlReviews[index] = {
+                                  ...newUrlReviews[index],
+                                  reviews: [...newUrlReviews[index].reviews, ""],
+                                  photos: [...newUrlReviews[index].photos, []]
+                                };
+                                setUrlReviews(newUrlReviews);
+                              }}
+                              className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-[#168BB0] hover:text-[#168BB0] transition-colors"
                             >
-                              <div className="text-lg">{reaction.emoji}</div>
-                              <div className="text-[9px] font-medium text-zinc-700 dark:text-zinc-300">{reaction.label}</div>
+                              <Plus className="w-3.5 h-3.5" />
+                              + Add {orderType === "COMMENT_WITH_PHOTO" ? 'another comment' : 'another review'} for URL {index + 1} ({currentUrlReviews.reviews.length}/10)
                             </button>
-                          ))}
+                          )}
                         </div>
+
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Add URL Button */}
@@ -491,7 +714,9 @@ export default function NewReviewOrderPage() {
                   className="w-full flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-[#168BB0] hover:text-[#168BB0] transition-colors mt-4"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  {urls.length > 0 ? `Add Another URL (${urls.length}/10)` : "Add URL"}
+                  {urls.length > 0
+                    ? `Add Another URL (${urls.length}/10)`
+                    : "Add URL"}
                 </button>
               )}
             </div>
@@ -504,10 +729,13 @@ export default function NewReviewOrderPage() {
                 </label>
                 <div className="bg-[#168BB0]/10 rounded-lg px-3 py-2 border border-[#168BB0]/20">
                   <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                    {urls.length} {urls.length === 1 ? 'URL' : 'URLs'} × {totalQuantity}
+                    {orderType === "COMMENT"
+                      ? `${urls.length} URL${urls.length !== 1 ? 's' : ''} × ${singleQuantity} ${singleReactionType.toLowerCase()}${singleQuantity !== 1 ? 's' : ''} each`
+                      : `Sum of all reviews across ${urls.length} URL${urls.length !== 1 ? 's' : ''}`
+                    }
                   </p>
                   <p className="text-lg font-bold text-[#168BB0]">
-                    {totalQuantity} <span className="text-xs font-normal text-zinc-600 dark:text-zinc-400"> reviews</span>
+                    {totalQuantity} <span className="text-xs font-normal text-zinc-600 dark:text-zinc-400"> review{totalQuantity !== 1 ? 's' : ''}</span>
                   </p>
                 </div>
               </div>

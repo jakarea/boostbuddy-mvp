@@ -625,7 +625,7 @@ export async function getClientReviewOrdersAction(filters?: ReviewOrderFilter) {
       completedComments: order.completed_comments ? order.completed_comments.split(',').map((i: string) => parseInt(i)) : [],
       photoUrls: order.photo_urls ? JSON.parse(order.photo_urls) : null,
       // For Photo + Reviews, parse photoUrls as array of photo arrays
-      photoReviews: order.photo_urls && order.order_type === 'COMMENT_WITH_PHOTO'
+      photoReviews: order.photo_urls && order.order_type === 'COMMENT_WITH_PHOTO' && order.comment_text
         ? order.comment_text.split('|||').map((c: string, i: number) => ({
             text: c.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\'),
             photos: JSON.parse(order.photo_urls)[i] || []
@@ -703,7 +703,7 @@ export async function getReviewOrderDetailAction(orderId: string) {
       completedComments: data.completed_comments ? data.completed_comments.split(',').map((i: string) => parseInt(i)) : [],
       photoUrls: data.photo_urls ? JSON.parse(data.photo_urls) : null,
       // For Photo + Reviews, parse photoUrls as array of photo arrays
-      photoReviews: data.photo_urls && data.order_type === 'COMMENT_WITH_PHOTO'
+      photoReviews: data.photo_urls && data.order_type === 'COMMENT_WITH_PHOTO' && data.comment_text
         ? data.comment_text.split('|||').map((c: string, i: number) => ({
             text: c.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\'),
             photos: JSON.parse(data.photo_urls)[i] || []
