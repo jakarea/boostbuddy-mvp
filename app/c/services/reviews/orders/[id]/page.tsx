@@ -140,14 +140,16 @@ export default function ReviewOrderDetailPage() {
             <p className="font-medium">{order.reviewType}</p>
           </div>
 
-          <div>
-            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              {t("reviews.reaction", "Reaction")}
-            </h3>
-            <p className={`font-medium text-lg ${getReactionBadgeClasses(order.reactionType || 'LIKE')}`}>
-              {getReactionEmoji(order.reactionType || 'LIKE')}
-            </p>
-          </div>
+          {order.orderType === "COMMENT" && (
+            <div>
+              <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                {t("reviews.reaction", "Reaction")}
+              </h3>
+              <p className={`font-medium text-lg ${getReactionBadgeClasses(order.reactionType || 'LIKE')}`}>
+                {getReactionEmoji(order.reactionType || 'LIKE')}
+              </p>
+            </div>
+          )}
 
           <div>
             <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
