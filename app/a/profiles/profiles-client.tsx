@@ -31,7 +31,7 @@ export default function ProfilesContent({
   const { data: profiles, refresh: refreshProfiles, isValid: profilesValid } = useSWR({
     key: CACHE_KEYS.ADMIN_PROFILES,
     fetcher: getProfilesData,
-    ttl: 5 * 60 * 1000,
+    ttl: CACHE_TTL.LONG, // 5 minutes
     initialData: initialProfiles,
   });
 
@@ -39,7 +39,7 @@ export default function ProfilesContent({
   const { data: clients, refresh: refreshClients } = useSWR({
     key: 'admin_active_clients',
     fetcher: getActiveClientsData,
-    ttl: 5 * 60 * 1000,
+    ttl: CACHE_TTL.LONG, // 5 minutes
     initialData: activeClients,
   });
 

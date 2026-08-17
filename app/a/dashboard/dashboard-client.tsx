@@ -17,6 +17,7 @@ import Swal from "sweetalert2";
 import { useToast } from "@/context/ToastContext";
 import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS, invalidateCaches } from "@/lib/cache/cacheContext";
+import CACHE_TTL from "@/lib/cache/cache-ttl";
 
 // --- DTOs (Data Transfer Objects) ---
 export interface PendingClientDTO {
@@ -77,7 +78,7 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
       if (!result.success) return null;
       return (result.data as DashboardStatsDTO) || null;
     },
-    ttl: 2 * 60 * 1000, // 2 minutes
+    ttl: CACHE_TTL.MEDIUM, // 2 minutes
     initialData: initialStats,
   });
 

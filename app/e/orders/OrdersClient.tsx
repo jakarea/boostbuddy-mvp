@@ -48,7 +48,7 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
       }
       return [];
     },
-    ttl: 2 * 60 * 1000,
+    ttl: CACHE_TTL.MEDIUM, // 2 minutes
     initialData: initialOrders,
   });
 

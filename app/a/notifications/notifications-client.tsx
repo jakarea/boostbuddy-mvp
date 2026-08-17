@@ -50,7 +50,7 @@ export default function NotificationsClient({ initialLogs, telegramConfig }: Not
       const result = await getNotificationsAction();
       return result.success ? (result.data as NotificationLogDTO[]) : [];
     },
-    ttl: 2 * 60 * 1000,
+    ttl: CACHE_TTL.MEDIUM, // 2 minutes
     initialData: initialLogs,
   });
 

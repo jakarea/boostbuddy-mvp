@@ -10,6 +10,7 @@ import { getEmployeeDashboardDataAction, DashboardData, UrlTask } from "@/app/ac
 import { formatDateTime } from "@/lib/dateUtils";
 import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import CACHE_TTL from "@/lib/cache/cache-ttl";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -32,7 +33,7 @@ export function EmployeeDashboardContent({
       }
       return initialData; // Fallback to initial data on error
     },
-    ttl: 1 * 60 * 1000, // 1 minute - shorter cache for active work
+    ttl: CACHE_TTL.SHORT, // 1 minute - shorter cache for active work
     initialData: initialData,
   });
 

@@ -47,7 +47,7 @@ export default function EmployeeNotificationsClient({ initialLogs }: EmployeeNot
       // Return existing data instead of empty array on error
       throw new Error(result.error || 'Failed to fetch notifications');
     },
-    ttl: 2 * 60 * 1000,
+    ttl: CACHE_TTL.MEDIUM, // 2 minutes
     initialData: initialLogs,
   });
 

@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, Wallet } from "lucide-react";
 import Link from "next/link";
 import { devLog } from "@/lib/utils/devLog";
+import { getActiveCreditPackagesAction } from "@/app/actions/credits";
 
 export default function TopUpPage() {
   const { user } = useAuth();
@@ -92,7 +93,7 @@ export default function TopUpPage() {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const packagesRes = await import("@/app/actions/credits").then(m => m.getActiveCreditPackagesAction());
+        const packagesRes = await getActiveCreditPackagesAction();
 
         if (packagesRes.success && packagesRes.data) {
           setPackages(packagesRes.data);
@@ -111,7 +112,7 @@ export default function TopUpPage() {
 
   const handlePurchased = () => {
     // Refresh packages list after purchase
-    import("@/app/actions/credits").then(m => m.getActiveCreditPackagesAction())
+    getActiveCreditPackagesAction()
       .then(res => {
         if (res.success && res.data) {
           setPackages(res.data);

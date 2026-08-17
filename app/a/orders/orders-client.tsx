@@ -94,7 +94,7 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
       }
       return { orders: [], totalCount: 0 };
     },
-    ttl: 2 * 60 * 1000,
+    ttl: CACHE_TTL.MEDIUM, // 2 minutes
     initialData: { orders: initialOrders, totalCount: initialTotalCount }
   });
 

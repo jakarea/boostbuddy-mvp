@@ -99,7 +99,7 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
       }
       return { employees: [], totalCount: 0 };
     },
-    ttl: 2 * 60 * 1000,
+    ttl: CACHE_TTL.MEDIUM, // 2 minutes
     initialData: { employees: initialEmployees, totalCount },
   });
 

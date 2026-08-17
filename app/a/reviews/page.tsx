@@ -45,7 +45,7 @@ export default function AdminReviewsPage() {
       }
       return null;
     },
-    ttl: 2 * 60 * 1000,
+    ttl: CACHE_TTL.MEDIUM, // 2 minutes
   });
 
   const isLoading = loading && !stats;

@@ -108,7 +108,7 @@ export default function OrdersClient({ initialOrders }: OrdersClientProps) {
   const { data: orders, refresh, isValid } = useSWR({
     key: CACHE_KEYS.ADMIN_ORDERS,
     fetcher: getAdminOrdersData,
-    ttl: 5 * 60 * 1000,
+    ttl: CACHE_TTL.LONG, // 5 minutes
     initialData: initialOrders,
   });
 

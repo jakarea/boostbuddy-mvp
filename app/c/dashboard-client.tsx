@@ -22,6 +22,7 @@ import { getServicesAction } from "@/app/actions/services";
 import { calculateUpgradePriceAction } from "@/app/actions/stripe";
 import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import CACHE_TTL from "@/lib/cache/cache-ttl";
 import { getClientDashboardData } from "@/lib/data/dashboard";
 
 // Ticking 2FA Timer Component
@@ -135,7 +136,7 @@ export default function DashboardClient({ initialProfiles, creditsBalance = 0, w
   const { data: profiles, refresh, isValid } = useSWR({
     key: CACHE_KEYS.CLIENT_DASHBOARD,
     fetcher: getClientDashboardData,
-    ttl: 3 * 60 * 1000,
+    ttl: CACHE_TTL.MEDIUM_LONG, // 3 minutes
     initialData: initialProfiles,
   });
 

@@ -4,7 +4,6 @@ import React from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
   LayoutDashboard,
-  CreditCard,
   Settings,
   User,
   Bell,
@@ -102,7 +101,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         { href: "/c/wallet/transactions", label: t("nav.transactions", { defaultValue: "Transactions" }), icon: ArrowLeftRight },
         { href: "/c/billing", label: t("nav.billing_details", { defaultValue: "Billing Details" }), icon: FileText },
         { href: "/c/invoices", label: t("nav.invoices", { defaultValue: "Invoices" }), icon: Receipt },
-        { href: "/c/payments", label: t("nav.payments", { defaultValue: "Payments" }), icon: CreditCard },
       ],
     },
     // 📂 SUPPORT & ACCOUNT

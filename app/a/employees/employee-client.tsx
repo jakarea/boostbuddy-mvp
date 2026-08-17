@@ -30,7 +30,7 @@ export default function EmployeeClient({
   const { data: employees, refresh, isValid } = useSWR<EmployeeUser[]>({
     key: CACHE_KEYS.ADMIN_EMPLOYEES,
     fetcher: getEmployeesData,
-    ttl: 5 * 60 * 1000,
+    ttl: CACHE_TTL.LONG, // 5 minutes
     initialData: initialEmployees,
   });
 
