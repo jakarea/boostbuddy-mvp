@@ -7,6 +7,7 @@ export interface AuthUser {
   name: string;
   role: AuthRole;
   isActive: boolean;
+  status?: string; // For employee status (ACTIVE, PENDING, etc.)
   createdAt: Date | string;
 }
 

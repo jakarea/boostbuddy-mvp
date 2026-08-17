@@ -10,6 +10,7 @@ import { ClientUser, BillingInfo } from "./components/types";
 import ClientsList from "./components/ClientsList";
 import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import CACHE_TTL from "@/lib/cache/cache-ttl";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -34,7 +35,7 @@ export default function ClientsContent({
   const { data: clients, refresh: refreshClients, isValid: clientsValid } = useSWR({
     key: CACHE_KEYS.ADMIN_CLIENTS,
     fetcher: getClientsData,
-    ttl: CACHE_TTL.LONG, // 5 minutes // 5 minutes
+    ttl: CACHE_TTL.LONG, // 5 minutes
     initialData: initialClients,
   });
 
