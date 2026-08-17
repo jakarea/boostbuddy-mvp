@@ -264,7 +264,7 @@ export default function NewReviewOrderPage() {
           return {
             url: u.url.trim(),
             quantity: orderType === "COMMENT" ? singleQuantity : validUrlReviews.length,
-            reactionType: orderType === "COMMENT" ? singleReactionType : u.reactionType,
+            reactionType: orderType === "COMMENT" ? singleReactionType : undefined,
             // Include per-URL reviews and photos
             reviewContents: validUrlReviews.length > 0 ? validUrlReviews : undefined,
             photos: orderType === "COMMENT_WITH_PHOTO" ? validUrlPhotos : undefined

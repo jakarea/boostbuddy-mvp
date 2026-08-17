@@ -665,20 +665,15 @@ export async function getReviewOrderDetailAction(orderId: string) {
 
     // Fetch review_urls using admin client (bypasses RLS)
     // Safe because we've already verified the user owns this order
-    // NOTE: Table doesn't exist yet - returning empty array
-    const reviewUrlsData: any[] = [];
-    const urlsError = null;
+    const adminClient = createAdminClient();
+    const { data: reviewUrlsData, error: urlsError } = await adminClient
+      .from("review_urls")
+      .select("id, url, quantity, reaction_type, review_content, photo_urls, review_index, status, assigned_employee_id, assigned_at, completed_at, proof_of_completion")
+      .eq("review_order_id", orderId);
 
-    // TODO: Uncomment when review_urls table is created
-    // const adminClient = createAdminClient();
-    // const { data: reviewUrlsData, error: urlsError } = await adminClient
-    //   .from("review_urls")
-    //   .select("id, url, quantity, review_content, review_index, status, assigned_employee_id, assigned_at, completed_at, proof_of_completion")
-    //   .eq("review_order_id", orderId);
-    //
-    // if (urlsError) {
-    //   console.error("Failed to fetch review URLs:", urlsError);
-    // }
+    if (urlsError) {
+      console.error("Failed to fetch review URLs:", urlsError);
+    }
 
     // Normalize database column names from snake_case to camelCase
     const normalizedData = {
@@ -717,7 +712,9 @@ export async function getReviewOrderDetailAction(orderId: string) {
         id: ru.id,
         url: ru.url,
         quantity: ru.quantity,
+        reactionType: ru.reaction_type,
         reviewContent: ru.review_content,
+        photoUrls: ru.photo_urls ? JSON.parse(ru.photo_urls) : null,
         reviewIndex: ru.review_index,
         status: ru.status,
         assignedEmployeeId: ru.assigned_employee_id,
