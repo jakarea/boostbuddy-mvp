@@ -38,7 +38,7 @@ export default function NotificationsClient({ initialLogs, telegramConfig }: Not
 
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const itemsPerPage = 10;
+  const itemsPerPage = 25;
 
   const router = useRouter();
   const searchParams = useSearchParams();

@@ -177,6 +177,15 @@ export default function OrdersList({
     }
   };
 
+  const getOrderTypeLabel = (orderType: string) => {
+    switch (orderType) {
+      case 'COMMENT': return 'Reactions';
+      case 'REVIEW': return 'Reviews';
+      case 'COMMENT_WITH_PHOTO': return 'Photo + Reviews';
+      default: return orderType?.replace(/_/g, ' ') || 'REVIEW';
+    }
+  };
+
   // Calculate stats
   const stats = {
     total: totalCount,
@@ -186,7 +195,7 @@ export default function OrdersList({
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -375,7 +384,7 @@ export default function OrdersList({
                   {/* Type */}
                   <div className="col-span-2">
                     <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                      {order.orderType ? order.orderType.replace(/_/g, ' ') : 'REVIEW'}
+                      {getOrderTypeLabel(order.orderType || 'REVIEW')}
                     </span>
                   </div>
 
@@ -437,7 +446,7 @@ export default function OrdersList({
                     <div className="flex items-center justify-between">
                       <span className="text-zinc-500">{t("orders.type", "Type")}:</span>
                       <span className="text-zinc-700 dark:text-zinc-300 font-medium">
-                        {order.orderType ? order.orderType.replace(/_/g, ' ') : 'REVIEW'}
+                        {getOrderTypeLabel(order.orderType || 'REVIEW')}
                       </span>
                     </div>
 

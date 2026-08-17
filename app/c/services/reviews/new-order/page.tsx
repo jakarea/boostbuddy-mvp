@@ -616,7 +616,7 @@ export default function NewReviewOrderPage() {
                                   {/* Review Content */}
                                   <div className="flex-1 min-w-0">
                                     <textarea
-                                      rows={2}
+                                      rows={1}
                                       maxLength={500}
                                       value={content}
                                       onChange={(e) => {
@@ -639,7 +639,6 @@ export default function NewReviewOrderPage() {
                                           ? 'border-red-300 dark:border-red-700 focus:border-red-500'
                                           : 'border-zinc-200 dark:border-zinc-700 focus:border-[#168BB0] focus:ring-1 focus:ring-[#168BB0]/10'
                                       }`}
-                                      style={{ maxWidth: '400px' }}
                                     />
                                     <p className="mt-1.5 text-[10px] text-zinc-400 dark:text-zinc-500 flex justify-between">
                                       <span>{content.length}/500 characters</span>

@@ -34,7 +34,7 @@ export default function ClientNotificationsClient({ initialLogs }: ClientNotific
   const searchParams = useSearchParams();
   const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1", 10));
   const [searchTerm, setSearchTerm] = useState("");
-  const itemsPerPage = 10;
+  const itemsPerPage = 25;
 
   // SWR for notifications - 2 minute cache (notifications are time-sensitive)
   const { data: logs, refresh, isValid } = useSWR<NotificationLogDTO[]>({

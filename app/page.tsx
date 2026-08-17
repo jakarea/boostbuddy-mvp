@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Globe, Shield, User, ArrowRight, Lock, CheckCircle2, AlertCircle, Send } from "lucide-react";
+import { Shield, User, ArrowRight, Lock, CheckCircle2, AlertCircle, Send } from "lucide-react";
 import Link from "next/link";
+import { BoostBuddyIcon } from "@/components/BoostBuddyIcon";
 import { signInAction, signUpAction } from "@/app/actions/auth";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "react-i18next";
@@ -88,7 +89,7 @@ export default function Home() {
         <div className="relative z-10">
           {/* Logo brand */}
           <div className="flex items-center gap-2 font-bold text-base tracking-tight text-[#168BB0]">
-            <Globe className="h-5 w-5 animate-spin-slow" />
+            <BoostBuddyIcon className="h-5 w-5" />
             <span>BOOSTBUDDY</span>
           </div>
         </div>
@@ -134,7 +135,7 @@ export default function Home() {
           {/* Header Mobile Brand */}
           <div className="lg:hidden text-center space-y-2 mb-4">
             <div className="inline-flex items-center gap-1.5 text-[#168BB0] dark:text-[#45B0D2] font-bold text-xs sm:text-sm uppercase tracking-wider">
-              <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
+              <BoostBuddyIcon className="h-4 w-4 sm:h-5 sm:w-5" />
               BoostBuddy Networks
             </div>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight">{t("mobile_title")}</h1>

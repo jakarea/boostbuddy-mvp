@@ -103,14 +103,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { href: "/a/invoices", label: t("nav.invoices", { defaultValue: "Invoices" }), icon: FileText },
       ],
     },
-    // 📂 SYSTEM
+    // 📂 NOTIFICATIONS
     {
-      id: "system",
-      label: t("nav.system", { defaultValue: "System" }),
+      id: "notifications",
+      label: t("nav.notifications", { defaultValue: "Notifications" }),
       icon: Bell,
-      items: [
-        { href: "/a/notifications", label: t("nav.notifications", { defaultValue: "Notifications" }), icon: Bell },
-      ],
+      href: "/a/notifications",
     },
   ];
 
