@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import CACHE_TTL from '@/lib/cache/cache-ttl';
 
 interface OverviewStats {
   totalOrders: number;

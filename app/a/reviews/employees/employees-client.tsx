@@ -48,6 +48,7 @@ import {
 import { formatDateShort } from "@/lib/dateUtils";
 import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import CACHE_TTL from '@/lib/cache/cache-ttl';
 
 interface EmployeePerformance {
   id: string;

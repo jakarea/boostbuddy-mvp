@@ -9,6 +9,7 @@ import { Bell, CheckCircle, Inbox, Search, X, ChevronLeft, ChevronRight, Loader2
 import { useTranslation } from "react-i18next";
 import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import CACHE_TTL from '@/lib/cache/cache-ttl';
 import { getNotificationsAction } from "@/app/actions/notifications";
 import { Button } from "@/components/ui/button";
 

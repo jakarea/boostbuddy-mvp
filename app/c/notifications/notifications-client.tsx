@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import UserTelegramConfig from "@/components/UserTelegramConfig";
 import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import CACHE_TTL from '@/lib/cache/cache-ttl';
 import { getNotificationsAction } from "@/app/actions/notifications";
 
 export interface NotificationLogDTO {

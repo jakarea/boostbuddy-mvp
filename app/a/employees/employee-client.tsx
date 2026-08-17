@@ -9,6 +9,7 @@ import { EmployeeUser } from "./components/types";
 import EmployeesList from "./components/EmployeesList";
 import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import CACHE_TTL from "@/lib/cache/cache-ttl";
 import { getEmployeesData } from "@/lib/data/employee";
 
 // Dynamic imports for code splitting

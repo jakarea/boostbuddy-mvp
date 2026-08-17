@@ -15,6 +15,7 @@ import { getNotificationsAction } from "@/app/actions/notifications";
 import { createClient } from "@/lib/supabase/client";
 import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import CACHE_TTL from '@/lib/cache/cache-ttl';
 
 export interface NotificationLogDTO {
   id: string;

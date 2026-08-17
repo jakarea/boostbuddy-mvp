@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS } from "@/lib/cache/cacheContext";
+import CACHE_TTL from '@/lib/cache/cache-ttl';
 import { getAdminOrdersData } from "@/lib/data/orders";
 
 // --- CONSTANTS (No Magic Strings) ---
