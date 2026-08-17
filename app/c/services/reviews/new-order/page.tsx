@@ -185,8 +185,8 @@ export default function NewReviewOrderPage() {
         const validUrlReviews = urlData.reviews.filter(r => r.trim().length > 0);
         totalReviews += validUrlReviews.length;
 
-        // Check max 10 reviews per URL
-        if (validUrlReviews.length > 10) {
+        // Check max 50 reviews per URL
+        if (validUrlReviews.length > 50) {
           setFieldErrors({ maxReviews: true });
           return;
         }
@@ -209,8 +209,8 @@ export default function NewReviewOrderPage() {
         }
       });
 
-      // Check total max 50 reviews across all URLs
-      if (totalReviews > 50) {
+      // Check total max 500 reviews across all URLs
+      if (totalReviews > 500) {
         setFieldErrors({ maxReviews: true });
         return;
       }
@@ -567,11 +567,11 @@ export default function NewReviewOrderPage() {
                               </span>
                             </label>
                             <span className="text-[10px] text-zinc-500">
-                              {currentUrlReviews.reviews.filter(r => r.trim()).length}/10
+                              {currentUrlReviews.reviews.filter(r => r.trim()).length}/50
                             </span>
                           </div>
                           {fieldErrors.maxReviews && (
-                            <p className="mb-2 text-[10px] text-red-600 dark:text-red-400">Maximum 10 reviews per URL</p>
+                            <p className="mb-2 text-[10px] text-red-600 dark:text-red-400">Maximum 50 reviews per URL</p>
                           )}
                           <div className="space-y-3">
                             {currentUrlReviews.reviews.map((content, reviewIndex) => (
@@ -678,7 +678,7 @@ export default function NewReviewOrderPage() {
                               </div>
                             ))}
                           </div>
-                          {currentUrlReviews.reviews.length < 10 && (
+                          {currentUrlReviews.reviews.length < 50 && (
                             <button
                               type="button"
                               onClick={() => {
@@ -693,7 +693,7 @@ export default function NewReviewOrderPage() {
                               className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-[#168BB0] hover:text-[#168BB0] transition-colors"
                             >
                               <Plus className="w-3.5 h-3.5" />
-                              + Add {orderType === "COMMENT_WITH_PHOTO" ? 'another comment' : 'another review'} for URL {index + 1} ({currentUrlReviews.reviews.length}/10)
+                              + Add {orderType === "COMMENT_WITH_PHOTO" ? 'another comment' : 'another review'} for URL {index + 1} ({currentUrlReviews.reviews.length}/50)
                             </button>
                           )}
                         </div>

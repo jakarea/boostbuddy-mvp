@@ -69,9 +69,9 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
         const urlData = orderData.urls[urlIndex];
         const urlReviews = urlData.reviewContents || [];
 
-        // Check max 10 reviews per URL
-        if (urlReviews.length > 10) {
-          return { success: false, error: `Maximum 10 reviews allowed per URL (URL ${urlIndex + 1} has ${urlReviews.length} reviews)` };
+        // Check max 50 reviews per URL
+        if (urlReviews.length > 50) {
+          return { success: false, error: `Maximum 50 reviews allowed per URL (URL ${urlIndex + 1} has ${urlReviews.length} reviews)` };
         }
 
         totalReviewsAcrossAllUrls += urlReviews.length;
@@ -102,9 +102,9 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
         }
       }
 
-      // Check total max 50 reviews across all URLs
-      if (totalReviewsAcrossAllUrls > 50) {
-        return { success: false, error: "Maximum 50 reviews allowed across all URLs" };
+      // Check total max 500 reviews across all URLs
+      if (totalReviewsAcrossAllUrls > 500) {
+        return { success: false, error: "Maximum 500 reviews allowed across all URLs" };
       }
 
       // Check if at least one review exists across all URLs
