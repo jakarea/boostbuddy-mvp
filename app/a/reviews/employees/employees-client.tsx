@@ -770,7 +770,7 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
                   <CheckCircle className="h-5 w-5 text-white/80" />
                   <span className="text-xs text-white/60 font-medium">{t("employees.summary.totalCompleted", "Completed")}</span>
                 </div>
-                <p className="text-3xl font-bold text-white">{employees.reduce((sum, e) => sum + e.ordersCompleted, 0)}</p>
+                <p className="text-3xl font-bold text-white">{employees.reduce((sum, e) => sum + (e.ordersCompleted || 0), 0)}</p>
                 <p className="text-xs text-white/70 mt-1">{t("employees.summary.orders", "total orders")}</p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
@@ -779,7 +779,7 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
                   <span className="text-xs text-white/60 font-medium">{t("employees.summary.avgPerEmp", "Avg per Employee")}</span>
                 </div>
                 <p className="text-3xl font-bold text-white">
-                  {employees.length > 0 ? (employees.reduce((sum, e) => sum + e.ordersCompleted, 0) / employees.length).toFixed(1) : '0'}
+                  {employees.length > 0 ? (employees.reduce((sum, e) => sum + (e.ordersCompleted || 0), 0) / employees.length).toFixed(1) : '0'}
                 </p>
                 <p className="text-xs text-white/70 mt-1">{t("employees.summary.completedOrders", "completed orders")}</p>
               </div>

@@ -18,6 +18,7 @@ import {
   Loader2,
   ArrowLeft,
   Copy,
+  Download,
   Image as ImageIcon,
   MessageSquare
 } from "lucide-react";
@@ -315,21 +316,46 @@ export default function OrderDetailClient({ order }: OrderDetailClientProps) {
               {getReviewTypeIcon(order.reviewType)}
             </span>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => copyToClipboard(order.reviewContent)}
-            className="shrink-0 gap-2"
-          >
-            <Copy className="h-4 w-4" />
-            {t("common.copy", "Copy")}
-          </Button>
         </div>
-        <div className="p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
-          <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
-            {order.reviewContent}
-          </p>
-        </div>
+
+        {/* Parse and display each review separately */}
+        {(() => {
+          let reviews: string[] = [];
+          try {
+            const parsed = JSON.parse(order.reviewContent);
+            if (Array.isArray(parsed)) {
+              reviews = parsed;
+            } else {
+              reviews = [order.reviewContent];
+            }
+          } catch {
+            reviews = [order.reviewContent];
+          }
+
+          return (
+            <div className="space-y-2">
+              {reviews.map((review, reviewIndex) => (
+                <div key={reviewIndex} className="p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="text-xs font-medium text-zinc-500">#{reviewIndex + 1}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard(review)}
+                      className="shrink-0 h-6 px-2"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap break-all">
+                    {review}
+                  </p>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
         {order.reviewInstructions && (
           <div className="mt-3 text-sm">
             <p className="font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -422,6 +448,71 @@ export default function OrderDetailClient({ order }: OrderDetailClientProps) {
                 )}
               </div>
             ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Photo URLs (fallback display) */}
+      {order.photoUrls && Array.isArray(order.photoUrls) && order.photoUrls.length > 0 && !order.photoReviews && (
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <ImageIcon className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
+            <h3 className="font-semibold">
+              {t("orders.photos", "Photos")} ({order.photoUrls.length})
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {order.photoUrls.map((photoItem: any, index) => {
+              // Handle both string URLs and nested arrays
+              const urls = typeof photoItem === 'string' ? [photoItem]
+                          : Array.isArray(photoItem) ? photoItem
+                          : [];
+              return urls.map((url: string, urlIndex: number) => (
+                <a
+                  key={`${index}-${urlIndex}`}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative group block"
+                >
+                  <img
+                    src={url}
+                    alt={`Photo ${index + 1}-${urlIndex + 1}`}
+                    className="w-full h-32 object-cover rounded border border-zinc-300 dark:border-zinc-700 hover:opacity-80 transition-opacity"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      copyToClipboard(url);
+                    }}
+                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-zinc-800/90 shadow-sm h-6 w-6 p-0"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `photo-${index + 1}.jpg`;
+                      a.click();
+                    }}
+                    className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-zinc-800/90 shadow-sm h-6 w-6 p-0"
+                  >
+                    <Download className="h-3 w-3" />
+                  </Button>
+                </a>
+              ));
+            })}
           </div>
         </Card>
       )}

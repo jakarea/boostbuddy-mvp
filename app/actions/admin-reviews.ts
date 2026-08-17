@@ -932,19 +932,7 @@ export async function getReviewOrderByIdAction(orderId: string) {
       .select(`
         *,
         users:user_id(name, email),
-        employees:assigned_employee_id(name, email),
-        review_urls(
-          id,
-          url,
-          quantity,
-          reaction_type,
-          review_index,
-          status,
-          assigned_employee_id,
-          assigned_at,
-          completed_at,
-          proof_of_completion
-        )
+        employees:assigned_employee_id(name, email)
       `)
       .eq("id", orderId)
       .single();
@@ -984,18 +972,7 @@ export async function getReviewOrderByIdAction(orderId: string) {
             photos: JSON.parse(order.photo_urls)[i] || []
           }))
         : null,
-      reviewUrls: Array.isArray(order.review_urls) ? order.review_urls.map((ru: any) => ({
-        id: ru.id,
-        url: ru.url,
-        quantity: ru.quantity,
-        reactionType: ru.reaction_type,
-        reviewIndex: ru.review_index,
-        status: ru.status,
-        assignedEmployeeId: ru.assigned_employee_id,
-        assignedAt: ru.assigned_at,
-        completedAt: ru.completed_at,
-        proofOfCompletion: ru.proof_of_completion
-      })) : [],
+      reviewUrls: [], // Table doesn't exist yet - empty array for now
       quantity: order.quantity,
       createdAt: order.created_at,
       updatedAt: order.updated_at

@@ -90,7 +90,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       items: [
         { href: "/c/services/reviews", label: t("nav.services_overview", { defaultValue: "Reviews" }), icon: ShoppingBag },
         { href: "#", label: t("nav.clocker", { defaultValue: "Clocker" }), icon: Clock, soon: true },
-        { href: "#", label: t("nav.prompt_engine", { defaultValue: "Prompt Engine" }), icon: MessageSquare, soon: true },
       ],
     },
     // 📂 FINANCE & BILLING
