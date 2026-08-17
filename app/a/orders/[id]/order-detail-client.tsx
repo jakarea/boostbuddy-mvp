@@ -38,7 +38,6 @@ interface ReviewOrder {
   quantity: number;
   creditsConsumed: number;
   status: string;
-  targetRating?: string;
   assignedEmployeeId?: string;
   assignedAt?: string;
   completedAt?: string;
@@ -544,10 +543,6 @@ export default function OrderDetailClient({ order }: OrderDetailClientProps) {
               <Coins className="h-4 w-4 text-zinc-400" />
               {order.creditsConsumed}
             </div>
-          </div>
-          <div>
-            <p className="text-zinc-500">{t("orders.targetRating", "Target Rating")}</p>
-            <p className="font-medium">{order.targetRating?.replace('_', ' ') || 'N/A'}</p>
           </div>
           <div>
             <p className="text-zinc-500">{t("orders.created", "Created")}</p>

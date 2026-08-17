@@ -184,7 +184,6 @@ model ReviewOrder {
 
   // Review Details
   reviewType            String   @map("review_type")   // "GOOGLE", "TRUSTPILOT", "YELP", etc.
-  targetRating          String   @map("target_rating") @default("5_STAR")   // "5_STAR", "4_STAR", "3_STAR", etc.
   reactionType          String   @map("reaction_type") @default("LIKE")     // "LIKE", "LOVE", "CARE", "HAHA", "WOW", "SAD", "ANGRY"
   reviewContent         String?  @map("review_content")   // The actual review text to post
   reviewInstructions    String?  @map("review_instructions")  // Additional instructions from client

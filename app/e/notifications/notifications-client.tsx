@@ -41,7 +41,11 @@ export default function EmployeeNotificationsClient({ initialLogs }: EmployeeNot
     key: CACHE_KEYS.EMPLOYEE_NOTIFICATIONS,
     fetcher: async (): Promise<NotificationLogDTO[]> => {
       const result = await getNotificationsAction();
-      return result.success ? (result.data as NotificationLogDTO[]) : [];
+      if (result.success) {
+        return result.data as NotificationLogDTO[];
+      }
+      // Return existing data instead of empty array on error
+      throw new Error(result.error || 'Failed to fetch notifications');
     },
     ttl: 2 * 60 * 1000,
     initialData: initialLogs,

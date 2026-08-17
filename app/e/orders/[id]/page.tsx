@@ -43,7 +43,6 @@ interface ReviewOrder {
   quantity: number;
   creditsConsumed: number;
   status: string;
-  targetRating?: string;
   assignedEmployeeId?: string;
   assignedAt?: string;
   completedAt?: string;
@@ -448,21 +447,46 @@ export default function EmployeeOrderDetailPage() {
               {getReviewTypeIcon(order.reviewType)}
             </span>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => copyToClipboard(order.reviewContent)}
-            className="shrink-0 gap-2"
-          >
-            <Copy className="h-4 w-4" />
-            Copy
-          </Button>
         </div>
-        <div className="p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
-          <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
-            {order.reviewContent}
-          </p>
-        </div>
+
+        {/* Parse and display each review separately */}
+        {(() => {
+          let reviews: string[] = [];
+          try {
+            const parsed = JSON.parse(order.reviewContent);
+            if (Array.isArray(parsed)) {
+              reviews = parsed;
+            } else {
+              reviews = [order.reviewContent];
+            }
+          } catch {
+            reviews = [order.reviewContent];
+          }
+
+          return (
+            <div className="space-y-2">
+              {reviews.map((review, reviewIndex) => (
+                <div key={reviewIndex} className="p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="text-xs font-medium text-zinc-500">#{reviewIndex + 1}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard(review)}
+                      className="shrink-0 h-6 px-2"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap break-all">
+                    {review}
+                  </p>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
         {order.reviewInstructions && (
           <div className="mt-3 text-sm">
             <p className="font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -575,10 +599,6 @@ export default function EmployeeOrderDetailPage() {
           <div>
             <p className="text-zinc-500">Quantity</p>
             <p className="font-medium">{order.quantity || 1}</p>
-          </div>
-          <div>
-            <p className="text-zinc-500">Target Rating</p>
-            <p className="font-medium">{order.targetRating?.replace(/_/g, " ") || "N/A"}</p>
           </div>
           <div>
             <p className="text-zinc-500">Created</p>

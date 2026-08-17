@@ -75,7 +75,6 @@ export type ReviewOrderData = {
   quantity: number;
   reactionType?: ReactionType; // Facebook reaction: LIKE, LOVE, CARE, HAHA, WOW, SAD, ANGRY
   // Review-specific fields
-  targetRating?: "5_STAR" | "4_STAR" | "3_STAR" | "2_STAR" | "1_STAR";
   content?: string; // Review content or comment text
   commentText?: string; // For COMMENT and COMMENT_WITH_PHOTO (legacy single comment)
   comments?: string[]; // Multiple comments for COMMENT types (1-50)
@@ -450,7 +449,6 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
       order_type: orderData.orderType,
       facebook_url: orderData.facebookUrl,
       quantity: orderData.quantity,
-      target_rating: "5_STAR", // Always default to 5_STAR - hidden from UI
       reaction_type: orderData.reactionType || "LIKE", // Default to LIKE
       content: null, // Not used in new system
       comment_text: finalCommentText, // Pipe-separated multiple comments/reviews
@@ -583,7 +581,7 @@ export async function getClientReviewOrdersAction(filters?: ReviewOrderFilter) {
     const supabase = await createClient();
     let query = supabase
       .from("review_orders")
-      .select("id, user_id, status, target_rating, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at")
+      .select("id, user_id, status, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at")
       .eq("user_id", auth.user.id)
       .order("created_at", { ascending: false });
 
@@ -603,7 +601,6 @@ export async function getClientReviewOrdersAction(filters?: ReviewOrderFilter) {
     // Normalize database column names from snake_case to camelCase
     const normalizedData = data?.map((order: any) => ({
       ...order,
-      targetRating: order.target_rating,
       facebookUrl: order.facebook_url,
       businessName: order.business_name,
       orderType: order.order_type,
@@ -656,7 +653,7 @@ export async function getReviewOrderDetailAction(orderId: string) {
     // Fetch the order first (using regular client to verify ownership)
     const { data, error } = await supabase
       .from("review_orders")
-      .select("id, user_id, status, target_rating, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at")
+      .select("id, user_id, status, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at")
       .eq("id", orderId)
       .eq("user_id", auth.user.id)
       .single();
@@ -686,7 +683,6 @@ export async function getReviewOrderDetailAction(orderId: string) {
     // Normalize database column names from snake_case to camelCase
     const normalizedData = {
       ...data,
-      targetRating: data.target_rating,
       facebookUrl: data.facebook_url,
       businessName: data.business_name,
       orderType: data.order_type,
@@ -764,7 +760,7 @@ export async function getReviewsDashboardAction() {
       supabase.from("users").select("credits_balance").eq("id", auth.user.id).single(),
       supabase.from("review_credit_pricing").select("order_type, credits_per_unit").eq("is_active", true),
       supabase.from("review_orders")
-        .select("id, business_name, review_type, target_rating, status, created_at, order_type, facebook_url")
+        .select("id, business_name, review_type, status, created_at, order_type, facebook_url")
         .eq("user_id", auth.user.id)
         .order("created_at", { ascending: false })
         .limit(5)
@@ -785,7 +781,6 @@ export async function getReviewsDashboardAction() {
       id: order.id,
       businessName: order.business_name,
       reviewType: order.review_type,
-      targetRating: order.target_rating,
       status: order.status,
       createdAt: order.created_at,
       orderType: order.order_type,

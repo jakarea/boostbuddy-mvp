@@ -31,8 +31,10 @@ export default async function EmployeeOrderHistoryPage() {
     ? availableResult.data
     : [];
 
-  // Combine orders - show assigned orders first, then available
-  const allOrders = [...assignedOrders, ...availableOrders];
+  // Combine orders and sort by created_at descending (newest first)
+  const allOrders = [...assignedOrders, ...availableOrders].sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
   const totalCount = assignedOrders.length + availableOrders.length;
   const totalRevenue = allOrders.reduce((sum, o) => sum + (o.creditsConsumed || 0), 0);

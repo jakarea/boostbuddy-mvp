@@ -24,7 +24,6 @@ export type ReviewOrderData = {
   businessName: string;
   businessUrl?: string;
   reviewType: "GOOGLE" | "TRUSTPILOT" | "YELP" | "FACEBOOK" | "AMAZON";
-  targetRating: "5_STAR" | "4_STAR" | "3_STAR" | "2_STAR" | "1_STAR";
   reviewContent: string;
   reviewInstructions?: string;
 };
@@ -117,8 +116,7 @@ export async function getAllReviewOrdersAction(filters?: ReviewOrderFilter) {
       const normalizedOrder = {
         ...order,
         // Normalize database column names from snake_case to camelCase
-        targetRating: order.target_rating,
-        facebookUrl: order.facebook_url,
+          facebookUrl: order.facebook_url,
         businessName: order.business_name,
         orderType: order.order_type,
         reviewType: order.review_type,
@@ -562,7 +560,7 @@ export async function getPendingOrdersQueueAction() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("review_orders")
-      .select("id, business_name, review_type, target_rating, credits_consumed, created_at")
+      .select("id, business_name, review_type, credits_consumed, created_at")
       .eq("status", "PENDING")
       .order("created_at", { ascending: true });
 
@@ -573,7 +571,6 @@ export async function getPendingOrdersQueueAction() {
       id: order.id,
       businessName: order.business_name,
       reviewType: order.review_type,
-      targetRating: order.target_rating,
       creditsConsumed: order.credits_consumed,
       createdAt: order.created_at
     })) || [];
@@ -945,7 +942,6 @@ export async function getReviewOrderByIdAction(orderId: string) {
     // Normalize field names from snake_case to camelCase
     const normalizedOrder = {
       ...order,
-      targetRating: order.target_rating,
       facebookUrl: order.facebook_url,
       businessName: order.business_name,
       orderType: order.order_type,

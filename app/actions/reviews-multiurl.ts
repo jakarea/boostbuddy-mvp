@@ -253,7 +253,6 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
         order_type: orderData.orderType,
         quantity: normalizedTotalQuantity, // Use normalized total quantity
         total_urls: orderData.urls.length, // Store the total number of URLs
-        target_rating: "5_STAR",
         reaction_type: sharedReactionType,
         credits_consumed: requiredCredits,
         review_content: allReviewContents.length > 0 ? JSON.stringify(allReviewContents) : null, // Store aggregated reviews

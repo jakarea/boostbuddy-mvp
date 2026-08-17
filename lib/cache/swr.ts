@@ -68,6 +68,7 @@ export function useSWR<T>({
       setLastFetch(Date.now());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fetch failed');
+      // Don't clear data on error - preserve existing data
     } finally {
       setLoading(false);
       isFetchingRef.current = false;
