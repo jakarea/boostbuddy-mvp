@@ -254,9 +254,11 @@ async function attemptNotificationRetry(notification: any, botToken: string): Pr
     // For now, this is a placeholder
     console.log(`[CRON] Would retry notification ${notification.id} to ${notification.recipient}`);
 
-    // Simulate success for demo purposes
-    // In production, implement actual retry logic
-    return Math.random() > 0.3; // 70% success rate for demo
+    // TODO: Implement actual retry logic with Telegram API
+    // 1. Get user's telegram_chat_id from users table
+    // 2. Send notification via Telegram Bot API
+    // 3. Return true on success, false on failure
+    return true; // Always return success until actual retry is implemented
 
   } catch (error) {
     console.error(`[CRON] Retry failed for notification ${notification.id}:`, error);

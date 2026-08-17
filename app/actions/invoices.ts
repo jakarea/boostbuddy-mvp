@@ -10,7 +10,7 @@ import { randomUUID } from 'crypto';
 
 const generateSafeFileName = (originalName: string): string => {
   const fileExt = originalName.split('.').pop() || 'pdf';
-  return `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+  return `${Date.now()}_${randomUUID()}.${fileExt}`;
 };
 
 const formatFileSize = (bytes: number): string => {

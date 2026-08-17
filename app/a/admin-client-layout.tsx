@@ -9,7 +9,6 @@ import {
   Inbox,
   Eye,
   FileText,
-  History,
   Settings,
   Wallet as WalletIcon,
   Sliders,
