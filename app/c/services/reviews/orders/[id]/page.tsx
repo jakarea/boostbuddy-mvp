@@ -209,7 +209,7 @@ export default function ReviewOrderDetailPage() {
                     {urlItem.url}
                   </a>
                   <span className="text-zinc-600 dark:text-zinc-400 text-sm">×{urlItem.quantity}</span>
-                  {urlItem.reactionType && (
+                  {order.orderType === "COMMENT" && urlItem.reactionType && (
                     <span className="text-xl">{urlItem.reactionType === "LIKE" ? "👍" :
                           urlItem.reactionType === "LOVE" ? "❤️" :
                           urlItem.reactionType === "CARE" ? "🤗" :

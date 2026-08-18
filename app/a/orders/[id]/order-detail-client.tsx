@@ -43,6 +43,7 @@ interface ReviewOrder {
   users?: { name: string; email: string };
   employees?: { name: string; email: string };
   comments?: string[];
+  commentText?: string;
   photoUrls?: string[] | string[][];
   photoReviews?: { text: string; photos: string[] }[];
   reviewUrls?: {
@@ -247,7 +248,7 @@ export default function OrderDetailClient({ order }: OrderDetailClientProps) {
                     {urlItem.url}
                   </a>
                   <span className="text-zinc-600 dark:text-zinc-400 text-sm">×{urlItem.quantity}</span>
-                  {urlItem.reactionType && (
+                  {order.orderType === "COMMENT" && urlItem.reactionType && (
                     <span className="text-xl">{urlItem.reactionType === "LIKE" ? "👍" :
                           urlItem.reactionType === "LOVE" ? "❤️" :
                           urlItem.reactionType === "CARE" ? "🤗" :
