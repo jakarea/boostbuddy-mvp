@@ -1058,8 +1058,9 @@ export async function getReviewOrderByIdAction(orderId: string) {
       return { success: false, error: "Order not found" };
     }
 
-    // Fetch review_urls (fetch unconditionally like client action does)
-    const { data: urls, error: urlsError } = await supabase
+    // Fetch review_urls using admin client (bypasses RLS)
+    const adminClient = createAdminClient();
+    const { data: urls, error: urlsError } = await adminClient
       .from("review_urls")
       .select("id, url, quantity, reaction_type, review_content, photo_urls, review_index, status, assigned_employee_id, assigned_at, completed_at, proof_of_completion")
       .eq("review_order_id", orderId)
