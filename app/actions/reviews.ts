@@ -445,6 +445,11 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
     // Create order with new field structure
     console.log("📍 [ORDER] Creating order in database...");
 
+    // Only set reactionType for COMMENT orders, not for REVIEW or COMMENT_WITH_PHOTO
+    const finalReactionType = orderData.orderType === "COMMENT"
+      ? (orderData.reactionType || "LIKE")
+      : null;
+
     const orderPayload = {
       id: orderId,
       user_id: auth.user.id,
@@ -454,7 +459,7 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
       order_type: orderData.orderType,
       facebook_url: orderData.facebookUrl,
       quantity: orderData.quantity,
-      reaction_type: orderData.reactionType || "LIKE", // Default to LIKE
+      reaction_type: finalReactionType,
       content: null, // Not used in new system
       comment_text: finalCommentText, // Pipe-separated multiple comments/reviews
       comment_count: commentCount, // Number of reviews/reactions (1-50)

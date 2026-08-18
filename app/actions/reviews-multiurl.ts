@@ -230,10 +230,10 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
     const businessName = orderData.businessName || extractBusinessNameFromUrl(orderData.urls[0].url);
 
     // For COMMENT orders, use the first URL's reaction type as the shared reaction type
-    // For other order types, this will be undefined/default
+    // For other order types (REVIEW, COMMENT_WITH_PHOTO), this should be null
     const sharedReactionType = orderData.orderType === "COMMENT"
       ? (orderData.urls[0]?.reactionType || "LIKE")
-      : (orderData.urls[0]?.reactionType || "LIKE");
+      : null;
 
     console.log("🧪 [DEBUG] Order type:", orderData.orderType);
     console.log("🧪 [DEBUG] First URL reactionType:", orderData.urls[0]?.reactionType);
@@ -292,12 +292,17 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
       const urlReviews = originalUrlData.reviewContents || [];
       const urlPhotos = originalUrlData.photos || [];
 
+      // Only set reaction_type for COMMENT orders, null for REVIEW and COMMENT_WITH_PHOTO
+      const urlReactionType = orderData.orderType === "COMMENT"
+        ? (urlData.reactionType || "LIKE")
+        : null;
+
       return {
         id: randomUUID(),
         review_order_id: orderId,
         url: urlData.url.trim(),
         quantity: urlData.quantity, // Number of reviews for this URL
-        reaction_type: urlData.reactionType || "LIKE",
+        reaction_type: urlReactionType,
         review_content: urlReviews.length > 0 ? JSON.stringify(urlReviews) : null,
         photo_urls: urlPhotos.length > 0 ? JSON.stringify(urlPhotos) : null,
         review_index: index,

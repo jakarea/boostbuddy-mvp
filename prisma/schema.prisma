@@ -193,7 +193,7 @@ model ReviewOrder {
 
   // Review Details
   reviewType            String   @map("review_type")   // "GOOGLE", "TRUSTPILOT", "YELP", etc.
-  reactionType          String   @map("reaction_type") @default("LIKE")     // "LIKE", "LOVE", "CARE", "HAHA", "WOW", "SAD", "ANGRY"
+  reactionType          String?  @map("reaction_type")  // "LIKE", "LOVE", "CARE", "HAHA", "WOW", "SAD", "ANGRY" (only for COMMENT orders)
   reviewContent         String?  @map("review_content")   // The actual review text to post
   reviewInstructions    String?  @map("review_instructions")  // Additional instructions from client
   commentText           String?  @map("comment_text")   // Comment text for COMMENT types (comma-separated multiple comments)
@@ -377,7 +377,7 @@ model ReviewUrl {
 
   url                 String
   quantity            Int      @default(1)  // Number of reviews for this URL
-  reactionType        String?  @map("reaction_type")  // For COMMENT orders: LIKE, LOVE, CARE, WOW
+  reactionType        String?  @map("reaction_type")  // For COMMENT orders only: LIKE, LOVE, CARE, WOW (null for REVIEW orders)
   reviewContent       String?  @map("review_content")  // JSON array of review texts for this URL
   photoUrls           String?  @map("photo_urls")  // JSON array of photo arrays (each review can have photos)
   reviewIndex         Int      @map("review_index")
