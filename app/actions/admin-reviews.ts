@@ -1057,6 +1057,33 @@ export async function getReviewOrderByIdAction(orderId: string) {
       return { success: false, error: "Order not found" };
     }
 
+    // Fetch review_urls if this is a multi-URL order
+    let reviewUrlsData: any[] = [];
+    if (order.total_urls > 0) {
+      const { data: urls } = await supabase
+        .from("review_urls")
+        .select("id, url, quantity, reaction_type, review_content, photo_urls, review_index, status, assigned_employee_id, assigned_at, completed_at, proof_of_completion")
+        .eq("review_order_id", orderId)
+        .order("review_index", { ascending: true });
+
+      if (urls) {
+        reviewUrlsData = urls.map((ru: any) => ({
+          id: ru.id,
+          url: ru.url,
+          quantity: ru.quantity,
+          reactionType: ru.reaction_type,
+          reviewContent: ru.review_content,
+          photos: ru.photo_urls ? JSON.parse(ru.photo_urls) : null,
+          reviewIndex: ru.review_index,
+          status: ru.status,
+          assignedEmployeeId: ru.assigned_employee_id,
+          assignedAt: ru.assigned_at,
+          completedAt: ru.completed_at,
+          proofOfCompletion: ru.proof_of_completion
+        }));
+      }
+    }
+
     // Normalize field names from snake_case to camelCase
     const normalizedOrder = {
       ...order,
@@ -1086,7 +1113,7 @@ export async function getReviewOrderByIdAction(orderId: string) {
             photos: JSON.parse(order.photo_urls)[i] || []
           }))
         : null,
-      reviewUrls: [], // Table doesn't exist yet - empty array for now
+      reviewUrls: reviewUrlsData,
       quantity: order.quantity,
       createdAt: order.created_at,
       updatedAt: order.updated_at
