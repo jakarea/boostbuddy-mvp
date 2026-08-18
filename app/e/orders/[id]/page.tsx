@@ -366,34 +366,34 @@ export default function EmployeeOrderDetailPage() {
             ))}
           </div>
         </Card>
-      ) : (
-        /* Legacy single URL system */
-        order.businessUrl && (
-          <Card className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <ExternalLink className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <h3 className="font-semibold">Review URL</h3>
-            </div>
-            <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900/30">
-              <a
-                href={order.businessUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-700 dark:text-blue-300 font-medium hover:underline truncate flex-1"
-              >
-                {order.businessUrl}
-              </a>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => copyToClipboard(order.businessUrl!)}
-                className="shrink-0"
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-          </Card>
-        )
+      ) : null}
+
+      {/* Legacy single URL system - show when no multi-URLs */}
+      {(!order.reviewUrls || order.reviewUrls.length === 0) && order.businessUrl && (
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <ExternalLink className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <h3 className="font-semibold">Review URL</h3>
+          </div>
+          <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900/30">
+            <a
+              href={order.businessUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-blue-700 dark:text-blue-300 font-medium hover:underline truncate flex-1"
+            >
+              {order.businessUrl}
+            </a>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => copyToClipboard(order.businessUrl!)}
+              className="shrink-0"
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </Card>
       )}
 
       {/* Review Content */}
