@@ -182,8 +182,8 @@ export default function EmployeeCompletedOrdersClient({
           <CalendarIcon className="h-4 w-4 text-zinc-500" />
           <select
             value={dateRange}
-            onChange={(e) => {
-              const value = e.currentTarget?.value || "all";
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+              const value = e.target.value;
               handleDateRangeChange(value as typeof dateRange);
               if (value !== "custom") {
                 setShowDatePicker(false);
@@ -220,7 +220,7 @@ export default function EmployeeCompletedOrdersClient({
               <input
                 type="date"
                 value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.currentTarget?.value || "")}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomStartDate(e.target.value)}
                 className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
               />
             </div>
@@ -232,7 +232,7 @@ export default function EmployeeCompletedOrdersClient({
               <input
                 type="date"
                 value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.currentTarget?.value || "")}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomEndDate(e.target.value)}
                 className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
               />
             </div>
@@ -441,7 +441,7 @@ export default function EmployeeCompletedOrdersClient({
 
                 <select
                   value={itemsPerPage}
-                  onChange={(e) => handleItemsPerPageChange(Number(e.currentTarget?.value || "20"))}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleItemsPerPageChange(Number(e.target.value))}
                   className="h-8 border border-zinc-300 dark:border-zinc-600 rounded px-2 text-sm bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50"
                 >
                   <option value="10">10 / page</option>
