@@ -42,36 +42,12 @@ function sanitizeComment(text: string): string {
 
 /**
  * Extract a display name from Facebook URL
- * Generates a readable name like "Facebook Page Order" or uses URL path
+ * Returns a generic name since Facebook URLs don't contain meaningful business names
  */
 function extractBusinessNameFromUrl(url: string): string {
-  try {
-    // Clean up the URL
-    const cleanUrl = url.trim();
-
-    // Try to extract something meaningful from the URL
-    const urlObj = new URL(cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`);
-    const pathParts = urlObj.pathname.split('/').filter(p => p && p !== 'groups' && p !== 'user' && p !== 'posts');
-
-    // If we have meaningful path parts, use them
-    if (pathParts.length > 0) {
-      const lastPart = pathParts[pathParts.length - 1];
-      // If it looks like an ID (numbers only), use a generic name
-      if (/^\d+$/.test(lastPart)) {
-        return `Facebook Review Order`;
-      }
-      // Otherwise capitalize and use it
-      return lastPart
-        .split(/[-_]/)
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-    }
-
-    // Fallback to generic name
-    return `Facebook Review Order`;
-  } catch {
-    return `Facebook Review Order`;
-  }
+  // Always return a generic name for Facebook orders
+  // Facebook URLs contain paths like "watch", "profile.php", etc. which aren't business names
+  return `Facebook Review Order`;
 }
 
 export type ReviewOrderData = {

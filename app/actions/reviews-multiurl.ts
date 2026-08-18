@@ -932,28 +932,12 @@ export async function submitUrlTaskCompletionAction(urlTaskId: string, proof: st
 
 /**
  * Extract a display name from Facebook URL
+ * Returns a generic name since Facebook URLs don't contain meaningful business names
  */
 function extractBusinessNameFromUrl(url: string): string {
-  try {
-    const cleanUrl = url.trim();
-    const urlObj = new URL(cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`);
-    const pathParts = urlObj.pathname.split('/').filter(p => p && p !== 'groups' && p !== 'user' && p !== 'posts');
-
-    if (pathParts.length > 0) {
-      const lastPart = pathParts[pathParts.length - 1];
-      if (/^\d+$/.test(lastPart)) {
-        return "Facebook Review Order";
-      }
-      return lastPart
-        .split(/[-_]/)
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-    }
-
-    return "Facebook Review Order";
-  } catch {
-    return "Facebook Review Order";
-  }
+  // Always return a generic name for Facebook orders
+  // Facebook URLs contain paths like "watch", "profile.php", etc. which aren't business names
+  return "Facebook Review Order";
 }
 
 // All exports are named exports above - no default export needed
