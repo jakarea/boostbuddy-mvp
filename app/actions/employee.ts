@@ -1086,36 +1086,31 @@ export async function getReviewOrderByIdAction(orderId: string) {
     if (error) throw error;
     if (!data) return { success: false, error: "Order not found" };
 
-    // Fetch review_urls if this is a multi-URL order
-    let reviewUrlsData: any[] = [];
-    console.log("🔍 [EMPLOYEE ORDER DEBUG] total_urls:", data.total_urls);
-    if (data.total_urls > 0) {
-      const { data: urls, error: urlsError } = await supabase
-        .from("review_urls")
-        .select("id, url, quantity, reaction_type, review_content, photo_urls, review_index, status, assigned_employee_id, assigned_at, completed_at, proof_of_completion")
-        .eq("review_order_id", orderId)
-        .order("review_index", { ascending: true });
+    // Fetch review_urls (fetch unconditionally like client action does)
+    const { data: urls, error: urlsError } = await supabase
+      .from("review_urls")
+      .select("id, url, quantity, reaction_type, review_content, photo_urls, review_index, status, assigned_employee_id, assigned_at, completed_at, proof_of_completion")
+      .eq("review_order_id", orderId)
+      .order("review_index", { ascending: true });
 
-      console.log("🔍 [EMPLOYEE ORDER DEBUG] urls from review_urls table:", urls);
-      console.log("🔍 [EMPLOYEE ORDER DEBUG] urls error:", urlsError);
+    console.log("🔍 [EMPLOYEE ORDER DEBUG] urls from review_urls table:", urls);
+    console.log("🔍 [EMPLOYEE ORDER DEBUG] urls error:", urlsError);
 
-      if (urls) {
-        reviewUrlsData = urls.map((ru: any) => ({
-          id: ru.id,
-          url: ru.url,
-          quantity: ru.quantity,
-          reactionType: ru.reaction_type,
-          reviewIndex: ru.review_index,
-          status: ru.status,
-          reviewContent: ru.review_content,
-          photos: ru.photo_urls ? JSON.parse(ru.photo_urls) : null,
-          assignedEmployeeId: ru.assigned_employee_id,
-          assignedAt: ru.assigned_at,
-          completedAt: ru.completed_at,
-          proofOfCompletion: ru.proof_of_completion
-        }));
-      }
-    }
+    const reviewUrlsData = urls?.map((ru: any) => ({
+      id: ru.id,
+      url: ru.url,
+      quantity: ru.quantity,
+      reactionType: ru.reaction_type,
+      reviewIndex: ru.review_index,
+      status: ru.status,
+      reviewContent: ru.review_content,
+      photos: ru.photo_urls ? JSON.parse(ru.photo_urls) : null,
+      assignedEmployeeId: ru.assigned_employee_id,
+      assignedAt: ru.assigned_at,
+      completedAt: ru.completed_at,
+      proofOfCompletion: ru.proof_of_completion
+    })) || [];
+
     console.log("🔍 [EMPLOYEE ORDER DEBUG] final reviewUrlsData:", reviewUrlsData);
 
     // Normalize field names - ensure we handle both array and single object returns

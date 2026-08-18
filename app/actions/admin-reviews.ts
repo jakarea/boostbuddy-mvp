@@ -1058,36 +1058,31 @@ export async function getReviewOrderByIdAction(orderId: string) {
       return { success: false, error: "Order not found" };
     }
 
-    // Fetch review_urls if this is a multi-URL order
-    let reviewUrlsData: any[] = [];
-    console.log("🔍 [ADMIN ORDER DEBUG] total_urls:", order.total_urls);
-    if (order.total_urls > 0) {
-      const { data: urls, error: urlsError } = await supabase
-        .from("review_urls")
-        .select("id, url, quantity, reaction_type, review_content, photo_urls, review_index, status, assigned_employee_id, assigned_at, completed_at, proof_of_completion")
-        .eq("review_order_id", orderId)
-        .order("review_index", { ascending: true });
+    // Fetch review_urls (fetch unconditionally like client action does)
+    const { data: urls, error: urlsError } = await supabase
+      .from("review_urls")
+      .select("id, url, quantity, reaction_type, review_content, photo_urls, review_index, status, assigned_employee_id, assigned_at, completed_at, proof_of_completion")
+      .eq("review_order_id", orderId)
+      .order("review_index", { ascending: true });
 
-      console.log("🔍 [ADMIN ORDER DEBUG] urls from review_urls table:", urls);
-      console.log("🔍 [ADMIN ORDER DEBUG] urls error:", urlsError);
+    console.log("🔍 [ADMIN ORDER DEBUG] urls from review_urls table:", urls);
+    console.log("🔍 [ADMIN ORDER DEBUG] urls error:", urlsError);
 
-      if (urls) {
-        reviewUrlsData = urls.map((ru: any) => ({
-          id: ru.id,
-          url: ru.url,
-          quantity: ru.quantity,
-          reactionType: ru.reaction_type,
-          reviewContent: ru.review_content,
-          photos: ru.photo_urls ? JSON.parse(ru.photo_urls) : null,
-          reviewIndex: ru.review_index,
-          status: ru.status,
-          assignedEmployeeId: ru.assigned_employee_id,
-          assignedAt: ru.assigned_at,
-          completedAt: ru.completed_at,
-          proofOfCompletion: ru.proof_of_completion
-        }));
-      }
-    }
+    const reviewUrlsData = urls?.map((ru: any) => ({
+      id: ru.id,
+      url: ru.url,
+      quantity: ru.quantity,
+      reactionType: ru.reaction_type,
+      reviewContent: ru.review_content,
+      photos: ru.photo_urls ? JSON.parse(ru.photo_urls) : null,
+      reviewIndex: ru.review_index,
+      status: ru.status,
+      assignedEmployeeId: ru.assigned_employee_id,
+      assignedAt: ru.assigned_at,
+      completedAt: ru.completed_at,
+      proofOfCompletion: ru.proof_of_completion
+    })) || [];
+
     console.log("🔍 [ADMIN ORDER DEBUG] final reviewUrlsData:", reviewUrlsData);
 
     // Normalize field names from snake_case to camelCase
