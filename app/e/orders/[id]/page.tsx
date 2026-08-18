@@ -397,15 +397,6 @@ export default function EmployeeOrderDetailPage() {
         </Card>
       ) : null}
 
-      {/* Debug: Show what we're receiving */}
-      <Card className="p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-        <p className="text-xs text-yellow-800 dark:text-yellow-300">
-          Debug: businessUrl={String(!!order.businessUrl)} facebookUrl={String(!!order.facebookUrl)}<br/>
-          reviewUrls.length={order.reviewUrls?.length || 0}<br/>
-          reviewUrls={JSON.stringify(order.reviewUrls || [])}
-        </p>
-      </Card>
-
       {/* Review Content */}
       {order.reviewContent && order.reviewContent.trim() && (
       <Card className="p-4">

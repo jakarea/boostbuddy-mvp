@@ -1060,14 +1060,11 @@ export async function getReviewOrderByIdAction(orderId: string) {
 
     // Fetch review_urls using admin client (bypasses RLS)
     const adminClient = createAdminClient();
-    const { data: urls, error: urlsError } = await adminClient
+    const { data: urls } = await adminClient
       .from("review_urls")
       .select("id, url, quantity, reaction_type, review_content, photo_urls, review_index, status, assigned_employee_id, assigned_at, completed_at, proof_of_completion")
       .eq("review_order_id", orderId)
       .order("review_index", { ascending: true });
-
-    console.log("🔍 [ADMIN ORDER DEBUG] urls from review_urls table:", urls);
-    console.log("🔍 [ADMIN ORDER DEBUG] urls error:", urlsError);
 
     const reviewUrlsData = urls?.map((ru: any) => ({
       id: ru.id,
@@ -1083,8 +1080,6 @@ export async function getReviewOrderByIdAction(orderId: string) {
       completedAt: ru.completed_at,
       proofOfCompletion: ru.proof_of_completion
     })) || [];
-
-    console.log("🔍 [ADMIN ORDER DEBUG] final reviewUrlsData:", reviewUrlsData);
 
     // Normalize field names from snake_case to camelCase
     const normalizedOrder = {

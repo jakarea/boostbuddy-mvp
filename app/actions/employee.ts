@@ -1089,14 +1089,11 @@ export async function getReviewOrderByIdAction(orderId: string) {
     // Fetch review_urls using admin client (bypasses RLS)
     // Safe because we've already verified this order is assigned to this employee
     const adminClient = createAdminClient();
-    const { data: urls, error: urlsError } = await adminClient
+    const { data: urls } = await adminClient
       .from("review_urls")
       .select("id, url, quantity, reaction_type, review_content, photo_urls, review_index, status, assigned_employee_id, assigned_at, completed_at, proof_of_completion")
       .eq("review_order_id", orderId)
       .order("review_index", { ascending: true });
-
-    console.log("🔍 [EMPLOYEE ORDER DEBUG] urls from review_urls table:", urls);
-    console.log("🔍 [EMPLOYEE ORDER DEBUG] urls error:", urlsError);
 
     const reviewUrlsData = urls?.map((ru: any) => ({
       id: ru.id,
@@ -1112,8 +1109,6 @@ export async function getReviewOrderByIdAction(orderId: string) {
       completedAt: ru.completed_at,
       proofOfCompletion: ru.proof_of_completion
     })) || [];
-
-    console.log("🔍 [EMPLOYEE ORDER DEBUG] final reviewUrlsData:", reviewUrlsData);
 
     // Normalize field names - ensure we handle both array and single object returns
     const usersData = Array.isArray(data.users) ? (data.users.length > 0 ? data.users[0] : null) : data.users;
