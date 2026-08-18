@@ -637,19 +637,6 @@ export default function NewReviewOrderPage() {
               )}
             </div>
 
-            {/* Add Another URL Button */}
-            {urls.length < 10 && (
-              <button
-                type="button"
-                onClick={addUrl}
-                className="mt-4 text-sm text-[#007bff] hover:underline flex items-center gap-1"
-              >
-                <Plus className="w-4 h-4" />
-                Add Another URL ({urls.length}/10)
-              </button>
-            )}
-          </div>
-
           {/* Summary Section */}
           <div className="p-4 border-t border-gray-200 dark:border-zinc-700">
             <div className="grid grid-cols-2 gap-4">
