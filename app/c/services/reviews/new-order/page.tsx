@@ -455,7 +455,7 @@ export default function NewReviewOrderPage() {
                           URL {urlIndex + 1}
                         </span>
                       </div>
-                      {urls.length > 1 && (
+                      {urlIndex > 0 && (
                         <button
                           onClick={() => removeUrl(urlIndex)}
                           className="text-gray-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-colors p-1 rounded hover:bg-gray-200 dark:hover:bg-zinc-700"
