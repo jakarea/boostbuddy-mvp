@@ -3,7 +3,7 @@
 import { useContext, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Copy, Download, Package, Check, Link as LinkIcon, FileText, ImageIcon, MessageSquare } from "lucide-react";
+import { Copy, Download, Package, Check, Link as LinkIcon, FileText, ImageIcon, MessageSquare, Coins } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { getReviewOrderDetailAction } from "@/app/actions/reviews";
@@ -169,6 +169,10 @@ export default function ReviewOrderDetailPage() {
             </p>
           </div>
           <div>
+            <p className="text-xs text-zinc-500">Credits</p>
+            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{order.creditsConsumed}</p>
+          </div>
+          <div>
             <p className="text-xs text-zinc-500">Created</p>
             <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{formatDateTime(order.createdAt)}</p>
           </div>
@@ -271,14 +275,14 @@ export default function ReviewOrderDetailPage() {
         </Card>
       ) : null}
 
-      {/* Reviews Section */}
+      {/* Reviews Section - List format like URLs */}
       {hasUrls && order.reviewUrls.some((u: any) => u.reviewContent) ? (
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-4">
             <FileText className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
             <h3 className="font-semibold text-lg">Reviews</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="space-y-2">
             {order.reviewUrls.map((urlItem: any, urlIndex: number) => {
               if (!urlItem.reviewContent) return null;
               let reviews: string[] = [];
@@ -298,38 +302,34 @@ export default function ReviewOrderDetailPage() {
                   <div className="flex items-center gap-2 mb-2">
                     <span className="font-semibold text-zinc-500 text-sm">URL #{urlIndex + 1}</span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="space-y-2">
                     {reviews.map((review, reviewIndex) => {
                       const globalIndex = `${urlIndex}-${reviewIndex}`;
                       const isDone = doneReviews.has(Number(globalIndex));
                       return (
                         <div
                           key={reviewIndex}
-                          className={`p-3 rounded-lg border transition-colors ${
+                          className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
                             isDone
                               ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
                               : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'
                           }`}
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-zinc-500 text-sm">#{reviewIndex + 1}</span>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => copyToClipboard(review)}
-                              className="h-7 w-7 p-0"
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </div>
-                          <p className="text-sm text-zinc-700 dark:text-zinc-300 line-clamp-4 mb-3 whitespace-pre-wrap min-h-[80px]">
-                            {review}
-                          </p>
+                          <span className="font-medium text-zinc-500 text-sm w-8 shrink-0">#{reviewIndex + 1}</span>
+                          <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap flex-1">{review}</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyToClipboard(review)}
+                            className="h-8 w-8 p-0 shrink-0"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant={isDone ? "default" : "outline"}
                             size="sm"
                             onClick={() => toggleReviewDone(Number(globalIndex))}
-                            className={`w-full gap-2 ${
+                            className={`h-8 px-3 gap-2 shrink-0 ${
                               isDone
                                 ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
                                 : ''
@@ -359,22 +359,20 @@ export default function ReviewOrderDetailPage() {
             <FileText className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
             <h3 className="font-semibold text-lg">Review Content</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div className="p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-medium text-zinc-500 text-sm">#1</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(order.content)}
-                  className="h-7 w-7 p-0"
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
-              </div>
-              <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
+          <div className="space-y-2">
+            <div className="flex items-start gap-3 p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+              <span className="font-medium text-zinc-500 text-sm w-8 shrink-0">#1</span>
+              <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap flex-1">
                 {order.content}
               </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(order.content)}
+                className="h-8 w-8 p-0 shrink-0"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </Card>

@@ -196,6 +196,10 @@ export default function OrderDetailClient({ order }: OrderDetailClientProps) {
             </p>
           </div>
           <div>
+            <p className="text-xs text-zinc-500">Credits</p>
+            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{order.creditsConsumed}</p>
+          </div>
+          <div>
             <p className="text-xs text-zinc-500">Created</p>
             <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{formatDateShort(order.createdAt)}</p>
           </div>
@@ -273,44 +277,40 @@ export default function OrderDetailClient({ order }: OrderDetailClientProps) {
         </Card>
       )}
 
-      {/* Reviews Section */}
+      {/* Reviews Section - List format like URLs */}
       {hasReviews && (
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-4">
             <Package className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
             <h3 className="font-semibold text-lg">Reviews ({parsedReviews.length})</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="space-y-2">
             {parsedReviews.map((review: string, index: number) => {
               const isDone = doneReviews.has(index);
               return (
                 <div
                   key={index}
-                  className={`p-3 rounded-lg border transition-colors ${
+                  className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
                     isDone
                       ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
                       : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-zinc-500 text-sm">#{index + 1}</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToClipboard(review)}
-                      className="h-7 w-7 p-0"
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <p className="text-sm text-zinc-700 dark:text-zinc-300 line-clamp-4 mb-3 whitespace-pre-wrap min-h-[80px]">
-                    {review}
-                  </p>
+                  <span className="font-medium text-zinc-500 text-sm w-8 shrink-0">#{index + 1}</span>
+                  <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap flex-1">{review}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(review)}
+                    className="h-8 w-8 p-0 shrink-0"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
                   <Button
                     variant={isDone ? "default" : "outline"}
                     size="sm"
                     onClick={() => toggleReviewDone(index)}
-                    className={`w-full gap-2 ${
+                    className={`h-8 px-3 gap-2 shrink-0 ${
                       isDone
                         ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
                         : ''
