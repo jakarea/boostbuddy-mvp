@@ -80,12 +80,37 @@ export default function EmployeeOrderDetailPage() {
   const [completing, setCompleting] = useState(false);
   const [order, setOrder] = useState<ReviewOrder | null>(null);
 
-  // Track "done" state for each item
-  const [doneUrls, setDoneUrls] = useState<Set<string>>(new Set());
-  const [doneReviews, setDoneReviews] = useState<Set<number>>(new Set());
-  const [donePhotos, setDonePhotos] = useState<Set<number>>(new Set());
+  // Track "done" state for each item - load from localStorage
+  const [doneUrls, setDoneUrls] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    const saved = localStorage.getItem(`order_${orderId}_doneUrls`);
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+  const [doneReviews, setDoneReviews] = useState<Set<number>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    const saved = localStorage.getItem(`order_${orderId}_doneReviews`);
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+  const [donePhotos, setDonePhotos] = useState<Set<number>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    const saved = localStorage.getItem(`order_${orderId}_donePhotos`);
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
 
   const isPending = order?.status === "PENDING" && !order?.completedByEmployeeId;
+
+  // Save done states to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(`order_${orderId}_doneUrls`, JSON.stringify(Array.from(doneUrls)));
+  }, [doneUrls, orderId]);
+
+  useEffect(() => {
+    localStorage.setItem(`order_${orderId}_doneReviews`, JSON.stringify(Array.from(doneReviews)));
+  }, [doneReviews, orderId]);
+
+  useEffect(() => {
+    localStorage.setItem(`order_${orderId}_donePhotos`, JSON.stringify(Array.from(donePhotos)));
+  }, [donePhotos, orderId]);
 
   useEffect(() => {
     if (!user || !orderId) return;
@@ -124,6 +149,12 @@ export default function EmployeeOrderDetailPage() {
 
       if (result.success) {
         toastSuccess("Order marked as completed!");
+
+        // Clear localStorage for this order
+        localStorage.removeItem(`order_${orderId}_doneUrls`);
+        localStorage.removeItem(`order_${orderId}_doneReviews`);
+        localStorage.removeItem(`order_${orderId}_donePhotos`);
+
         await new Promise(resolve => setTimeout(resolve, 300));
         const reloadResult = await getReviewOrderByIdAction(orderId);
         if (reloadResult.success && reloadResult.data) {
