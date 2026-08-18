@@ -1111,10 +1111,15 @@ export async function getReviewOrderByIdAction(orderId: string) {
         ? urls.flatMap((ru: any) => {
             const reviews = ru.review_content ? JSON.parse(ru.review_content) : [];
             const photos = ru.photo_urls ? JSON.parse(ru.photo_urls) : [];
-            return reviews.map((review: string, i: number) => ({
-              text: review,
-              photos: photos[i] || []
-            }));
+            console.log("📸 [DEBUG] URL photo data:", { url: ru.url, reviews, photos });
+            return reviews.map((review: string, i: number) => {
+              const photoArray = photos[i] || [];
+              console.log("📸 [DEBUG] Review photo:", { review, photoArray });
+              return {
+                text: review,
+                photos: photoArray
+              };
+            });
           })
         : null,
       reviewUrls: reviewUrlsData,
@@ -1123,6 +1128,7 @@ export async function getReviewOrderByIdAction(orderId: string) {
       updatedAt: order.updated_at
     };
 
+    console.log("📸 [DEBUG ORDER] Photo reviews:", normalizedOrder.photoReviews);
     return { success: true, data: normalizedOrder };
   } catch (error: any) {
     return { success: false, error: error.message };

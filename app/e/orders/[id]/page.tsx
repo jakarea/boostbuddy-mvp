@@ -488,6 +488,11 @@ export default function EmployeeOrderDetailPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {order.photoReviews!.map((review, index) => {
               const isDone = donePhotos.has(index);
+              const photoUrl = review.photos && review.photos.length > 0 ? review.photos[0] : null;
+              if (!photoUrl) {
+                console.warn("No photo URL for review:", review);
+                return null;
+              }
               return (
                 <div
                   key={index}
@@ -498,13 +503,13 @@ export default function EmployeeOrderDetailPage() {
                   }`}
                 >
                   <a
-                    href={review.photos[0]}
+                    href={photoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block"
                   >
                     <img
-                      src={review.photos[0]}
+                      src={photoUrl}
                       alt={`Photo ${index + 1}`}
                       className="w-full aspect-square object-cover rounded mb-2"
                     />
@@ -525,7 +530,7 @@ export default function EmployeeOrderDetailPage() {
                     size="sm"
                     onClick={() => {
                       const a = document.createElement('a');
-                      a.href = review.photos[0];
+                      a.href = photoUrl;
                       a.download = `photo-${index + 1}.jpg`;
                       a.click();
                     }}
