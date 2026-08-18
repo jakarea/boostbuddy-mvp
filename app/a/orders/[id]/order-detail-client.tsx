@@ -240,24 +240,6 @@ export default function OrderDetailClient({ order }: OrderDetailClientProps) {
                           urlItem.reactionType === "WOW" ? "😮" :
                           urlItem.reactionType}</span>
                   )}
-                  <span className={`px-2 py-0.5 rounded ${
-                    urlItem.status === 'COMPLETED' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                    urlItem.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
-                    urlItem.status === 'ASSIGNED' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                    'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-                  }`}>
-                    {urlItem.status}
-                  </span>
-                  {urlItem.proofOfCompletion && (
-                    <a
-                      href={urlItem.proofOfCompletion}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#168BB0] hover:underline opacity-0 group-hover:opacity-100"
-                    >
-                      Proof
-                    </a>
-                  )}
                   <Button
                     variant="ghost"
                     size="sm"
