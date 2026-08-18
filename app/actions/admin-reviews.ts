@@ -1106,11 +1106,16 @@ export async function getReviewOrderByIdAction(orderId: string) {
       commentCount: order.comment_count || 1,
       completedComments: order.completed_comments ? order.completed_comments.split(',').map((i: string) => parseInt(i)) : [],
       photoUrls: order.photo_urls ? JSON.parse(order.photo_urls) : null,
-      photoReviews: order.photo_urls && order.order_type === 'COMMENT_WITH_PHOTO' && order.comment_text
-        ? order.comment_text.split('|||').map((c: string, i: number) => ({
-            text: c.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\'),
-            photos: JSON.parse(order.photo_urls)[i] || []
-          }))
+      // For COMMENT_WITH_PHOTO orders, build photoReviews from review_urls data (not from order.photo_urls)
+      photoReviews: order.order_type === 'COMMENT_WITH_PHOTO' && urls && urls.length > 0
+        ? urls.flatMap((ru: any) => {
+            const reviews = ru.review_content ? JSON.parse(ru.review_content) : [];
+            const photos = ru.photo_urls ? JSON.parse(ru.photo_urls) : [];
+            return reviews.map((review: string, i: number) => ({
+              text: review,
+              photos: photos[i] || []
+            }));
+          })
         : null,
       reviewUrls: reviewUrlsData,
       quantity: order.quantity,
