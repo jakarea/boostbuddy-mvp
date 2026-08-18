@@ -912,6 +912,7 @@ export async function getEmployeeReviewOrdersAction() {
 
 /**
  * Accept a review order (assign to employee and start progress)
+ * DEPRECATED: No longer used in new workflow
  */
 export async function acceptReviewOrderAction(orderId: string) {
   try {
@@ -968,10 +969,13 @@ export async function acceptReviewOrderAction(orderId: string) {
 }
 
 /**
- * Complete a review order (submit proof and mark as completed)
+ * Complete a review order (NEW - simplified, no proof required)
+ * Employees can directly mark PENDING orders as completed
  */
-export async function completeReviewOrderAction(orderId: string, proofOfCompletion: string) {
+export async function completeReviewOrderAction(orderId: string) {
   try {
+    console.log("📋 [EMPLOYEE] Starting order completion:", orderId);
+
     const auth = await requireAuth();
     if (!auth.success) return auth;
 
@@ -979,54 +983,80 @@ export async function completeReviewOrderAction(orderId: string, proofOfCompleti
       return { success: false, error: "Unauthorized - Employee only" };
     }
 
-    if (!proofOfCompletion?.trim()) {
-      return { success: false, error: "Proof of completion is required" };
-    }
-
-    const supabase = await createClient();
-    // Use admin client for update to bypass RLS
     const supabaseAdmin = await createAdminClient();
 
-    // Check if order is assigned to this employee and is IN_PROGRESS
-    const { data: order, error: fetchError } = await supabase
+    // Get order details including credits consumed
+    const { data: order, error: fetchError } = await supabaseAdmin
       .from("review_orders")
-      .select("id, status, assigned_employee_id")
+      .select("id, status, credits_consumed, completed_by_employee_id")
       .eq("id", orderId)
       .single();
 
     if (fetchError || !order) {
+      console.error("❌ [EMPLOYEE] Order not found:", fetchError);
       return { success: false, error: "Order not found" };
     }
 
-    if (order.assigned_employee_id !== auth.user.id) {
-      return { success: false, error: "You are not assigned to this order" };
+    // Check if already completed
+    if (order.status === "COMPLETED") {
+      return { success: false, error: "Order already completed" };
     }
 
-    if (order.status !== "IN_PROGRESS") {
-      return { success: false, error: "Order is not in progress" };
+    // Check if already completed by someone else
+    if (order.completed_by_employee_id) {
+      return { success: false, error: "Order already completed by another employee" };
     }
 
-    // Mark order as completed with proof
+    console.log("✅ [EMPLOYEE] Marking order as completed by:", auth.user.id);
+
+    // Mark order as completed
     const { error: updateError, data: updatedData } = await supabaseAdmin
       .from("review_orders")
       .update({
         status: "COMPLETED",
         completed_at: new Date().toISOString(),
-        proof_of_completion: proofOfCompletion
+        completed_by_employee_id: auth.user.id,
+        assigned_employee_id: auth.user.id // Also set for backward compatibility
       })
       .eq("id", orderId)
-      .select()
+      .select("id, status, completed_at")
       .single();
 
     if (updateError) {
-      console.error("Update error:", updateError);
+      console.error("❌ [EMPLOYEE] Update error:", updateError);
       throw updateError;
     }
 
-    console.log("Completed order:", updatedData);
+    console.log("✅ [EMPLOYEE] Order completed:", updatedData.id);
+
+    // Update employee stats
+    // First fetch current stats
+    const { data: currentStats } = await supabaseAdmin
+      .from("employee_stats")
+      .select("orders_completed, credits_completed")
+      .eq("user_id", auth.user.id)
+      .single();
+
+    const { error: statsError } = await supabaseAdmin
+      .from("employee_stats")
+      .update({
+        orders_completed: (currentStats?.orders_completed || 0) + 1,
+        credits_completed: (currentStats?.credits_completed || 0) + (order.credits_consumed || 0),
+        last_active_at: new Date().toISOString()
+      })
+      .eq("user_id", auth.user.id);
+
+    if (statsError) {
+      console.error("⚠️ [EMPLOYEE] Failed to update stats:", statsError);
+    }
+
+    // Revalidate cache
+    revalidatePath("/e/dashboard");
+    revalidatePath("/admin/employees");
 
     return { success: true, data: { orderId } };
   } catch (error: any) {
+    console.error("❌ [EMPLOYEE] Completion error:", error);
     return { success: false, error: error.message };
   }
 }
@@ -1042,12 +1072,46 @@ export async function getReviewOrderByIdAction(orderId: string) {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("review_orders")
-      .select("*, users:user_id(name, email), employees:assigned_employee_id(name, email)")
+      .select(`
+        id, user_id, business_name, business_url, order_type, review_type,
+        review_content, review_instructions, quantity, credits_consumed, status,
+        assigned_employee_id, assigned_at, completed_at, proof_of_completion,
+        reaction_type, created_at, updated_at, comment_text, photo_urls, total_urls,
+        users:user_id(name, email),
+        employees:assigned_employee_id(name, email)
+      `)
       .eq("id", orderId)
       .single();
 
     if (error) throw error;
     if (!data) return { success: false, error: "Order not found" };
+
+    // Fetch review_urls if this is a multi-URL order
+    let reviewUrlsData: any[] = [];
+    if (data.total_urls > 0) {
+      const { data: urls } = await supabase
+        .from("review_urls")
+        .select("id, url, quantity, reaction_type, review_content, photo_urls, review_index, status, assigned_employee_id, assigned_at, completed_at, proof_of_completion")
+        .eq("review_order_id", orderId)
+        .order("review_index", { ascending: true });
+
+      if (urls) {
+        reviewUrlsData = urls.map((ru: any) => ({
+          id: ru.id,
+          url: ru.url,
+          quantity: ru.quantity,
+          reactionType: ru.reaction_type,
+          reviewIndex: ru.review_index,
+          status: ru.status,
+          reviewContent: ru.review_content,
+          photos: ru.photo_urls ? JSON.parse(ru.photo_urls) : null,
+          assignedEmployeeId: ru.assigned_employee_id,
+          assignedAt: ru.assigned_at,
+          completedAt: ru.completed_at,
+          proofOfCompletion: ru.proof_of_completion
+        }));
+      }
+    }
 
     // Normalize field names - ensure we handle both array and single object returns
     const usersData = Array.isArray(data.users) ? (data.users.length > 0 ? data.users[0] : null) : data.users;
@@ -1069,11 +1133,12 @@ export async function getReviewOrderByIdAction(orderId: string) {
       assignedAt: data.assigned_at,
       completedAt: data.completed_at,
       proofOfCompletion: data.proof_of_completion,
+      reactionType: data.reaction_type,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
       users: usersData,
       employees: employeesData,
-      reviewUrls: [], // Table doesn't exist yet - empty array for now
+      reviewUrls: reviewUrlsData,
       comments: data.comment_text ? data.comment_text.split('|||').map((c: string) => c.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\')) : [],
       photoUrls: data.photo_urls ? JSON.parse(data.photo_urls) : null,
       photoReviews: data.photo_urls && data.order_type === 'COMMENT_WITH_PHOTO' && data.comment_text
@@ -1266,6 +1331,134 @@ export async function completeReviewAction(orderId: string, proofOfCompletion: s
     }
 
     return { success: true, data: { message: "Review marked as complete" } };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================
+// EMPLOYEE STATS ACTIONS (NEW)
+// ============================================
+
+/**
+ * Get employee stats for the logged-in employee
+ */
+export async function getMyEmployeeStatsAction() {
+  try {
+    const auth = await requireAuth();
+    if (!auth.success) return auth;
+
+    if (auth.user.role !== 'EMPLOYEE') {
+      return { success: false, error: "Unauthorized - Employee only" };
+    }
+
+    const supabase = await createClient();
+
+    // Get employee stats
+    const { data: stats, error: statsError } = await supabase
+      .from("employee_stats")
+      .select("*")
+      .eq("user_id", auth.user.id)
+      .maybeSingle();
+
+    if (statsError) throw statsError;
+
+    // Get today's completed orders
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const { data: todayOrders, error: todayError } = await supabase
+      .from("review_orders")
+      .select("credits_consumed")
+      .eq("completed_by_employee_id", auth.user.id)
+      .eq("status", "COMPLETED")
+      .gte("completed_at", today.toISOString());
+
+    if (todayError) throw todayError;
+
+    const todayCredits = todayOrders?.reduce((sum, order) => sum + (order.credits_consumed || 0), 0) || 0;
+
+    return {
+      success: true,
+      data: {
+        totalCreditsCompleted: stats?.credits_completed || 0,
+        totalOrdersCompleted: stats?.orders_completed || 0,
+        todayCreditsCompleted: todayCredits,
+        todayOrdersCompleted: todayOrders?.length || 0,
+        lastActiveAt: stats?.last_active_at
+      }
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get all employees stats (for admin leaderboard)
+ */
+export async function getAllEmployeesStatsAction() {
+  try {
+    const auth = await requireAuth();
+    if (!auth.success) return auth;
+
+    if (auth.user.role !== 'ADMIN') {
+      return { success: false, error: "Unauthorized - Admin only" };
+    }
+
+    const supabase = await createClient();
+
+    // Get all employees with their stats
+    const { data: employees, error: employeesError } = await supabase
+      .from("users")
+      .select("id, name, email, created_at")
+      .eq("role", "EMPLOYEE");
+
+    if (employeesError) throw employeesError;
+
+    // Get stats for each employee
+    const employeesWithStats = await Promise.all(
+      (employees || []).map(async (employee) => {
+        // Get employee stats record
+        const { data: stats } = await supabase
+          .from("employee_stats")
+          .select("*")
+          .eq("user_id", employee.id)
+          .maybeSingle();
+
+        // Get today's completed orders
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const { data: todayOrders } = await supabase
+          .from("review_orders")
+          .select("credits_consumed")
+          .eq("completed_by_employee_id", employee.id)
+          .eq("status", "COMPLETED")
+          .gte("completed_at", today.toISOString());
+
+        const todayCredits = todayOrders?.reduce((sum, order) => sum + (order.credits_consumed || 0), 0) || 0;
+
+        return {
+          id: employee.id,
+          name: employee.name,
+          email: employee.email,
+          totalCreditsCompleted: stats?.credits_completed || 0,
+          totalOrdersCompleted: stats?.orders_completed || 0,
+          todayCreditsCompleted: todayCredits,
+          todayOrdersCompleted: todayOrders?.length || 0,
+          lastActiveAt: stats?.last_active_at,
+          isAvailable: stats?.is_available ?? false
+        };
+      })
+    );
+
+    // Sort by total credits completed (descending)
+    employeesWithStats.sort((a, b) => b.totalCreditsCompleted - a.totalCreditsCompleted);
+
+    return {
+      success: true,
+      data: employeesWithStats
+    };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

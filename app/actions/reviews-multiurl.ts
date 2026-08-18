@@ -35,6 +35,7 @@ export type MultiUrlReviewOrderData = {
  */
 export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewOrderData) {
   console.log("📍 [MULTI-URL ORDER] Starting multi-URL order creation...");
+  console.log("📥 [MULTI-URL ORDER] Received order data:", JSON.stringify(orderData, null, 2));
 
   try {
     const auth = await requireAuth();
@@ -122,8 +123,8 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
         return { success: false, error: `Invalid Facebook URL: ${urlData.url}` };
       }
 
-      // Validate quantity (skip validation for REVIEW orders as quantity is calculated from reviews)
-      if (orderData.orderType !== "REVIEW" && (urlData.quantity < 1 || urlData.quantity > 50)) {
+      // Validate quantity (skip validation for REVIEW and COMMENT_WITH_PHOTO orders as quantity is calculated from reviews)
+      if (orderData.orderType === "COMMENT" && (urlData.quantity < 1 || urlData.quantity > 50)) {
         return { success: false, error: `Quantity must be between 1 and 50 for URL: ${urlData.url}` };
       }
 
@@ -148,14 +149,14 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
 
     console.log("✅ [MULTI-URL ORDER] Validation passed, total quantity:", totalQuantity);
 
-    // For COMMENT orders, normalize quantity to 1 per URL (use singleQuantity)
+    // For COMMENT orders, use the quantity from URL data directly
     // For REVIEW and COMMENT_WITH_PHOTO, quantity is the number of reviews per URL
     const normalizedUrls = orderData.urls.map(urlData => {
       if (orderData.orderType === "COMMENT") {
-        return { ...urlData, quantity: 1 }; // Will be multiplied by singleQuantity later
+        return { ...urlData, quantity: urlData.quantity };
       } else {
         // For REVIEW and COMMENT_WITH_PHOTO, quantity is number of reviews for this URL
-        return { ...urlData, quantity: urlData.reviewContents?.length || 1 };
+        return { ...urlData, quantity: urlData.reviewContents?.length || 0 };
       }
     });
 
@@ -177,6 +178,14 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
 
     const creditsPerUnit = pricing.credits_per_unit;
     const requiredCredits = creditsPerUnit * normalizedTotalQuantity;
+
+    console.log("💰 [MULTI-URL ORDER] Credit calculation:", {
+      orderType: orderData.orderType,
+      creditsPerUnit,
+      normalizedTotalQuantity,
+      requiredCredits,
+      numberOfUrls: orderData.urls.length
+    });
 
     // Check user balance
     const { data: user } = await supabase
@@ -226,6 +235,10 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
       ? (orderData.urls[0]?.reactionType || "LIKE")
       : (orderData.urls[0]?.reactionType || "LIKE");
 
+    console.log("🧪 [DEBUG] Order type:", orderData.orderType);
+    console.log("🧪 [DEBUG] First URL reactionType:", orderData.urls[0]?.reactionType);
+    console.log("🧪 [DEBUG] Shared reaction type:", sharedReactionType);
+
     // Aggregate all reviews from all URLs for storage
     const allReviewContents: string[] = [];
     const allPhotos: string[][] = [];
@@ -243,6 +256,8 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
 
     // Create ReviewOrder with aggregated content
     console.log("📝 [MULTI-URL ORDER] Inserting review order...");
+    console.log("🧪 [DEBUG] About to save with reaction_type:", sharedReactionType);
+    console.log("🧪 [DEBUG] First URL reactionType from data:", orderData.urls[0]?.reactionType);
     const { error: orderError, data: insertedOrder } = await (supabaseAdmin as any)
       .from("review_orders")
       .insert({
@@ -324,14 +339,17 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
 
     console.log("✅ [MULTI-URL ORDER] Order creation completed successfully");
 
+    // Import format helper
+    const { formatOrderType } = await import("@/lib/utils");
+
     // Send notifications (fire and forget)
     (async () => {
       try {
         const { sendNotificationAction } = await import("./notifications");
         await sendNotificationAction(
           auth.user.email,
-          `📝 New ${orderData.orderType} Order Created`,
-          `Your ${orderData.orderType.toLowerCase()} order for ${normalizedTotalQuantity} review${normalizedTotalQuantity > 1 ? 's' : ''} across ${orderData.urls.length} URL${orderData.urls.length > 1 ? 's' : ''} has been created. ${requiredCredits} credits have been deducted.`,
+          `📝 New ${formatOrderType(orderData.orderType)} Order Created`,
+          `Your ${formatOrderType(orderData.orderType).toLowerCase()} order for ${normalizedTotalQuantity} review${normalizedTotalQuantity > 1 ? 's' : ''} across ${orderData.urls.length} URL${orderData.urls.length > 1 ? 's' : ''} has been created. ${requiredCredits} credits have been deducted.`,
           "TELEGRAM",
           "REVIEWS_ORDER_CREATED",
           "MEDIUM",
@@ -347,8 +365,8 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
       try {
         const { broadcastToEmployeesAction } = await import("./notifications");
         await broadcastToEmployeesAction(
-          `🔔 New ${orderData.orderType} Order Available`,
-          `A new ${orderData.orderType.toLowerCase()} order for ${normalizedTotalQuantity} review${normalizedTotalQuantity > 1 ? 's' : ''} across ${orderData.urls.length} URL${orderData.urls.length > 1 ? 's' : ''} is ready to process.`,
+          `🔔 New ${formatOrderType(orderData.orderType)} Order Available`,
+          `A new ${formatOrderType(orderData.orderType).toLowerCase()} order for ${normalizedTotalQuantity} review${normalizedTotalQuantity > 1 ? 's' : ''} across ${orderData.urls.length} URL${orderData.urls.length > 1 ? 's' : ''} is ready to process.`,
           "EMPLOYEE_NEW_ORDER_AVAILABLE",
           "HIGH",
           orderId

@@ -449,30 +449,6 @@ export default function ReviewOrderDetailPage() {
           )}
         </div>
       </div>
-
-      {/* Status Info */}
-      {order.status === "PENDING" && (
-        <div className="bg-gradient-to-r from-[#168BB0] to-[#1a9dc4] dark:from-[#168BB0]/90 dark:to-[#1a9dc4]/90 rounded-lg p-5 shadow-md border border-[#168BB0]/30">
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 dark:bg-white/10 rounded-full p-2 animate-pulse">
-              <Clock className="w-6 h-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-base font-semibold text-white">
-                {t("reviews.pendingInfo", "Your order is pending assignment to an employee. You'll be notified when work begins.")}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {order.status === "IN_PROGRESS" && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            {t("reviews.inProgressInfo", "An employee is working on your order. You'll be notified when it's completed.")}
-          </p>
-        </div>
-      )}
     </div>
   );
 }

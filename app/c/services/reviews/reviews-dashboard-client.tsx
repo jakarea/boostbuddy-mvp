@@ -99,12 +99,22 @@ export default function ReviewsDashboardClient({ initialData }: ReviewsDashboard
 
       {/* Credit Costs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        {Object.entries(creditCosts).map(([platform, cost]) => (
-          <div key={platform} className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
-            <h4 className="font-medium">{platform}</h4>
-            <p className="text-sm text-zinc-500">{String(cost) + " " + String(t("credits.credits", "credits"))}</p>
-          </div>
-        ))}
+        {Object.entries(creditCosts).map(([platform, cost]) => {
+          const formatPlatform = (platform: string) => {
+            switch (platform) {
+              case "COMMENT": return "Reactions";
+              case "REVIEW": return "Reviews";
+              case "COMMENT_WITH_PHOTO": return "Photo + Reviews";
+              default: return platform.replace(/_/g, ' ');
+            }
+          };
+          return (
+            <div key={platform} className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+              <h4 className="font-medium">{formatPlatform(platform)}</h4>
+              <p className="text-sm text-zinc-500">{String(cost) + " " + String(t("credits.credits", "credits"))}</p>
+            </div>
+          );
+        })}
       </div>
 
       {/* Search Bar */}

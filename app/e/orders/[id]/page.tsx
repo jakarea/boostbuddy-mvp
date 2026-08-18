@@ -1,5 +1,7 @@
 "use client";
 
+// Force recompile
+
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
@@ -27,7 +29,6 @@ import {
 import { formatDateShort } from "@/lib/dateUtils";
 import {
   getReviewOrderByIdAction,
-  acceptReviewOrderAction,
   completeReviewOrderAction
 } from "@/app/actions/employee";
 
@@ -46,7 +47,9 @@ interface ReviewOrder {
   assignedEmployeeId?: string;
   assignedAt?: string;
   completedAt?: string;
+  completedByEmployeeId?: string;
   proofOfCompletion?: string;
+  reactionType?: string;
   createdAt: string;
   updatedAt: string;
   users?: { name: string; email: string };
@@ -77,15 +80,10 @@ export default function EmployeeOrderDetailPage() {
   const orderId = params.id as string;
 
   const [loading, setLoading] = useState(true);
-  const [accepting, setAccepting] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [order, setOrder] = useState<ReviewOrder | null>(null);
-  const [proofText, setProofText] = useState("");
 
-  const isAssignedToMe = order?.assignedEmployeeId === user?.id;
-  const isAvailable = order?.status === "PENDING" && !order?.assignedEmployeeId;
-  const canAccept = order?.status === "PENDING" && !order?.assignedEmployeeId;
-  const canComplete = order?.status === "IN_PROGRESS" && isAssignedToMe;
+  const isPending = order?.status === "PENDING" && !order?.completedByEmployeeId;
 
   useEffect(() => {
     if (!user || !orderId) return;
@@ -112,53 +110,22 @@ export default function EmployeeOrderDetailPage() {
     loadOrder();
   }, [user, orderId, toastError, router]);
 
-  const handleAccept = async () => {
-    if (!canAccept) return;
-
-    setAccepting(true);
-    try {
-      const result = await acceptReviewOrderAction(orderId);
-
-      if (result.success) {
-        toastSuccess("Order accepted successfully");
-        // Wait a moment for database to update, then reload
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const reloadResult = await getReviewOrderByIdAction(orderId);
-        if (reloadResult.success && reloadResult.data) {
-          console.log("Reloaded order:", reloadResult.data);
-          setOrder(reloadResult.data as ReviewOrder);
-        } else {
-          console.error("Failed to reload order:", reloadResult.error);
-        }
-      } else {
-        toastError(result.error || "Failed to accept order");
-      }
-    } catch (err) {
-      console.error("Failed to accept order:", err);
-      toastError("Failed to accept order");
-    } finally {
-      setAccepting(false);
-    }
-  };
-
-  const handleSubmitCompletion = async () => {
-    if (!proofText.trim()) {
-      toastError("Please provide proof of completion");
+  const handleComplete = async () => {
+    if (!isPending) {
+      toastError("This order cannot be completed");
       return;
     }
 
-    setSubmitting(true);
+    setCompleting(true);
     try {
-      const result = await completeReviewOrderAction(orderId, proofText);
+      const result = await completeReviewOrderAction(orderId);
 
       if (result.success) {
-        toastSuccess("Order completed successfully");
-        setProofText("");
+        toastSuccess("Order marked as completed!");
         // Wait a moment for database to update, then reload
         await new Promise(resolve => setTimeout(resolve, 300));
         const reloadResult = await getReviewOrderByIdAction(orderId);
         if (reloadResult.success && reloadResult.data) {
-          console.log("Reloaded order:", reloadResult.data);
           setOrder(reloadResult.data as ReviewOrder);
         } else {
           console.error("Failed to reload order:", reloadResult.error);
@@ -170,7 +137,7 @@ export default function EmployeeOrderDetailPage() {
       console.error("Failed to complete order:", err);
       toastError("Failed to complete order");
     } finally {
-      setSubmitting(false);
+      setCompleting(false);
     }
   };
 
@@ -253,45 +220,34 @@ export default function EmployeeOrderDetailPage() {
         {getStatusBadge(order.status)}
       </div>
 
-      {/* Assignment Status Banner */}
-      {isAvailable && (
-        <Card className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+      {/* Order Status Banner */}
+      {isPending && (
+        <Card className="p-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
           <div className="flex items-center gap-3">
-            <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+            <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <div className="flex-1">
-              <p className="font-semibold text-yellow-900 dark:text-yellow-100">Available Order</p>
-              <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                This order is available for you to accept.
+              <p className="font-semibold text-blue-900 dark:text-blue-100">Available for Completion</p>
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                Complete this review and mark it as done.
               </p>
             </div>
             <Button
-              onClick={handleAccept}
-              disabled={accepting}
-              className="gap-2"
+              onClick={handleComplete}
+              disabled={completing}
+              className="gap-2 bg-green-600 hover:bg-green-700"
             >
-              {accepting ? (
+              {completing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Accepting...
+                  Completing...
                 </>
               ) : (
-                "Accept Order"
+                <>
+                  <CheckCircle className="h-4 w-4" />
+                  Mark as Completed
+                </>
               )}
             </Button>
-          </div>
-        </Card>
-      )}
-
-      {isAssignedToMe && order.status === "IN_PROGRESS" && (
-        <Card className="p-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-          <div className="flex items-center gap-3">
-            <Loader2 className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-spin" />
-            <div className="flex-1">
-              <p className="font-semibold text-blue-900 dark:text-blue-100">In Progress</p>
-              <p className="text-sm text-blue-700 dark:text-blue-300">
-                You are working on this order. Complete the review and submit proof below.
-              </p>
-            </div>
           </div>
         </Card>
       )}
@@ -372,8 +328,12 @@ export default function EmployeeOrderDetailPage() {
                   Qty: {urlItem.quantity}
                 </span>
                 {urlItem.reactionType && (
-                  <span className="text-xs text-zinc-500">
-                    {urlItem.reactionType}
+                  <span className="text-xs text-zinc-500 flex items-center gap-1">
+                    {urlItem.reactionType === "LIKE" ? "👍" :
+                     urlItem.reactionType === "LOVE" ? "❤️" :
+                     urlItem.reactionType === "CARE" ? "🤗" :
+                     urlItem.reactionType === "WOW" ? "😮" :
+                     urlItem.reactionType}
                   </span>
                 )}
                 <span className={`text-xs px-2 py-1 rounded ${
@@ -592,6 +552,18 @@ export default function EmployeeOrderDetailPage() {
                order.orderType?.replace(/_/g, " ") || "REVIEW"}
             </p>
           </div>
+          {order.orderType === "COMMENT" && (
+            <div>
+              <p className="text-zinc-500">Reaction</p>
+              <p className="font-medium text-lg flex items-center gap-2">
+                {order.reactionType === "LIKE" ? "👍" :
+                 order.reactionType === "LOVE" ? "❤️" :
+                 order.reactionType === "CARE" ? "🤗" :
+                 order.reactionType === "WOW" ? "😮" :
+                 order.reactionType || "👍"}
+              </p>
+            </div>
+          )}
           <div>
             <p className="text-zinc-500">Review Type</p>
             <p className="font-medium">{order.reviewType}</p>
@@ -631,44 +603,6 @@ export default function EmployeeOrderDetailPage() {
               {order.proofOfCompletion}
             </p>
           </div>
-        </Card>
-      )}
-
-      {/* Submit Proof - Show if in progress and assigned to me */}
-      {canComplete && (
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-            <h3 className="font-semibold">Submit Completion Proof</h3>
-          </div>
-          <textarea
-            value={proofText}
-            onChange={(e) => setProofText(e.target.value)}
-            placeholder="Paste screenshot URL or describe how you completed the review..."
-            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-sm resize-none min-h-[100px]"
-          />
-          <div className="flex gap-2 mt-3">
-            <Button
-              onClick={handleSubmitCompletion}
-              disabled={submitting || !proofText.trim()}
-              className="gap-2"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="h-4 w-4" />
-                  Submit as Completed
-                </>
-              )}
-            </Button>
-          </div>
-          <p className="text-xs text-zinc-500 mt-2">
-            Once submitted, the order will be marked as completed and cannot be modified.
-          </p>
         </Card>
       )}
     </div>

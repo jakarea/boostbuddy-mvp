@@ -25,7 +25,6 @@ import {
   toggleEmployeeAcceptingOrdersAction,
   toggleEmployeeTaskDistributionAction,
   setEmployeeActiveStatusAction,
-  getEmployeeAssignedReviewsAction,
 } from "@/app/actions/admin-reviews";
 import {
   UserCheck,
@@ -43,7 +42,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  X
+  X,
+  Shield,
+  IdCard,
+  MapPin,
+  Phone
 } from "lucide-react";
 import { formatDateShort } from "@/lib/dateUtils";
 import { useSWR } from "@/lib/cache/swr";
@@ -53,27 +56,27 @@ import CACHE_TTL from '@/lib/cache/cache-ttl';
 interface EmployeePerformance {
   id: string;
   userId: string;
+  user_id: string;
+  name: string;
   employeeName: string;
+  email: string;
   employeeEmail: string;
   isAvailable: boolean;
+  is_available: boolean;
   isActive: boolean;
+  is_active: boolean;
   acceptingOrders: boolean;
+  accepting_orders: boolean;
   acceptingTasks: boolean;
+  accepting_tasks: boolean;
   ordersCompleted: number;
+  orders_completed: number;
+  creditsCompleted: number;
+  credits_completed: number;
   lastActiveAt: string;
+  last_active_at: string;
   createdAt: string;
-  assignedReviews?: AssignedReview[];
-}
-
-interface AssignedReview {
-  id: string;
-  url: string;
-  quantity: number;
-  status: string;
-  assignedAt: string;
-  completedAt?: string;
-  orderId: string;
-  orderType: string;
+  created_at: string;
 }
 
 interface EmployeesClientProps {
@@ -94,7 +97,26 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
     fetcher: async (): Promise<{ employees: EmployeePerformance[]; totalCount: number }> => {
       const result = await getEmployeePerformanceAction();
       if (result.success && result.data) {
-        const employees = result.data as EmployeePerformance[];
+        // Apply same mapping as server component to handle nested users data
+        const employees = (result.data as any[])?.map(emp => ({
+          id: emp.id,
+          userId: emp.user_id || emp.userId,
+          name: emp.users?.name || emp.employee_name || emp.employeeName || emp.name,
+          email: emp.users?.email || emp.employee_email || emp.employeeEmail || emp.email,
+          isAvailable: emp.is_available || emp.isAvailable || false,
+          isActive: emp.users?.is_active ?? emp.is_active ?? emp.isActive ?? true,
+          is_active: emp.users?.is_active ?? emp.is_active ?? emp.isActive ?? true,
+          acceptingOrders: emp.users?.accepting_orders ?? emp.accepting_orders ?? emp.acceptingOrders ?? true,
+          accepting_tasks: emp.accepting_tasks ?? emp.acceptingTasks ?? true,
+          ordersCompleted: emp.orders_completed || emp.ordersCompleted || 0,
+          orders_completed: emp.orders_completed || emp.ordersCompleted || 0,
+          creditsCompleted: emp.credits_completed || emp.creditsCompleted || 0,
+          credits_completed: emp.credits_completed || emp.creditsCompleted || 0,
+          lastActiveAt: emp.last_active_at || emp.lastActiveAt,
+          last_active_at: emp.last_active_at || emp.lastActiveAt,
+          createdAt: emp.created_at || emp.createdAt,
+          created_at: emp.created_at || emp.createdAt,
+        })) || [];
         const totalCount = result.pagination?.totalCount || 0;
         return { employees, totalCount };
       }
@@ -111,10 +133,6 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
   const initialSearchTerm = searchParams.get('search') || '';
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-
-  // Track which employee cards are expanded and their assigned reviews
-  const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set());
-  const [employeeAssignments, setEmployeeAssignments] = useState<Record<string, AssignedReview[]>>({});
 
   // Use SWR data
   const employees = swrData?.employees || [];
@@ -189,27 +207,6 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
 
   const handleClearSearch = () => {
     setSearchTerm("");
-  };
-
-  const toggleEmployeeExpanded = async (employeeId: string, userId: string) => {
-    const newExpanded = new Set(expandedEmployees);
-    if (newExpanded.has(employeeId)) {
-      newExpanded.delete(employeeId);
-    } else {
-      newExpanded.add(employeeId);
-      // Fetch assigned reviews if not already loaded
-      if (!employeeAssignments[employeeId]) {
-        try {
-          const result = await getEmployeeAssignedReviewsAction(userId);
-          if (result.success && result.data) {
-            setEmployeeAssignments(prev => ({ ...prev, [employeeId]: result.data }));
-          }
-        } catch (err) {
-          console.error("Failed to fetch assigned reviews:", err);
-        }
-      }
-    }
-    setExpandedEmployees(newExpanded);
   };
 
   const handleInvite = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -399,256 +396,60 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
           </Button>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {currentEmployees.map((employee) => (
-            <Card key={employee.id} className="overflow-hidden hover:shadow-lg transition-all duration-200 border-zinc-200 dark:border-zinc-700">
-              {/* Header Section */}
-              <div className="bg-gradient-to-r from-zinc-50 to-white dark:from-zinc-800/50 dark:to-zinc-900 px-4 py-3 border-b border-zinc-200 dark:border-zinc-700">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h3 className="font-semibold text-base text-zinc-900 dark:text-zinc-50">
-                        {employee.employeeName}
-                      </h3>
-                      {!employee.isActive ? (
-                        <span className="flex items-center gap-1 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs font-medium border border-red-200 dark:border-red-800/30">
-                          <Power className="h-3 w-3" />
-                          {t("manage.status.deactivated", "Deactivated")}
-                        </span>
-                      ) : employee.isActive && !(employee.acceptingTasks ?? true) ? (
-                        <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs font-medium border border-amber-200 dark:border-amber-800/30">
-                          <PauseCircle className="h-3 w-3" />
-                          {t("manage.status.paused", "No Tasks")}
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-medium border border-green-200 dark:border-green-800/30">
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                          {t("manage.status.active", "Active")}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-                      <Mail className="h-3.5 w-3.5" />
-                      <span className="truncate">{employee.employeeEmail}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {employee.isAvailable ? (
-                      <span className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-xs font-semibold border border-green-200 dark:border-green-800/30">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        {t("employees.available", "Available")}
-                      </span>
-                    ) : (
-                      <span className="px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-lg text-xs font-medium border border-zinc-200 dark:border-zinc-700">
-                        {t("employees.unavailable", "Unavailable")}
-                      </span>
-                    )}
-                  </div>
+            <Card key={employee.id} className="p-4 hover:shadow-lg transition-all duration-200 border-zinc-200 dark:border-zinc-700">
+              <div className="space-y-4">
+                {/* Name & Email */}
+                <div>
+                  <h3 className="font-semibold text-base text-zinc-900 dark:text-zinc-50">
+                    {employee.name || employee.employeeName || 'Employee'}
+                  </h3>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                    {employee.email || employee.employeeEmail || 'No email'}
+                  </p>
                 </div>
-                {isActiveRecently(employee.lastActiveAt) && (
-                  <div className="flex items-center gap-1 mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                    <Clock className="h-3 w-3" />
-                    <span>{t("employees.activeRecently", "Active recently")}</span>
-                  </div>
-                )}
-              </div>
 
-              {/* Main Content */}
-              <div className="p-4 space-y-4">
-                {/* Performance Stats */}
+                {/* Stats */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center gap-3 px-3 py-2.5 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl border border-green-200/50 dark:border-green-800/30 shadow-sm">
-                    <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-sm">
-                      <CheckCircle className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">{t("employees.completed", "Completed")}</p>
-                      <p className="text-lg font-bold text-green-700 dark:text-green-300">{employee.ordersCompleted}</p>
+                  <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 border border-blue-100 dark:border-blue-900/30">
+                    <div className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">Credits</div>
+                    <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                      {employee.creditsCompleted || employee.credits_completed || 0}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 px-3 py-2.5 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl border border-blue-200/50 dark:border-blue-800/30 shadow-sm">
-                    <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-sm">
-                      <TrendingUp className="h-5 w-5 text-white" />
+                  <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-3 border border-emerald-100 dark:border-emerald-900/30">
+                    <div className="text-xs text-emerald-700 dark:text-emerald-300 font-medium mb-1">Orders</div>
+                    <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
+                      {employee.ordersCompleted || employee.orders_completed || 0}
                     </div>
-                    <div>
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">{t("employees.assignments", "Assignments")}</p>
-                      <p className="text-lg font-bold text-blue-700 dark:text-blue-300">
-                        {employeeAssignments[employee.id]?.filter(r => r.status === 'ASSIGNED' || r.status === 'IN_PROGRESS').length || 0}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Assigned Reviews Section */}
-                <div className="border-t border-zinc-200 dark:border-zinc-700 pt-3">
-                  <button
-                    onClick={() => toggleEmployeeExpanded(employee.id, employee.userId)}
-                    className="w-full flex items-center justify-between text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors group"
-                  >
-                    <span className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4" />
-                      {expandedEmployees.has(employee.id)
-                        ? t("employees.hideHistory", "Hide Order History")
-                        : t("employees.viewHistory", "View Order History")
-                      }
-                      <span className="px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-full text-xs font-medium">
-                        {employeeAssignments[employee.id]?.length || 0}
-                      </span>
-                    </span>
-                    <ChevronLeft className={`h-4 w-4 transition-transform ${expandedEmployees.has(employee.id) ? 'rotate-90' : ''} group-hover:text-zinc-700 dark:group-hover:text-zinc-300`} />
-                  </button>
-
-                  {expandedEmployees.has(employee.id) && (
-                    <div className="mt-3 space-y-3">
-                      {employeeAssignments[employee.id]?.length === 0 ? (
-                        <div className="text-center py-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700">
-                          <p className="text-sm text-zinc-500 dark:text-zinc-400">{t("employees.noAssignments", "No assigned reviews")}</p>
-                        </div>
-                      ) : (
-                        <>
-                          {/* Active Assignments */}
-                          <div>
-                            <h4 className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-2 flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                              {t("employees.currentAssignments", "Current Assignments")}
-                            </h4>
-                            <div className="space-y-2">
-                              {employeeAssignments[employee.id]
-                                .filter(r => r.status === 'ASSIGNED' || r.status === 'IN_PROGRESS')
-                                .map((review) => (
-                                  <div key={review.id} className="bg-white dark:bg-zinc-800 rounded-lg p-3 border border-zinc-200 dark:border-zinc-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <span className={`px-2 py-1 rounded-md text-xs font-semibold ${
-                                        review.status === 'IN_PROGRESS'
-                                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                                          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
-                                      }`}>
-                                        {review.status === 'IN_PROGRESS' ? 'IN PROGRESS' : review.status}
-                                      </span>
-                                      <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                                        Qty: {review.quantity}
-                                      </span>
-                                    </div>
-                                    <div className="space-y-1">
-                                      <p className="text-xs text-zinc-700 dark:text-zinc-300 font-medium truncate" title={review.url}>
-                                        {review.url}
-                                      </p>
-                                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                        {review.orderType.replace(/_/g, ' ')}
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))}
-                              {employeeAssignments[employee.id].filter(r => r.status === 'ASSIGNED' || r.status === 'IN_PROGRESS').length === 0 && (
-                                <div className="text-center py-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-700">
-                                  <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("employees.noCurrentAssignments", "No current assignments")}</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Completed Orders */}
-                          <div>
-                            <h4 className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-2 flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                              {t("employees.completedOrders", "Completed Orders")}
-                            </h4>
-                            <div className="space-y-2">
-                              {employeeAssignments[employee.id]
-                                .filter(r => r.status === 'COMPLETED')
-                                .map((review) => (
-                                  <div key={review.id} className="bg-white dark:bg-zinc-800 rounded-lg p-3 border border-zinc-200 dark:border-zinc-700 hover:border-green-300 dark:hover:border-green-700 transition-colors">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <span className="px-2 py-1 rounded-md text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
-                                        COMPLETED
-                                      </span>
-                                      <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                                        Qty: {review.quantity}
-                                      </span>
-                                    </div>
-                                    <div className="space-y-1">
-                                      <p className="text-xs text-zinc-700 dark:text-zinc-300 font-medium truncate" title={review.url}>
-                                        {review.url}
-                                      </p>
-                                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                        {review.orderType.replace(/_/g, ' ')}
-                                      </p>
-                                      {review.completedAt && (
-                                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                          {t("employees.completedOn", "Completed: {{date}}", { date: new Date(review.completedAt).toLocaleDateString() })}
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                              {employeeAssignments[employee.id].filter(r => r.status === 'COMPLETED').length === 0 && (
-                                <div className="text-center py-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-700">
-                                  <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("employees.noCompletedOrders", "No completed orders yet")}</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Activity Info */}
-                <div className="flex items-center gap-4 text-xs text-zinc-500 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-700 pt-3">
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="h-3.5 w-3.5" />
-                    <span>
-                      {employee.lastActiveAt
-                        ? t("employees.lastActive", "Last: {{date}}", { date: formatDateShort(employee.lastActiveAt) })
-                        : t("employees.neverActive", "Never")
-                      }
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <UserCheck className="h-3.5 w-3.5" />
-                    <span>{t("employees.memberSince", "Since: {{date}}", { date: formatDateShort(employee.createdAt) })}</span>
                   </div>
                 </div>
 
                 {/* Controls */}
-                <div className="flex items-center justify-between pt-3 border-t border-zinc-200 dark:border-zinc-700">
-                  <div className="flex items-center gap-3">
-                    <Label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      {t("manage.taskDistribution", "Task Distribution")}
-                    </Label>
-                    <Switch
-                      checked={employee.acceptingTasks ?? true}
-                      onCheckedChange={(checked: boolean) =>
-                        handleToggleTaskDistribution(employee.userId, checked)
-                      }
-                      disabled={!employee.isActive}
-                    />
-                    <span className={`text-xs font-semibold ${(employee.acceptingTasks ?? true) ? 'text-green-600 dark:text-green-400' : 'text-zinc-500'}`}>
-                      {(employee.acceptingTasks ?? true) ? t("common.on", "ON") : t("common.off", "OFF")}
-                    </span>
-                  </div>
-                  {employee.isActive ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs px-3 gap-1.5 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/30"
-                      onClick={() => handleToggleActive(employee)}
-                    >
-                      <Power className="h-3 w-3" />
-                      {t("manage.deactivate", "Deactivate")}
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="h-8 text-xs px-3 gap-1.5"
-                      onClick={() => handleToggleActive(employee)}
-                    >
-                      <Power className="h-3 w-3" />
-                      {t("manage.activate", "Activate")}
-                    </Button>
-                  )}
+                <div className="flex items-center gap-2 pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-8 text-xs gap-1.5"
+                    onClick={() => router.push(`/a/reviews/employees/${employee.userId}`)}
+                  >
+                    <TrendingUp className="h-3 w-3" />
+                    View Orders
+                  </Button>
+                  <Button
+                    variant={employee.isActive || employee.is_active ? "outline" : "default"}
+                    size="sm"
+                    className={`h-8 text-xs px-3 gap-1.5 ${
+                      employee.isActive || employee.is_active
+                        ? 'text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/30'
+                        : ''
+                    }`}
+                    onClick={() => handleToggleActive(employee)}
+                  >
+                    <Power className="h-3 w-3" />
+                    {employee.isActive || employee.is_active ? "Deactivate" : "Activate"}
+                  </Button>
                 </div>
               </div>
             </Card>
@@ -656,34 +457,11 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
         </div>
       )}
 
-      {/* Pagination Controls */}
-      {sortedEmployees.length > 0 && (
-        <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-xl p-3 shadow-sm border border-zinc-200 dark:border-zinc-700">
-          <div className="flex items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">
-            <span className="font-medium">
-              {searchTerm
-                ? `${currentPage}/${totalPages} (${sortedEmployees.length} ${t("common.results", "results")})`
-                : `${currentPage}/${totalPages} (${localTotalCount} ${t("common.total", "total")})`
-              }
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="text-zinc-500">{t("common.show", "Show")}:</span>
-              <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 rounded-lg p-0.5">
-                {[10, 20, 50, 100].map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => handleItemsPerPageChange(size)}
-                    className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                      itemsPerPage === size
-                        ? 'bg-[#168BB0] text-white shadow-sm'
-                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
-            </div>
+      {/* Pagination */}
+      {employees.length > 0 && (
+        <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
+          <div className="text-sm text-zinc-600 dark:text-zinc-400">
+            Page {currentPage} of {totalPages}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -691,13 +469,11 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
               size="sm"
               onClick={goToPrevPage}
               disabled={currentPage === 1}
-              className="gap-1.5 h-8"
+              className="h-8"
             >
               <ChevronLeft className="h-4 w-4" />
-              {t("common.previous", "Previous")}
             </Button>
 
-            {/* Page Numbers */}
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                 let pageNum;
@@ -712,15 +488,17 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
                 }
 
                 return (
-                  <Button
+                  <button
                     key={pageNum}
-                    variant={currentPage === pageNum ? "default" : "outline"}
-                    size="sm"
                     onClick={() => goToPage(pageNum)}
-                    className="min-w-[32px] h-8 text-sm"
+                    className={`min-w-[32px] h-8 rounded text-sm font-medium transition-colors ${
+                      currentPage === pageNum
+                        ? 'bg-[#168BB0] text-white'
+                        : 'hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
+                    }`}
                   >
                     {pageNum}
-                  </Button>
+                  </button>
                 );
               })}
             </div>
@@ -730,11 +508,21 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
               size="sm"
               onClick={goToNextPage}
               disabled={currentPage === totalPages}
-              className="gap-1.5 h-8"
+              className="h-8"
             >
-              {t("common.next", "Next")}
               <ChevronRight className="h-4 w-4" />
             </Button>
+
+            <select
+              value={itemsPerPage}
+              onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+              className="h-8 border border-zinc-300 dark:border-zinc-600 rounded px-2 text-sm bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50"
+            >
+              <option value="10">10 / page</option>
+              <option value="20">20 / page</option>
+              <option value="50">50 / page</option>
+              <option value="100">100 / page</option>
+            </select>
           </div>
         </div>
       )}

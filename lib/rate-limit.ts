@@ -45,6 +45,9 @@ export const RateLimitPresets = {
 
   // File uploads - moderate limit to prevent storage abuse
   UPLOAD: { maxRequests: 10, windowMs: 5 * 60 * 1000, blockDurationMs: 15 * 60 * 1000 }, // 10 uploads per 5 min, block for 15 min
+
+  // Expensive operations - order creation, credit purchases
+  EXPENSIVE: { maxRequests: 20, windowMs: 60 * 60 * 1000, blockDurationMs: 10 * 60 * 1000 }, // 20 per hour, block for 10 min
 };
 
 /**

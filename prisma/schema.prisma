@@ -29,13 +29,17 @@ model User {
   invoices            Invoice[]
 
   // New Relations - Credits & Reviews
-  creditTransactions  CreditTransaction[]
+  creditTransactions        CreditTransaction[]
   reviewOrdersAsClient      ReviewOrder[]       @relation("ReviewOrderClient")
   reviewOrdersAsEmployee   ReviewOrder[]       @relation("ReviewOrderEmployee")
+  reviewOrdersCompleted    ReviewOrder[]       @relation("ReviewOrderCompletedBy")  // NEW
   employeeStats             EmployeeStats?
   employeeEarnings          EmployeeEarnings?
   notifications             Notification[]
   notificationLogs           NotificationLog[]
+
+  @@index([role, status])
+  @@index([createdAt])
   userTelegramConfig        UserTelegramConfig?
 
   // New Relations - Reviews System Redesign
@@ -114,6 +118,11 @@ model Order {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   invoices         Invoice[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId, status, createdAt])
 }
 
 model Invoice {
@@ -197,10 +206,14 @@ model ReviewOrder {
   creditsConsumed       Int      @map("credits_consumed") // Credits used for this order
   status                String   // "PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"
 
-  // Employee Assignment
+  // Employee Assignment (kept for backward compatibility)
   assignedEmployeeId    String?  @map("assigned_employee_id")
   assignedEmployee      User?    @relation("ReviewOrderEmployee", fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
-  assignedAt            DateTime? @map("assigned_at") // When order was assigned to employee
+  assignedAt            DateTime? @map("assigned_at")
+
+  // Employee Completion (NEW - who actually completed the order)
+  completedByEmployeeId String?  @map("completed_by_employee_id")
+  completedByEmployee   User?    @relation("ReviewOrderCompletedBy", fields: [completedByEmployeeId], references: [id], onDelete: SetNull)
 
   // Timestamps
   createdAt             DateTime @default(now()) @map("created_at")
@@ -236,8 +249,9 @@ model EmployeeStats {
   acceptingTasks  Boolean  @default(true) @map("accepting_tasks")
 
   // Performance Tracking
-  ordersCompleted Int      @default(0)
-  lastActiveAt    DateTime?
+  ordersCompleted  Int      @default(0) @map("orders_completed")
+  creditsCompleted Int      @default(0) @map("credits_completed")  // NEW - Total credits earned
+  lastActiveAt     DateTime?
 
   // Timestamps
   createdAt       DateTime @default(now())

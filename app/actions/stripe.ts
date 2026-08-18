@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from '@/lib/auth/server-auth';
 import { stripe } from "@/lib/stripe/stripe";
+import { checkRateLimit, RateLimitPresets, getClientIp } from "@/lib/rate-limit";
+import { headers } from "next/headers";
 
 // Helper function to calculate proration credit and dynamic upgrade prices on the server
 async function calculateUpgradePriceInternal(
@@ -98,6 +100,14 @@ export async function createCheckoutSessionAction(
   try {
     const auth = await requireAuth();
     if (!auth.success) return auth;
+
+    // Rate limiting: prevent abuse of checkout session creation
+    const headersList = await headers();
+    const clientIp = getClientIp(headersList);
+    const rateLimit = checkRateLimit(`checkout:${auth.user.id}:${clientIp}`, RateLimitPresets.EXPENSIVE);
+    if (!rateLimit.allowed) {
+      return { success: false, error: rateLimit.error || "Too many checkout attempts. Please try again later." };
+    }
 
     const supabase = await createClient();
 

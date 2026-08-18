@@ -29,6 +29,7 @@ import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS } from "@/lib/cache/cacheContext";
 import CACHE_TTL from '@/lib/cache/cache-ttl';
 import { getAllReviewOrdersAction, type ReviewOrderFilter } from "@/app/actions/admin-reviews";
+import { getEmployeeUsersData } from "@/lib/data/employee";
 import { formatDateShort } from "@/lib/dateUtils";
 import Link from "next/link";
 
@@ -79,12 +80,18 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
       const page = parseInt(searchParams.get('page') || '1', 10);
       const status = searchParams.get('status') as ReviewOrderFilter['status'] || undefined;
       const searchTerm = searchParams.get('search') || undefined;
+      const employeeId = searchParams.get('employee') || undefined;
+      const dateFrom = searchParams.get('startDate') || undefined;
+      const dateTo = searchParams.get('endDate') || undefined;
 
       const result = await getAllReviewOrdersAction({
         page,
         pageSize: 20,
         status,
-        searchTerm
+        searchTerm,
+        employeeId,
+        dateFrom,
+        dateTo
       });
 
       if (result.success) {
@@ -101,11 +108,29 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
 
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || ORDER_STATUS.ALL);
+  const [employeeFilter, setEmployeeFilter] = useState<string>(searchParams.get('employee') || 'all');
+  const [dateRange, setDateRange] = useState<"thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "custom" | "all">("all");
+  const [customStartDate, setCustomStartDate] = useState<string>(searchParams.get('startDate') || '');
+  const [customEndDate, setCustomEndDate] = useState<string>(searchParams.get('endDate') || '');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [employeesList, setEmployeesList] = useState<Array<{id: string; name: string}>>([]);
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
   const totalPages = Math.ceil((swrData?.totalCount || 0) / 20);
 
   const orders = swrData?.orders || [];
   const totalCount = swrData?.totalCount || 0;
+
+  // Fetch employees list on mount
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      const result = await getEmployeeUsersData();
+      if (result.success && result.data) {
+        const employees = result.data.filter((u: any) => u.role === 'EMPLOYEE');
+        setEmployeesList(employees.map((e: any) => ({ id: e.id, name: e.name })));
+      }
+    };
+    fetchEmployees();
+  }, []);
 
   // Sync search with URL params (debounced could be added)
   useEffect(() => {
@@ -133,6 +158,73 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
     params.set('page', '1');
     router.push(`/a/orders?${params.toString()}`);
   }, [statusFilter]);
+
+  // Sync employee filter with URL params
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (employeeFilter && employeeFilter !== 'all') {
+      params.set('employee', employeeFilter);
+    } else {
+      params.delete('employee');
+    }
+    params.set('page', '1');
+    router.push(`/a/orders?${params.toString()}`);
+  }, [employeeFilter]);
+
+  // Sync date range with URL params
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (dateRange === 'custom') {
+      if (customStartDate) params.set('startDate', customStartDate);
+      else params.delete('startDate');
+      if (customEndDate) params.set('endDate', customEndDate);
+      else params.delete('endDate');
+    } else if (dateRange !== 'all') {
+      const now = new Date();
+      let startDate: Date;
+      let endDate: Date;
+
+      switch (dateRange) {
+        case 'thisWeek':
+          const dayOfWeek = now.getDay();
+          startDate = new Date(now);
+          startDate.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+          startDate.setHours(0, 0, 0, 0);
+          endDate = new Date();
+          endDate.setHours(23, 59, 59, 999);
+          break;
+        case 'lastWeek':
+          const lastWeekDay = now.getDay();
+          const lastWeekStart = new Date(now);
+          lastWeekStart.setDate(now.getDate() - (lastWeekDay === 0 ? 6 : lastWeekDay - 1) - 7);
+          lastWeekStart.setHours(0, 0, 0, 0);
+          const lastWeekEnd = new Date(lastWeekStart);
+          lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
+          lastWeekEnd.setHours(23, 59, 59, 999);
+          startDate = lastWeekStart;
+          endDate = lastWeekEnd;
+          break;
+        case 'thisMonth':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+          break;
+        case 'lastMonth':
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0);
+          endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+          break;
+      }
+      if (startDate && endDate) {
+        params.set('startDate', startDate.toISOString());
+        params.set('endDate', endDate.toISOString());
+        // Also clear any custom dates when preset is selected
+        setCustomStartDate("");
+        setCustomEndDate("");
+        setShowDatePicker(false);
+      }
+    }
+    params.set('page', '1');
+    router.push(`/a/orders?${params.toString()}`);
+  }, [dateRange, customStartDate, customEndDate]);
 
   const goToPage = (page: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -312,12 +404,99 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
           <option value={ORDER_STATUS.CANCELLED}>{t("orders.status.cancelled", "Cancelled")}</option>
         </select>
 
+        <select
+          value={employeeFilter}
+          onChange={(e) => setEmployeeFilter(e.target.value)}
+          className="h-10 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-lg px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+        >
+          <option value="all">All Employees</option>
+          {employeesList.map(emp => (
+            <option key={emp.id} value={emp.id}>{emp.name}</option>
+          ))}
+        </select>
+
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-zinc-500" />
+          <select
+            value={dateRange}
+            onChange={(e) => {
+              setDateRange(e.target.value as typeof dateRange);
+              if (e.target.value === "custom") {
+                setShowDatePicker(true);
+              } else {
+                setShowDatePicker(false);
+                setCustomStartDate("");
+                setCustomEndDate("");
+              }
+            }}
+            className="h-10 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-lg px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+          >
+            <option value="all">All Time</option>
+            <option value="thisWeek">This Week</option>
+            <option value="lastWeek">Last Week</option>
+            <option value="thisMonth">This Month</option>
+            <option value="lastMonth">Last Month</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+
         {searchTerm && (
           <div className="text-sm text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 px-3 py-2 rounded-lg">
             {orders.length} {t("common.results", "results")}
           </div>
         )}
       </div>
+
+      {/* Custom Date Range Picker */}
+      {showDatePicker && (
+        <Card className="p-4 border-zinc-200 dark:border-zinc-700">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Start Date</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+              />
+            </div>
+            <div className="flex items-center pt-5">
+              <span className="text-zinc-400">→</span>
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-zinc-500 mb-1">End Date</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+              />
+            </div>
+            <div className="flex gap-2 pt-5">
+              <Button
+                onClick={() => {
+                  setDateRange("all");
+                  setCustomStartDate("");
+                  setCustomEndDate("");
+                  setShowDatePicker(false);
+                }}
+                variant="outline"
+                size="sm"
+              >
+                Clear
+              </Button>
+              <Button
+                onClick={() => setShowDatePicker(false)}
+                disabled={!customStartDate || !customEndDate}
+                size="sm"
+                className="bg-[#168BB0] hover:bg-[#147aa0]"
+              >
+                Apply
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Orders List */}
       {orders.length === 0 ? (
@@ -362,7 +541,10 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
                   {/* Type */}
                   <div className="col-span-2">
                     <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                      {order.orderType.replace(/_/g, ' ')}
+                      {order.orderType === "COMMENT" ? "Reactions" :
+                       order.orderType === "REVIEW" ? "Reviews" :
+                       order.orderType === "COMMENT_WITH_PHOTO" ? "Photo + Reviews" :
+                       order.orderType?.replace(/_/g, ' ')}
                     </span>
                   </div>
 

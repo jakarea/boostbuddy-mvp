@@ -7,6 +7,8 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { CacheTags, CacheRevalidator } from "@/lib/cache/cache-tags";
 import { stripe } from "@/lib/stripe/stripe";
 import { randomUUID } from "crypto";
+import { checkRateLimit, RateLimitPresets, getClientIp } from "@/lib/rate-limit";
+import { headers } from "next/headers";
 
 // ============================================
 // TYPES
@@ -258,6 +260,14 @@ export async function purchaseCreditsAction(packageId: string) {
   try {
     const auth = await requireAuth();
     if (!auth.success) return auth;
+
+    // Rate limiting: prevent abuse of credit purchases
+    const headersList = await headers();
+    const clientIp = getClientIp(headersList);
+    const rateLimit = checkRateLimit(`credits:${auth.user.id}:${clientIp}`, RateLimitPresets.EXPENSIVE);
+    if (!rateLimit.allowed) {
+      return { success: false, error: rateLimit.error || "Too many purchase attempts. Please try again later." };
+    }
 
     const supabase = await createClient();
     const { data: package_, error: packageError } = await supabase

@@ -65,6 +65,14 @@ export async function getAllReviewOrdersAction(filters?: ReviewOrderFilter) {
       countQuery = countQuery.eq("assigned_employee_id", filters.employeeId);
     }
 
+    if (filters?.dateFrom) {
+      countQuery = countQuery.gte("created_at", filters.dateFrom);
+    }
+
+    if (filters?.dateTo) {
+      countQuery = countQuery.lte("created_at", filters.dateTo);
+    }
+
     // Prepare sanitized search term if provided
     let sanitizedSearch = '';
     if (filters?.searchTerm && filters.searchTerm.trim()) {
@@ -95,6 +103,14 @@ export async function getAllReviewOrdersAction(filters?: ReviewOrderFilter) {
 
     if (filters?.employeeId) {
       query = query.eq("assigned_employee_id", filters.employeeId);
+    }
+
+    if (filters?.dateFrom) {
+      query = query.gte("created_at", filters.dateFrom);
+    }
+
+    if (filters?.dateTo) {
+      query = query.lte("created_at", filters.dateTo);
     }
 
     // Add search filter if provided (using same sanitized term)
@@ -544,6 +560,108 @@ export async function getEmployeeAssignedReviewsAction(userId: string) {
     })) || [];
 
     return { success: true, data: normalizedData };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get only completed orders for a specific employee (admin only)
+ */
+export async function getEmployeeCompletedOrdersAction(
+  employeeId: string,
+  options?: {
+    page?: number;
+    pageSize?: number;
+    dateFrom?: string;
+    dateTo?: string;
+  }
+) {
+  try {
+    const auth = await requireAuth({ role: 'ADMIN' });
+    if (!auth.success) return auth;
+
+    const supabase = createAdminClient();
+    const page = options?.page || 1;
+    const pageSize = options?.pageSize || 20;
+    const startIndex = (page - 1) * pageSize;
+
+    // Get total count with date filter
+    let countQuery = supabase
+      .from("review_urls")
+      .select("id", { count: "exact", head: true })
+      .eq("assigned_employee_id", employeeId)
+      .eq("status", "COMPLETED");
+
+    if (options?.dateFrom) {
+      countQuery = countQuery.gte("completed_at", options.dateFrom);
+    }
+    if (options?.dateTo) {
+      countQuery = countQuery.lte("completed_at", options.dateTo);
+    }
+
+    const { count: totalCount, error: countError } = await countQuery;
+
+    if (countError) throw countError;
+
+    // Get only completed review_urls for this employee with pagination and date filter
+    let query = supabase
+      .from("review_urls")
+      .select(`
+        id,
+        url,
+        quantity,
+        status,
+        assigned_at,
+        completed_at,
+        review_order_id,
+        review_orders (
+          id,
+          order_type,
+          business_name,
+          credits_consumed
+        )
+      `)
+      .eq("assigned_employee_id", employeeId)
+      .eq("status", "COMPLETED");
+
+    if (options?.dateFrom) {
+      query = query.gte("completed_at", options.dateFrom);
+    }
+    if (options?.dateTo) {
+      query = query.lte("completed_at", options.dateTo);
+    }
+
+    const { data, error } = await query
+      .order("completed_at", { ascending: false })
+      .range(startIndex, startIndex + pageSize - 1);
+
+    if (error) throw error;
+
+    // Normalize data
+    const normalizedData = data?.map((item: any) => ({
+      id: item.id,
+      url: item.url,
+      quantity: item.quantity,
+      status: item.status,
+      assignedAt: item.assigned_at,
+      completedAt: item.completed_at,
+      orderId: item.review_order_id,
+      orderType: item.review_orders?.order_type || 'REVIEW',
+      businessName: item.review_orders?.business_name,
+      creditsConsumed: item.review_orders?.credits_consumed || 0
+    })) || [];
+
+    return {
+      success: true,
+      data: normalizedData,
+      pagination: {
+        page,
+        pageSize,
+        totalCount: totalCount || 0,
+        totalPages: Math.ceil((totalCount || 0) / pageSize)
+      }
+    };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

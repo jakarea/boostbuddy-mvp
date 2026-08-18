@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, UserPlus, ChevronLeft, ChevronRight, Shield, UserCog, CheckCircle, XCircle, Clock, X, Loader2 } from "lucide-react";
+import { Search, UserPlus, ChevronLeft, ChevronRight, Shield, UserCog, CheckCircle, XCircle, Clock, X, Loader2, Calendar, Coins, Package } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 interface EmployeesListProps {
@@ -33,6 +33,16 @@ interface EmployeesListProps {
   router: ReturnType<typeof useRouter>;
   onRefresh?: () => void;
   isCacheValid?: boolean;
+  // Date range props
+  dateRange?: "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "custom" | "all";
+  setDateRange?: (range: "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "custom" | "all") => void;
+  customStartDate?: string;
+  setCustomStartDate?: (date: string) => void;
+  customEndDate?: string;
+  setCustomEndDate?: (date: string) => void;
+  showDatePicker?: boolean;
+  setShowDatePicker?: (show: boolean) => void;
+  employeeStats?: Record<string, { ordersCompleted: number; creditsCompleted: number }>;
 }
 
 const EmployeesList = memo(function EmployeesList({
@@ -58,6 +68,15 @@ const EmployeesList = memo(function EmployeesList({
   router,
   onRefresh,
   isCacheValid = true,
+  dateRange = "all",
+  setDateRange,
+  customStartDate = "",
+  setCustomStartDate,
+  customEndDate = "",
+  setCustomEndDate,
+  showDatePicker = false,
+  setShowDatePicker,
+  employeeStats = {},
 }: EmployeesListProps) {
   const { t } = useTranslation("admin_employees");
 
@@ -196,6 +215,93 @@ const EmployeesList = memo(function EmployeesList({
         </Select>
       </div>
 
+      {/* Date Range Filter */}
+      {(setDateRange && setShowDatePicker) && (
+        <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+          <div className="flex items-center gap-3">
+            <Calendar className="h-4 w-4 text-zinc-500" />
+            <select
+              value={dateRange}
+              onChange={(e) => {
+                setDateRange(e.target.value as typeof dateRange);
+                if (e.target.value !== "custom") {
+                  setShowDatePicker(false);
+                }
+              }}
+              className="h-10 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-lg px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+            >
+              <option value="all">All Time</option>
+              <option value="thisWeek">This Week</option>
+              <option value="lastWeek">Last Week</option>
+              <option value="thisMonth">This Month</option>
+              <option value="lastMonth">Last Month</option>
+              <option value="custom">Custom Range</option>
+            </select>
+            {dateRange === "custom" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDatePicker(!showDatePicker)}
+                className="gap-2"
+              >
+                {showDatePicker ? "Close" : "Select Dates"}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Custom Date Range Picker */}
+      {showDatePicker && (
+        <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Start Date</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+              />
+            </div>
+            <div className="flex items-center pt-5">
+              <span className="text-zinc-400">→</span>
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-zinc-500 mb-1">End Date</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+              />
+            </div>
+            <div className="flex gap-2 pt-5">
+              <Button
+                onClick={() => {
+                  setCustomStartDate("");
+                  setCustomEndDate("");
+                  setShowDatePicker(false);
+                  setDateRange("all");
+                }}
+                variant="outline"
+                size="sm"
+              >
+                Clear
+              </Button>
+              <Button
+                onClick={() => setShowDatePicker(false)}
+                disabled={!customStartDate || !customEndDate}
+                size="sm"
+                className="bg-[#168BB0] hover:bg-[#147aa0]"
+              >
+                Apply
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
@@ -214,6 +320,18 @@ const EmployeesList = memo(function EmployeesList({
                 <th className="text-left p-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">
                   {t("th_status", { defaultValue: "Status" })}
                 </th>
+                <th className="text-center p-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                  <div className="flex items-center justify-center gap-1">
+                    <Package className="h-3 w-3" />
+                    Orders
+                  </div>
+                </th>
+                <th className="text-center p-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                  <div className="flex items-center justify-center gap-1">
+                    <Coins className="h-3 w-3" />
+                    Credits
+                  </div>
+                </th>
                 <th className="text-right p-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">
                   {t("th_actions", { defaultValue: "Actions" })}
                 </th>
@@ -222,7 +340,7 @@ const EmployeesList = memo(function EmployeesList({
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
               {paginatedEmployees.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-zinc-500 text-sm">
+                  <td colSpan={7} className="p-8 text-center text-zinc-500 text-sm">
                     {searchTerm || roleFilter !== "ALL" || statusFilter !== "ALL"
                       ? t("no_results", { defaultValue: "No employees found matching your criteria" })
                       : t("no_employees", { defaultValue: "No employees found" })}
@@ -260,6 +378,16 @@ const EmployeesList = memo(function EmployeesList({
                       </Badge>
                     </td>
                     <td className="p-4">{getStatusBadge(employee.status)}</td>
+                    <td className="p-4 text-center">
+                      <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        {employeeStats[employee.id]?.ordersCompleted || 0}
+                      </span>
+                    </td>
+                    <td className="p-4 text-center">
+                      <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                        {employeeStats[employee.id]?.creditsCompleted || 0}
+                      </span>
+                    </td>
                     <td className="p-4 text-right">
                       <Button
                         size="sm"

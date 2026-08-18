@@ -29,9 +29,14 @@ function sanitizeComment(text: string): string {
   return text
     .trim()
     .replace(/<[^>]*>/g, '')           // Strip HTML tags
-    .replace(/"/g, '\\"')              // Escape double quotes
-    .replace(/'/g, "\\'")              // Escape single quotes
-    .replace(/\\/g, '\\\\')            // Escape backslashes
+    .replace(/<script[^>]*>.*?<\/script>/gis, '')  // Strip script tags (case-insensitive)
+    .replace(/javascript:/gi, '')     // Remove javascript: protocol
+    .replace(/on\w+\s*=/gi, '')       // Remove event handlers (onclick=, etc.)
+    .replace(/"/g, '&quot;')          // HTML entity for double quotes
+    .replace(/'/g, '&#39;')           // HTML entity for single quotes
+    .replace(/</g, '&lt;')            // HTML entity for <
+    .replace(/>/g, '&gt;')            // HTML entity for >
+    .replace(/&(?![a-z]+;|#\d+;)/gi, '&amp;') // Escape & that's not part of entity
     .substring(0, 500);                 // Max 500 chars
 }
 
@@ -487,6 +492,9 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
     finalNewBalance = newBalance;
     console.log("📍 [ORDER] Supabase order created successfully");
 
+    // Import format helper
+    const { formatOrderType } = await import("@/lib/utils");
+
     // Send notification (fire and forget - don't block on notification errors)
     (async () => {
       try {
@@ -507,8 +515,8 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
         const { sendNotificationAction } = await import("./notifications");
         await sendNotificationAction(
           auth.user.email,
-          `📝 New ${orderData.orderType} Order Created`,
-          `Your ${orderData.orderType.toLowerCase()} order for ${orderData.quantity} unit${orderData.quantity > 1 ? 's' : ''} has been created. ${requiredCredits} credits have been deducted.`,
+          `📝 New ${formatOrderType(orderData.orderType)} Order Created`,
+          `Your ${formatOrderType(orderData.orderType).toLowerCase()} order for ${orderData.quantity} unit${orderData.quantity > 1 ? 's' : ''} has been created. ${requiredCredits} credits have been deducted.`,
           "TELEGRAM",
           "REVIEWS_ORDER_CREATED",
           "MEDIUM",
@@ -530,8 +538,8 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
       try {
         const { broadcastToEmployeesAction } = await import("./notifications");
         await broadcastToEmployeesAction(
-          `🔔 New ${orderData.orderType} Order Available`,
-          `A new ${orderData.orderType.toLowerCase()} order for ${orderData.quantity} unit${orderData.quantity > 1 ? 's' : ''} is ready to process.`,
+          `🔔 New ${formatOrderType(orderData.orderType)} Order Available`,
+          `A new ${formatOrderType(orderData.orderType).toLowerCase()} order for ${orderData.quantity} unit${orderData.quantity > 1 ? 's' : ''} is ready to process.`,
           "EMPLOYEE_NEW_ORDER_AVAILABLE",
           "HIGH",
           orderId
@@ -653,7 +661,7 @@ export async function getReviewOrderDetailAction(orderId: string) {
     // Fetch the order first (using regular client to verify ownership)
     const { data, error } = await supabase
       .from("review_orders")
-      .select("id, user_id, status, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at")
+      .select("id, user_id, status, facebook_url, business_name, order_type, review_type, reaction_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at")
       .eq("id", orderId)
       .eq("user_id", auth.user.id)
       .single();
@@ -682,6 +690,7 @@ export async function getReviewOrderDetailAction(orderId: string) {
       businessName: data.business_name,
       orderType: data.order_type,
       reviewType: data.review_type,
+      reactionType: data.reaction_type,
       reviewContent: data.review_content,
       reviewInstructions: data.review_instructions,
       proofOfCompletion: data.proof_of_completion,

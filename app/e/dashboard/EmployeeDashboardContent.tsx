@@ -4,15 +4,21 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/context/ToastContext";
 import { CopyReviewButton } from "@/components/reviews/CopyReviewButton";
-import { acceptUrlTaskAction } from "@/app/actions/reviews-multiurl";
-import { toggleTaskDistributionAction } from "@/app/actions/employee";
+import { completeReviewOrderAction, getMyEmployeeStatsAction } from "@/app/actions/employee";
 import { getEmployeeDashboardDataAction, DashboardData, UrlTask } from "@/app/actions/employee-dashboard";
 import { formatDateTime } from "@/lib/dateUtils";
 import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS } from "@/lib/cache/cacheContext";
 import CACHE_TTL from "@/lib/cache/cache-ttl";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+interface EmployeeStatsData {
+  totalCreditsCompleted: number;
+  totalOrdersCompleted: number;
+  todayCreditsCompleted: number;
+  todayOrdersCompleted: number;
+}
 
 export function EmployeeDashboardContent({
   initialData,
@@ -21,9 +27,9 @@ export function EmployeeDashboardContent({
 }) {
   const { success: toastSuccess, error: toastError } = useToast();
   const { t } = useTranslation();
-  const [acceptingTaskId, setAcceptingTaskId] = useState<string | null>(null);
+  const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
 
-  // SWR for employee dashboard data - 1 minute cache (more frequent refresh for active tasks)
+  // SWR for employee dashboard data - 1 minute cache
   const { data: dashboardData, refresh, isValid } = useSWR({
     key: CACHE_KEYS.EMPLOYEE_DASHBOARD,
     fetcher: async () => {
@@ -31,49 +37,51 @@ export function EmployeeDashboardContent({
       if (result.success && 'data' in result) {
         return result.data;
       }
-      return initialData; // Fallback to initial data on error
+      return initialData;
     },
-    ttl: CACHE_TTL.SHORT, // 1 minute - shorter cache for active work
+    ttl: CACHE_TTL.SHORT,
     initialData: initialData,
+  });
+
+  // SWR for employee stats
+  const { data: employeeStats } = useSWR({
+    key: CACHE_KEYS.EMPLOYEE_STATS,
+    fetcher: async () => {
+      try {
+        const result = await getMyEmployeeStatsAction();
+        if (result.success && result.data) {
+          return result.data;
+        }
+        return null;
+      } catch (error) {
+        console.error('[EmployeeDashboard] Failed to fetch stats:', error);
+        return null;
+      }
+    },
+    ttl: CACHE_TTL.SHORT,
   });
 
   const stats = dashboardData?.stats || initialData.stats;
   const availableTasks = dashboardData?.availableTasks || initialData.availableTasks;
   const currentAssignments = dashboardData?.currentAssignments || initialData.currentAssignments;
 
-  const handleAcceptTask = async (taskId: string) => {
-    // Check if task distribution is enabled
+  const handleCompleteTask = async (taskId: string) => {
     if (!stats.acceptingTasks) {
-      toastError("You must enable task distribution to accept tasks");
+      toastError("You must enable task distribution to complete tasks");
       return;
     }
 
-    setAcceptingTaskId(taskId);
+    setCompletingTaskId(taskId);
 
-    const result = await acceptUrlTaskAction(taskId);
+    const result = await completeReviewOrderAction(taskId);
 
-    setAcceptingTaskId(null);
+    setCompletingTaskId(null);
 
     if (result.success) {
-      toastSuccess("Task accepted successfully");
-      refresh(); // Refresh SWR cache
+      toastSuccess("Task completed successfully!");
+      refresh();
     } else {
-      toastError(result.error || "Failed to accept task");
-    }
-  };
-
-  const handleToggleTaskDistribution = async () => {
-    const result = await toggleTaskDistributionAction();
-
-    if (result.success && result.data) {
-      refresh(); // Refresh SWR cache
-      toastSuccess(
-        result.data.acceptingTasks
-          ? "Task distribution enabled - you will now receive new tasks"
-          : "Task distribution disabled - you won't receive new tasks"
-      );
-    } else {
-      toastError(result.error || "Failed to toggle task distribution");
+      toastError(result.error || "Failed to complete task");
     }
   };
 
@@ -86,6 +94,7 @@ export function EmployeeDashboardContent({
           </span>
         );
       case "ASSIGNED":
+      case "IN_PROGRESS":
         return (
           <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs rounded border border-blue-200 dark:border-blue-800">
             In Progress
@@ -99,7 +108,7 @@ export function EmployeeDashboardContent({
         );
       default:
         return (
-          <span className="px-2 py-1 bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-300 text-xs rounded border border-gray-200 dark:border-gray-800">
+          <span className="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-300 text-xs rounded border border-zinc-200 dark:border-zinc-800">
             {status}
           </span>
         );
@@ -109,17 +118,17 @@ export function EmployeeDashboardContent({
   const getOrderTypeLabel = (orderType: string) => {
     switch (orderType) {
       case "REVIEW":
-        return "Review";
+        return "Reviews";
       case "COMMENT":
-        return "Comment";
+        return "Reactions";
       case "COMMENT_WITH_PHOTO":
-        return "Comment with Photo";
+        return "Photo + Reviews";
       default:
-        return orderType;
+        return orderType.replace(/_/g, " ");
     }
   };
 
-  const renderTaskCard = (task: UrlTask, isAssignment: boolean = false) => (
+  const renderTaskCard = (task: UrlTask) => (
     <div key={task.id} className="p-4 space-y-3">
       {/* Header with business name and status */}
       <div className="flex justify-between items-start">
@@ -129,9 +138,7 @@ export function EmployeeDashboardContent({
             {getOrderTypeLabel(task.orderType)} • URL {task.reviewIndex + 1}
           </p>
           <p className="text-xs text-zinc-400 dark:text-zinc-500">
-            {isAssignment && task.assignedAt
-              ? `Assigned: ${formatDateTime(task.assignedAt)}`
-              : `Created: ${formatDateTime(task.createdAt)}`}
+            Created: {formatDateTime(task.createdAt)}
           </p>
         </div>
         {getStatusBadge(task.status)}
@@ -180,28 +187,24 @@ export function EmployeeDashboardContent({
         Quantity: {task.quantity} {task.quantity === 1 ? 'review' : 'reviews'}
       </p>
 
-      {/* Action button for available tasks */}
-      {!isAssignment && (
-        <button
-          onClick={() => handleAcceptTask(task.id)}
-          disabled={acceptingTaskId === task.id || !stats.acceptingTasks}
-          className="w-full px-4 py-2 bg-[#168BB0] text-white rounded-lg hover:bg-[#0F7493] disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-        >
-          {acceptingTaskId === task.id
-            ? "Accepting..."
-            : "Accept Task"}
-        </button>
-      )}
-
-      {/* Submit link for assignments */}
-      {isAssignment && (
-        <a
-          href={`/e/orders/${task.reviewOrderId}`}
-          className="inline-block w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium text-center"
-        >
-          Submit Task
-        </a>
-      )}
+      {/* Complete Task button - NEW */}
+      <button
+        onClick={() => handleCompleteTask(task.reviewOrderId)}
+        disabled={completingTaskId === task.reviewOrderId || !stats.acceptingTasks}
+        className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2"
+      >
+        {completingTaskId === task.reviewOrderId ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Completing...
+          </>
+        ) : (
+          <>
+            <Check className="h-4 w-4" />
+            Mark as Completed
+          </>
+        )}
+      </button>
     </div>
   );
 
@@ -212,7 +215,7 @@ export function EmployeeDashboardContent({
         <div className="min-w-0">
           <h1 className="text-lg sm:text-2xl md:text-3xl font-extrabold tracking-tight">Employee Dashboard</h1>
           <p className="text-xs sm:text-sm text-zinc-500 mt-1">
-            Manage your review tasks and assignments
+            Complete review tasks and track your performance
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -226,69 +229,64 @@ export function EmployeeDashboardContent({
             <Loader2 className={`h-4 w-4 ${!isValid ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <button
-            onClick={handleToggleTaskDistribution}
-            className={`px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 h-10 text-sm w-full sm:w-auto shrink-0 ${
-              stats?.acceptingTasks
-                ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                : "bg-zinc-200 text-zinc-600 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
-            }`}
-          >
-            {stats?.acceptingTasks ? (
-              <>
-                <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                Receiving Tasks
-              </>
-            ) : (
-              "Task Distribution Paused"
-            )}
-          </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      {/* Employee Stats Cards - NEW */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 shadow border border-zinc-200 dark:border-zinc-800">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Completed</p>
-          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats?.tasksCompleted || 0}</p>
-        </div>
-
-        <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 shadow border border-zinc-200 dark:border-zinc-800">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">In Progress</p>
-          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{currentAssignments.length}</p>
-        </div>
-
-        <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 shadow border border-zinc-200 dark:border-zinc-800">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Available Tasks</p>
-          <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{availableTasks.length}</p>
-        </div>
-      </div>
-
-      {/* Task Distribution Disabled Warning */}
-      {!stats?.acceptingTasks && (
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-          <p className="text-sm text-amber-800 dark:text-amber-300">
-            <strong>Task Distribution Paused:</strong> You won't receive new tasks. Click the toggle above to enable task distribution.
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Total Credits</p>
+          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+            {employeeStats?.totalCreditsCompleted || 0}
           </p>
+          <p className="text-xs text-zinc-400 mt-1">credits completed</p>
         </div>
-      )}
 
-      {/* Current Assignments */}
-      {currentAssignments.length > 0 && (
-        <div className="bg-white dark:bg-zinc-900 rounded-lg shadow border border-zinc-200 dark:border-zinc-800">
-          <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
-            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Current Assignments</h3>
-          </div>
-          <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {currentAssignments.map((task) => renderTaskCard(task, true))}
-          </div>
+        <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 shadow border border-zinc-200 dark:border-zinc-800">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Total Orders</p>
+          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            {employeeStats?.totalOrdersCompleted || 0}
+          </p>
+          <p className="text-xs text-zinc-400 mt-1">orders completed</p>
         </div>
-      )}
+
+        <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 shadow border border-zinc-200 dark:border-zinc-800">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Today's Credits</p>
+          <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+            {employeeStats?.todayCreditsCompleted || 0}
+          </p>
+          <p className="text-xs text-zinc-400 mt-1">credits today</p>
+        </div>
+
+        <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 shadow border border-zinc-200 dark:border-zinc-800">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Today's Orders</p>
+          <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+            {employeeStats?.todayOrdersCompleted || 0}
+          </p>
+          <p className="text-xs text-zinc-400 mt-1">orders today</p>
+        </div>
+      </div>
+
+      {/* Task Distribution Status */}
+      <div className={`rounded-lg p-4 border ${
+        stats?.acceptingTasks
+          ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+          : "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+      }`}>
+        <p className="text-sm">
+          <strong className={stats?.acceptingTasks ? "text-emerald-800 dark:text-emerald-300" : "text-amber-800 dark:text-amber-300"}>
+            {stats?.acceptingTasks ? "✓ Task Distribution Active" : "⚠ Task Distribution Paused"}
+          </strong>
+          {!stats?.acceptingTasks && " - You won't see new tasks until you enable distribution"}
+        </p>
+      </div>
 
       {/* Available Tasks */}
       <div className="bg-white dark:bg-zinc-900 rounded-lg shadow border border-zinc-200 dark:border-zinc-800">
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
-          <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Available Tasks</h3>
+          <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
+            Available Tasks ({availableTasks.length})
+          </h3>
         </div>
 
         {availableTasks.length === 0 ? (
@@ -296,8 +294,8 @@ export function EmployeeDashboardContent({
             No tasks available
           </div>
         ) : (
-          <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {availableTasks.map((task) => renderTaskCard(task, false))}
+          <div className="divide-y divide-zinc-200 dark:divide-zinc-800 max-h-[600px] overflow-y-auto">
+            {availableTasks.map((task) => renderTaskCard(task))}
           </div>
         )}
       </div>

@@ -22,7 +22,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, data: data || [] });
+    const response = NextResponse.json({ success: true, data: data || [] });
+
+    // Add cache headers for short-term caching (20 seconds)
+    response.headers.set('Cache-Control', 'private, max-age=20, stale-while-revalidate=40');
+    return response;
   } catch (error) {
     console.error('[API] Notification fetch error:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });

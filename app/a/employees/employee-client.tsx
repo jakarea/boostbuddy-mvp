@@ -11,6 +11,8 @@ import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS } from "@/lib/cache/cacheContext";
 import CACHE_TTL from "@/lib/cache/cache-ttl";
 import { getEmployeesData } from "@/lib/data/employee";
+import { getAllEmployeesStatsByRangeAction } from "@/app/actions/employee-stats";
+import { Calendar } from "lucide-react";
 
 // Dynamic imports for code splitting
 const EmployeeForm = dynamic(() => import("./components/EmployeeForm"), { ssr: false });
@@ -40,7 +42,14 @@ export default function EmployeeClient({
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [roleFilter, setRoleFilter] = useState<"ADMIN" | "EMPLOYEE" | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState<"ACTIVE" | "PENDING" | "DEACTIVATED" | "ALL">("ALL");
-  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1", 10));
+  const [dateRange, setDateRange] = useState<"thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "custom" | "all">("all");
+  const [customStartDate, setCustomStartDate] = useState<string>("");
+  const [customEndDate, setCustomEndDate] = useState<string>("");
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [employeeStats, setEmployeeStats] = useState<Record<string, { ordersCompleted: number; creditsCompleted: number }>>({});
+  const currentPageState = useState(parseInt(searchParams.get("page") || "1", 10));
+  const currentPage = currentPageState[0];
+  const setCurrentPage = currentPageState[1];
   const itemsPerPage = 10;
 
   // Navigation handlers
@@ -107,6 +116,79 @@ export default function EmployeeClient({
     router.push(`/a/employees?${params.toString()}`);
   }, [searchTerm, roleFilter]);
 
+  // Fetch employee stats when date range changes
+  useEffect(() => {
+    const fetchStats = async () => {
+      const now = new Date();
+      let startDate: Date;
+      let endDate: Date = new Date();
+
+      switch (dateRange) {
+        case "thisWeek":
+          const dayOfWeek = now.getDay();
+          startDate = new Date(now);
+          startDate.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+          startDate.setHours(0, 0, 0, 0);
+          endDate = new Date();
+          endDate.setHours(23, 59, 59, 999);
+          break;
+        case "lastWeek":
+          const lastWeekDay = now.getDay();
+          const lastWeekStart = new Date(now);
+          lastWeekStart.setDate(now.getDate() - (lastWeekDay === 0 ? 6 : lastWeekDay - 1) - 7);
+          lastWeekStart.setHours(0, 0, 0, 0);
+          const lastWeekEnd = new Date(lastWeekStart);
+          lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
+          lastWeekEnd.setHours(23, 59, 59, 999);
+          startDate = lastWeekStart;
+          endDate = lastWeekEnd;
+          break;
+        case "thisMonth":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+          break;
+        case "lastMonth":
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0);
+          endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+          break;
+        case "custom":
+          if (customStartDate && customEndDate) {
+            startDate = new Date(customStartDate);
+            startDate.setHours(0, 0, 0, 0);
+            endDate = new Date(customEndDate);
+            endDate.setHours(23, 59, 59, 999);
+          } else {
+            setEmployeeStats({});
+            return;
+          }
+          break;
+        default:
+          setEmployeeStats({});
+          return;
+      }
+
+      const result = await getAllEmployeesStatsByRangeAction({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      });
+
+      if (result.success && result.data) {
+        const statsMap: Record<string, { ordersCompleted: number; creditsCompleted: number }> = {};
+        result.data.forEach(emp => {
+          statsMap[emp.id] = {
+            ordersCompleted: emp.ordersCompleted,
+            creditsCompleted: emp.creditsCompleted
+          };
+        });
+        setEmployeeStats(statsMap);
+      } else {
+        setEmployeeStats({});
+      }
+    };
+
+    fetchStats();
+  }, [dateRange, customStartDate, customEndDate]);
+
   // Calculate paginated results
   const paginatedEmployees = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -156,6 +238,15 @@ export default function EmployeeClient({
       router={router}
       onRefresh={refresh}
       isCacheValid={isValid}
+      dateRange={dateRange}
+      setDateRange={setDateRange}
+      customStartDate={customStartDate}
+      setCustomStartDate={setCustomStartDate}
+      customEndDate={customEndDate}
+      setCustomEndDate={setCustomEndDate}
+      showDatePicker={showDatePicker}
+      setShowDatePicker={setShowDatePicker}
+      employeeStats={employeeStats}
     />
   );
 }

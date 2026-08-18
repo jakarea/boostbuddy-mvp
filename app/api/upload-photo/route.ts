@@ -7,6 +7,29 @@ const MAX_FILE_SIZE = 1024 * 1024; // 1MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png'];
 const MAX_PHOTOS = 2;
 
+// Magic byte signatures for image files
+const MAGIC_BYTES = {
+  jpeg: [0xFF, 0xD8, 0xFF], // JPEG files start with FF D8 FF
+  png: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A] // PNG files start with 89 50 4E 47 0D 0A 1A 0A
+};
+
+// Helper function to validate file type using magic bytes
+const validateFileMagicBytes = (buffer: Buffer): 'jpeg' | 'png' | null => {
+  // Check JPEG
+  if (buffer.length >= 3) {
+    const isJpeg = MAGIC_BYTES.jpeg.every((byte, index) => buffer[index] === byte);
+    if (isJpeg) return 'jpeg';
+  }
+
+  // Check PNG
+  if (buffer.length >= 8) {
+    const isPng = MAGIC_BYTES.png.every((byte, index) => buffer[index] === byte);
+    if (isPng) return 'png';
+  }
+
+  return null;
+};
+
 // Helper functions
 const generateSafeFileName = (originalName: string, userId: string, index: string): string => {
   const fileExt = originalName.split('.').pop() || 'jpg';
@@ -83,6 +106,29 @@ export async function POST(request: Request) {
 
     // Convert file to buffer
     const buffer = Buffer.from(await file.arrayBuffer());
+
+    // Verify file type using magic bytes (security check against file type spoofing)
+    const actualFileType = validateFileMagicBytes(buffer);
+    if (!actualFileType) {
+      console.error("❌ [PHOTO UPLOAD] Invalid file magic bytes - file type spoofing detected");
+      return new Response(JSON.stringify({
+        error: 'Invalid file format. File content does not match a valid image type.'
+      }), { status: 400 });
+    }
+
+    // Double-check that the claimed type matches the actual magic bytes
+    if (actualFileType === 'jpeg' && !file.type.includes('jpeg') && !file.type.includes('jpg')) {
+      console.error("❌ [PHOTO UPLOAD] Magic bytes indicate JPEG but claimed type is:", file.type);
+      return new Response(JSON.stringify({
+        error: 'File type mismatch. Declared type does not match actual file content.'
+      }), { status: 400 });
+    }
+    if (actualFileType === 'png' && !file.type.includes('png')) {
+      console.error("❌ [PHOTO UPLOAD] Magic bytes indicate PNG but claimed type is:", file.type);
+      return new Response(JSON.stringify({
+        error: 'File type mismatch. Declared type does not match actual file content.'
+      }), { status: 400 });
+    }
 
     // Upload to Supabase Storage 'comments' bucket
     console.log("📤 [PHOTO UPLOAD] Uploading to 'comments' bucket...");

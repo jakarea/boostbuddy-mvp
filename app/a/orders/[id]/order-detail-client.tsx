@@ -240,8 +240,12 @@ export default function OrderDetailClient({ order }: OrderDetailClientProps) {
                   Qty: {urlItem.quantity}
                 </span>
                 {urlItem.reactionType && (
-                  <span className="text-xs text-zinc-500">
-                    {urlItem.reactionType}
+                  <span className="text-xs text-zinc-500 flex items-center gap-1">
+                    {urlItem.reactionType === "LIKE" ? "👍" :
+                     urlItem.reactionType === "LOVE" ? "❤️" :
+                     urlItem.reactionType === "CARE" ? "🤗" :
+                     urlItem.reactionType === "WOW" ? "😮" :
+                     urlItem.reactionType}
                   </span>
                 )}
                 <span className={`text-xs px-2 py-1 rounded ${
@@ -529,6 +533,18 @@ export default function OrderDetailClient({ order }: OrderDetailClientProps) {
                order.orderType?.replace(/_/g, ' ')}
             </p>
           </div>
+          {order.orderType === "COMMENT" && (
+            <div>
+              <p className="text-zinc-500">Reaction</p>
+              <p className="font-medium text-lg flex items-center gap-2">
+                {order.reactionType === "LIKE" ? "👍" :
+                 order.reactionType === "LOVE" ? "❤️" :
+                 order.reactionType === "CARE" ? "🤗" :
+                 order.reactionType === "WOW" ? "😮" :
+                 order.reactionType || "👍"}
+              </p>
+            </div>
+          )}
           <div>
             <p className="text-zinc-500">{t("orders.reviewType", "Review Type")}</p>
             <p className="font-medium">{order.reviewType}</p>

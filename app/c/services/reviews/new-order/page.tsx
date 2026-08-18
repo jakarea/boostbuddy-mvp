@@ -5,21 +5,19 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { createMultiUrlReviewOrderAction } from "@/app/actions/reviews-multiurl";
-import {
-  getReviewOrderSetupAction
-} from "@/app/actions/reviews";
+import { getReviewOrderSetupAction } from "@/app/actions/reviews";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import PhotoUpload from "@/components/ui/PhotoUpload";
 import { REACTIONS, type ReactionType } from "@/lib/reactionUtils";
 import { useTranslation } from "react-i18next";
-import { Plus, X, CreditCard, Sparkles, ChevronRight } from "lucide-react";
+import { Plus, X, ChevronRight } from "lucide-react";
 
 type OrderType = "REVIEW" | "COMMENT" | "COMMENT_WITH_PHOTO";
 
 interface ReviewUrlData {
   url: string;
-  quantity: number; // Kept for backward compatibility with REVIEW/COMMENT_WITH_PHOTO
-  reactionType?: ReactionType; // Kept for backward compatibility
+  quantity: number;
+  reactionType?: ReactionType;
 }
 
 const ORDER_TYPE_LABELS: Record<OrderType, { label: string; description: string; icon: string }> = {
@@ -34,19 +32,20 @@ export default function NewReviewOrderPage() {
   const { t } = useTranslation();
   const router = useRouter();
 
-  // Inline shake animation styles
+  // Shake animation styles
   const shakeStyle = `
     @keyframes shake {
-      0%, 100% { transform: translateX(0) rotate(0deg); }
-      25% { transform: translateX(-2px) rotate(-3deg); }
-      50% { transform: translateX(2px) rotate(3deg); }
-      75% { transform: translateX(-2px) rotate(-3deg); }
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-10deg); }
+      75% { transform: rotate(10deg); }
     }
     .emoji-shake-always {
-      animation: shake 0.6s ease-in-out infinite;
+      animation: shake 0.5s ease-in-out infinite;
+      display: inline-block;
     }
-    .button-wrapper:hover .emoji-shake-hover {
-      animation: shake 0.6s ease-in-out infinite;
+    .emoji-shake-hover:hover {
+      animation: shake 0.5s ease-in-out infinite;
+      display: inline-block;
     }
   `;
 
@@ -58,23 +57,18 @@ export default function NewReviewOrderPage() {
     { url: "", quantity: 1, reactionType: "LIKE" as ReactionType }
   ]);
 
-  // Single reaction type for COMMENT orders (shared across all URLs)
   const [singleReactionType, setSingleReactionType] = useState<ReactionType>("LIKE" as ReactionType);
-  // Single quantity for COMMENT and COMMENT_WITH_PHOTO orders only
-  const [singleQuantity, setSingleQuantity] = useState(5);
+  const [singleQuantity, setSingleQuantity] = useState(3);
 
-  // Per-URL reviews and photos structure
   const [urlReviews, setUrlReviews] = useState<Array<{ reviews: string[]; photos: string[][] }>>([
     { reviews: [""], photos: [[]] }
   ]);
 
   const [fieldErrors, setFieldErrors] = useState<{
     urls?: Record<number, boolean>;
-    reviews?: Record<number, boolean>; // Index-based errors for multiple reviews
-    photos?: Record<number, Record<number, boolean>>; // Nested structure: urlIndex -> reviewIndex
+    reviews?: Record<number, boolean>;
+    photos?: Record<number, Record<number, boolean>>;
     quantity?: boolean;
-    credits?: boolean;
-    maxReviews?: boolean;
   }>({});
 
   const [creditPricing, setCreditPricing] = useState<Record<OrderType, number>>({
@@ -118,32 +112,20 @@ export default function NewReviewOrderPage() {
   }, [user]);
 
   const addUrl = () => {
-    const maxUrls = 10; // Max 10 URLs for all order types
+    const maxUrls = 10;
     if (urls.length >= maxUrls) {
-      toastError(t(`Maximum ${maxUrls} URLs allowed per order`, `Maximum ${maxUrls} URLs allowed per order`));
+      toastError(`Maximum ${maxUrls} URLs allowed per order`);
       return;
     }
 
-    setUrls([
-      ...urls,
-      {
-        url: "",
-        quantity: 1,
-        reactionType: "LIKE" as ReactionType
-      }
-    ]);
-
-    // Add empty reviews array for the new URL
+    setUrls([...urls, { url: "", quantity: 1, reactionType: "LIKE" as ReactionType }]);
     setUrlReviews([...urlReviews, { reviews: [""], photos: [[]] }]);
   };
 
   const removeUrl = (index: number) => {
     const newUrls = urls.filter((_, i) => i !== index);
-    setUrls(newUrls.length > 0 ? newUrls : [
-      { url: "", quantity: 1, reactionType: "LIKE" as ReactionType }
-    ]);
+    setUrls(newUrls.length > 0 ? newUrls : [{ url: "", quantity: 1, reactionType: "LIKE" as ReactionType }]);
 
-    // Remove reviews for this URL
     const newUrlReviews = urlReviews.filter((_, i) => i !== index);
     setUrlReviews(newUrlReviews.length > 0 ? newUrlReviews : [{ reviews: [""], photos: [[]] }]);
 
@@ -157,14 +139,75 @@ export default function NewReviewOrderPage() {
     setFieldErrors({ ...fieldErrors, urls: { ...fieldErrors.urls, [index]: false } });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const addReview = (urlIndex: number) => {
+    const maxReviews = 50;
+    const currentUrlReviews = urlReviews[urlIndex];
 
-    // Validate single quantity for COMMENT orders only
-    if (orderType === "COMMENT" && (singleQuantity < 1 || singleQuantity > 50)) {
-      setFieldErrors({ quantity: true });
+    if (currentUrlReviews.reviews.length >= maxReviews) {
+      toastError(`Maximum ${maxReviews} reviews per URL`);
       return;
     }
+
+    const newUrlReviews = [...urlReviews];
+    newUrlReviews[urlIndex] = {
+      ...newUrlReviews[urlIndex],
+      reviews: [...newUrlReviews[urlIndex].reviews, ""],
+      photos: [...newUrlReviews[urlIndex].photos, []]
+    };
+    setUrlReviews(newUrlReviews);
+  };
+
+  const removeReview = (urlIndex: number, reviewIndex: number) => {
+    const newUrlReviews = [...urlReviews];
+    const urlReviewsData = [...newUrlReviews[urlIndex].reviews];
+    const urlPhotosData = [...newUrlReviews[urlIndex].photos];
+
+    urlReviewsData.splice(reviewIndex, 1);
+    urlPhotosData.splice(reviewIndex, 1);
+
+    newUrlReviews[urlIndex] = {
+      reviews: urlReviewsData.length > 0 ? urlReviewsData : [""],
+      photos: urlPhotosData.length > 0 ? urlPhotosData : [[]]
+    };
+    setUrlReviews(newUrlReviews);
+  };
+
+  const updateReview = (urlIndex: number, reviewIndex: number, value: string) => {
+    const newUrlReviews = [...urlReviews];
+    newUrlReviews[urlIndex] = {
+      ...newUrlReviews[urlIndex],
+      reviews: [...newUrlReviews[urlIndex].reviews]
+    };
+    newUrlReviews[urlIndex].reviews[reviewIndex] = value;
+    setUrlReviews(newUrlReviews);
+    setFieldErrors({ ...fieldErrors, reviews: { ...fieldErrors.reviews, [reviewIndex]: false } });
+  };
+
+  const updatePhotos = (urlIndex: number, reviewIndex: number, photos: string[]) => {
+    const newUrlReviews = [...urlReviews];
+    newUrlReviews[urlIndex] = {
+      ...newUrlReviews[urlIndex],
+      photos: [...newUrlReviews[urlIndex].photos]
+    };
+    newUrlReviews[urlIndex].photos[reviewIndex] = photos;
+    setUrlReviews(newUrlReviews);
+    const newPhotoErrors = { ...fieldErrors.photos, [urlIndex]: { ...fieldErrors.photos?.[urlIndex] } };
+    delete newPhotoErrors[urlIndex][reviewIndex];
+    setFieldErrors({ ...fieldErrors, photos: newPhotoErrors });
+  };
+
+  const totalReviewsCount = urlReviews.reduce((sum, urlData) => {
+    return sum + urlData.reviews.filter(r => r.trim().length > 0).length;
+  }, 0);
+
+  const totalQuantity = orderType === "COMMENT"
+    ? singleQuantity * urls.filter(u => u.url.trim()).length
+    : totalReviewsCount;
+
+  const requiredCredits = (creditPricing[orderType] || 0) * totalQuantity;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     // Validate URLs
     const urlErrors: Record<number, boolean> = {};
@@ -172,8 +215,12 @@ export default function NewReviewOrderPage() {
       if (!urlData.url || !/^(https?:\/\/)?(www\.)?(facebook|fb)\.com\/.+/i.test(urlData.url)) {
         urlErrors[index] = true;
       }
-      // Quantity validation is now handled at the shared quantity level
     });
+
+    if (Object.keys(urlErrors).length > 0) {
+      setFieldErrors({ urls: urlErrors });
+      return;
+    }
 
     // Validate per-URL reviews and photos for REVIEW and COMMENT_WITH_PHOTO
     if (orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO") {
@@ -185,20 +232,17 @@ export default function NewReviewOrderPage() {
         const validUrlReviews = urlData.reviews.filter(r => r.trim().length > 0);
         totalReviews += validUrlReviews.length;
 
-        // Check max 50 reviews per URL
         if (validUrlReviews.length > 50) {
-          setFieldErrors({ maxReviews: true });
+          toastError("Maximum 50 reviews per URL");
           return;
         }
 
-        // Validate each review content
         urlData.reviews.forEach((content, reviewIndex) => {
           if (!content?.trim()) {
             reviewErrors[reviewIndex] = true;
           }
         });
 
-        // For COMMENT_WITH_PHOTO, validate photos for each review
         if (orderType === "COMMENT_WITH_PHOTO") {
           urlData.reviews.forEach((content, reviewIndex) => {
             if (content?.trim() && (!urlData.photos[reviewIndex] || urlData.photos[reviewIndex].length === 0)) {
@@ -209,15 +253,14 @@ export default function NewReviewOrderPage() {
         }
       });
 
-      // Check total max 500 reviews across all URLs
       if (totalReviews > 500) {
-        setFieldErrors({ maxReviews: true });
+        toastError("Maximum 500 reviews total across all URLs");
         return;
       }
 
-      // Check if at least one review is filled
       if (totalReviews === 0) {
         setFieldErrors({ reviews: { 0: true } });
+        toastError("Please add at least one review");
         return;
       }
 
@@ -228,551 +271,337 @@ export default function NewReviewOrderPage() {
 
       if (Object.keys(photoErrors).length > 0) {
         setFieldErrors({ photos: photoErrors });
+        toastError("Please add photos for all reviews");
         return;
       }
     }
 
-    if (Object.keys(urlErrors).length > 0) {
-      setFieldErrors({ urls: urlErrors });
-      return;
-    }
-
-    // Check if at least one URL is filled
+    // Validate at least one URL
     const validUrls = urls.filter(u => u.url.trim().length > 0);
     if (validUrls.length === 0) {
       setFieldErrors({ urls: { 0: true } });
+      toastError("Please add at least one URL");
       return;
     }
 
     setSubmitting(true);
 
     try {
-      // For COMMENT orders, use single reaction type and quantity
-      // For REVIEW and COMMENT_WITH_PHOTO, use per-URL reviews and photos
-      const payload = {
-        orderType,
-        urls: validUrls.map((u, urlIndex) => {
-          const urlData = urlReviews[urlIndex] || { reviews: [""], photos: [] };
-          const validUrlReviews = urlData.reviews.filter(r => r.trim().length > 0);
-          // Build photos array: each element is an array of photos for that review
-          const validUrlPhotos: string[][] = [];
-          validUrlReviews.forEach((_, reviewIndex) => {
-            const photos = urlData.photos[reviewIndex] || [];
-            validUrlPhotos.push(Array.isArray(photos) ? photos : [photos].filter(p => p));
-          });
+      console.log("🧪 [DEBUG] Current singleReactionType:", singleReactionType);
+      console.log("🧪 [DEBUG] Current singleQuantity:", singleQuantity);
 
-          return {
-            url: u.url.trim(),
-            quantity: orderType === "COMMENT" ? singleQuantity : validUrlReviews.length,
-            reactionType: orderType === "COMMENT" ? singleReactionType : undefined,
-            // Include per-URL reviews and photos
-            reviewContents: validUrlReviews.length > 0 ? validUrlReviews : undefined,
-            photos: orderType === "COMMENT_WITH_PHOTO" ? validUrlPhotos : undefined
-          };
-        })
+      const orderData = {
+        orderType,
+        urls: urls.map((urlData, index) => ({
+          url: urlData.url,
+          quantity: orderType === "COMMENT" ? singleQuantity : urlReviews[index].reviews.filter(r => r.trim()).length,
+          reviewContents: orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO"
+            ? urlReviews[index].reviews.filter(r => r.trim())
+            : undefined,
+          photos: orderType === "COMMENT_WITH_PHOTO"
+            ? urlReviews[index].photos.filter((p, i) => urlReviews[index].reviews[i]?.trim())
+            : undefined,
+          reactionType: orderType === "COMMENT" ? singleReactionType : urlData.reactionType
+        }))
       };
 
-      const result = await createMultiUrlReviewOrderAction(payload);
+      console.log("📤 [ORDER SUBMIT] Sending order data:", JSON.stringify(orderData, null, 2));
 
-      if (result.success && result.orderId) {
-        toastSuccess(t("reviews.orderCreated", "Order created successfully! {{credits}} credits deducted.", { credits: validation?.requiredCredits || 0 }));
-        router.push(`/c/services/reviews/orders/${result.orderId}`);
+      const result = await createMultiUrlReviewOrderAction(orderData);
+
+      if (result.success) {
+        toastSuccess(t("reviews.order_created", "Order created successfully"));
+        router.push("/c/services/reviews/orders");
       } else {
-        toastError(result.error || t("Failed to create order", "Failed to create order"));
+        toastError(result.error || t("reviews.order_failed", "Failed to create order"));
       }
-    } catch (err) {
-      console.error("❌ [CLIENT] Order creation exception:", err);
-      toastError(t("An error occurred while creating the order", "An error occurred while creating the order"));
+    } catch (error) {
+      toastError(t("reviews.order_error", "An error occurred"));
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <LoadingScreen />;
-
-  // Calculate total quantity based on order type
-  // COMMENT: singleQuantity × numberOfURLs
-  // REVIEW: sum of all valid reviews across all URLs
-  // COMMENT_WITH_PHOTO: sum of all valid reviews across all URLs
-  const totalReviewsCount = urlReviews.reduce((sum, urlData) => {
-    return sum + urlData.reviews.filter(r => r.trim().length > 0).length;
-  }, 0);
-
-  const totalQuantity = orderType === "COMMENT"
-    ? singleQuantity * urls.length  // For COMMENT: single quantity × URLs
-    : totalReviewsCount;  // For REVIEW and COMMENT_WITH_PHOTO: sum of all reviews
-  const requiredCredits = (creditPricing[orderType] || 0) * totalQuantity;
+  if (loading) {
+    return <LoadingScreen />;
+  }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
-      <style>{shakeStyle}</style>
-      {/* Header */}
-      <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
-        <div className="max-w-3xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#168BB0] to-[#0F7493] flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{t("reviews.createOrder", "Create New Order")}</h1>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
-        {/* Credit Balance Card */}
-        {validation && (
-          <div className={`bg-white dark:bg-zinc-900 rounded-lg border overflow-hidden shadow-sm ${
-            validation.hasEnough
-              ? 'border-green-200 dark:border-green-800'
-              : 'border-red-200 dark:border-red-800'
-          }`}>
-            <div className={`flex items-center gap-3 p-3 ${
-              validation.hasEnough
-                ? 'bg-green-50 dark:bg-green-900/10'
-                : 'bg-red-50 dark:bg-red-900/10'
-            }`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                validation.hasEnough
-                  ? 'bg-green-100 dark:bg-green-800'
-                  : 'bg-red-100 dark:bg-red-800'
-              }`}>
-                <CreditCard className={`w-4 h-4 ${validation.hasEnough ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`font-semibold text-sm ${validation.hasEnough ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'}`}>
-                  {validation.hasEnough ? t("Sufficient Balance", "Sufficient Balance") : t("reviews.insufficientCredits", "Insufficient Balance")}
-                </p>
-                <p className={`text-xs truncate ${validation.hasEnough ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
-                  {t("credits.creditsRequired", "Required: {required} | Your Balance: {balance}", { required: requiredCredits, balance: validation.currentBalance })}
-                </p>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("credits.balance", "Balance")}:</p>
-                <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{validation.currentBalance}</p>
-              </div>
-            </div>
-            {!validation.hasEnough && (
-              <div className="px-3 py-2 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800">
-                <a
-                  href="/c/wallet/top-up"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#168BB0]"
-                >
-                  {t("wallet.topUp", "Top Up")} <ChevronRight className="w-3 h-3" />
-                </a>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Main Form */}
-        <form onSubmit={handleSubmit} className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-          {/* Order Type */}
-          <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
-            <label className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
-              Order Type<span className="text-red-500 ml-1">*</span>
+    <>
+      <style jsx>{shakeStyle}</style>
+      <div className="min-h-screen bg-gray-50 dark:bg-zinc-900 p-4">
+        <div className="max-w mx-auto bg-white dark:bg-zinc-800 rounded-lg shadow-sm">
+          <form onSubmit={handleSubmit}>
+          {/* Order Type Section */}
+          <div className="p-4 border-b border-gray-200 dark:border-zinc-700">
+            <label className="block text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-3">
+              Order Type <span className="text-red-500">*</span>
             </label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { type: "COMMENT" as OrderType, ...ORDER_TYPE_LABELS.COMMENT, credits: creditPricing.COMMENT },
-                { type: "REVIEW" as OrderType, ...ORDER_TYPE_LABELS.REVIEW, credits: creditPricing.REVIEW },
-                { type: "COMMENT_WITH_PHOTO" as OrderType, ...ORDER_TYPE_LABELS.COMMENT_WITH_PHOTO, credits: creditPricing.COMMENT_WITH_PHOTO }
-              ].map((option) => (
+            <div className="grid grid-cols-3 gap-3">
+              {Object.entries(ORDER_TYPE_LABELS).map(([type, info]) => (
                 <button
-                  key={option.type}
+                  key={type}
                   type="button"
-                  onClick={() => {
-                    setOrderType(option.type);
-                    // Reset URLs and per-URL reviews when changing order type
-                    setUrls([{ url: "", quantity: 1, reactionType: "LIKE" as ReactionType }]);
-                    setSingleReactionType("LIKE" as ReactionType);
-                    setSingleQuantity(5);
-                    setUrlReviews([{ reviews: [""], photos: [[]] }]);
-                    setFieldErrors({});
-                  }}
-                  className={`relative p-3 rounded-lg border text-left transition-all ${
-                    orderType === option.type
-                      ? "border-[#168BB0] bg-[#168BB0]/5"
-                      : "border-zinc-200 dark:border-zinc-700 hover:border-[#168BB0]/30"
+                  onClick={() => setOrderType(type as OrderType)}
+                  className={`relative p-3 rounded-lg border text-center transition-all ${
+                    orderType === type
+                      ? 'border-[#007bff] bg-[#007bff]/5'
+                      : 'border-gray-200 dark:border-zinc-700 hover:border-gray-300'
                   }`}
                 >
-                  <div className={`absolute top-2 right-2 w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
-                    orderType === option.type
-                      ? "border-[#168BB0] bg-[#168BB0]"
-                      : "border-zinc-300 dark:border-zinc-600"
+                  <div className={`absolute top-2 right-2 w-4 h-4 rounded-full border flex items-center justify-center ${
+                    orderType === type
+                      ? 'border-[#007bff] bg-[#007bff]'
+                      : 'border-gray-300 dark:border-zinc-600'
                   }`}>
-                    {orderType === option.type && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    {orderType === type && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                   </div>
-                  <div className="text-2xl mb-1">{option.icon}</div>
-                  <div className="font-semibold text-sm text-zinc-900 dark:text-zinc-50">{option.label}</div>
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400">{option.description}</div>
-                  <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800">
-                    <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{option.credits}</span>
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400 ml-1">cr</span>
+                  <div className="text-2xl mb-1">{info.icon}</div>
+                  <div className="font-semibold text-sm text-gray-900 dark:text-zinc-50">{info.label}</div>
+                  <div className="text-xs text-gray-500 dark:text-zinc-400">{info.description}</div>
+                  <div className="mt-2 text-xs text-gray-600 dark:text-zinc-400 font-medium">
+                    {creditPricing[type as OrderType]} cr
                   </div>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Form Fields */}
-          <div className="p-4 space-y-4">
-            {/* URLs Section */}
-            <div>
-              <label className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="text-[#1877F2">🔗</span>
-                  URLs
-                  <span className="text-red-500">*</span>
-                </span>
+          {/* Reaction Type & Quantity Section - Only for COMMENT orders */}
+          {orderType === "COMMENT" && (
+            <div className="p-4 border-b border-gray-200 dark:border-zinc-700">
+              <label className="block text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-3">
+                Reaction Type <span className="text-red-500">*</span>
               </label>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-                {orderType === "COMMENT"
-                  ? `Add multiple URLs. Each URL will get ${singleQuantity} ${singleReactionType.toLowerCase()} reaction${singleQuantity !== 1 ? 's' : ''}. Total: ${totalQuantity} reaction${totalQuantity !== 1 ? 's' : ''}`
-                  : `Add multiple URLs. Each URL can have its own reviews. Total: ${totalQuantity} review${totalQuantity !== 1 ? 's' : ''}`
-                }
-                {urls.length > 1 && (
-                  <span className="text-[#168BB0] ml-1">({urls.length} URLs)</span>
-                )}
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mb-3">
+                Select the reaction type. This will be applied to all URLs.
               </p>
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                {REACTIONS.map((reaction) => (
+                  <button
+                    key={reaction.type}
+                    type="button"
+                    onClick={() => setSingleReactionType(reaction.type)}
+                    className={`p-3 rounded-lg border text-center transition-all ${
+                      singleReactionType === reaction.type
+                        ? 'border-[#007bff] bg-[#007bff]/5'
+                        : 'border-gray-200 dark:border-zinc-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className={`text-2xl mb-1 ${singleReactionType === reaction.type ? 'emoji-shake-always' : 'emoji-shake-hover'}`}>{reaction.emoji}</div>
+                    <div className="text-xs font-semibold text-gray-700 dark:text-zinc-300 uppercase">{reaction.label}</div>
+                  </button>
+                ))}
+              </div>
 
-              {/* Single Reaction Selector - Only for COMMENT type, displayed above URLs */}
-              {orderType === "COMMENT" && (
-                <div className="mb-4 p-4 border border-[#168BB0]/30 rounded-lg bg-[#168BB0]/5">
-                  <label className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
-                    <span className="inline-flex items-center gap-1.5">
-                      <span className="text-[#1877F2">👍</span>
-                      Reaction Type
-                      <span className="text-red-500">*</span>
-                    </span>
-                  </label>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-3">
-                    Select the reaction type. This will be applied to all URLs.
-                  </p>
-                  <div className="grid grid-cols-4 gap-2">
-                    {REACTIONS.map((reaction) => (
-                      <button
-                        key={reaction.type}
-                        type="button"
-                        onClick={() => setSingleReactionType(reaction.type)}
-                        className={`button-wrapper p-2 rounded-lg border text-center transition-all ${
-                          singleReactionType === reaction.type
-                            ? 'border-[#168BB0] bg-[#168BB0]/10'
-                            : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
-                        }`}
-                      >
-                        <div className={`text-xl mb-1 ${singleReactionType === reaction.type ? 'emoji-shake-always' : 'emoji-shake-hover'}`}>{reaction.emoji}</div>
-                        <div className="text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 uppercase">{reaction.label}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              <label className="block text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-2">
+                Quantity per URL <span className="text-red-500">*</span>
+              </label>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mb-3">
+                How many reactions for EACH URL? This quantity will be applied to all URLs.
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={singleQuantity}
+                  onChange={(e) => {
+                    setSingleQuantity(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)));
+                    setFieldErrors({ ...fieldErrors, quantity: false });
+                  }}
+                  className={`w-24 px-3 py-2 rounded-lg border bg-white dark:bg-zinc-800 text-sm text-center font-semibold ${
+                    fieldErrors.quantity
+                      ? 'border-red-300 focus:border-red-500'
+                      : 'border-gray-200 dark:border-zinc-700 focus:border-[#007bff]'
+                  }`}
+                />
+                <span className="text-xs text-gray-600 dark:text-zinc-400">
+                  reactions per URL
+                </span>
+              </div>
+              {fieldErrors.quantity && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">Quantity must be between 1 and 50</p>
               )}
+            </div>
+          )}
 
-              {/* Single Quantity Selector - Only for COMMENT type */}
-              {orderType === "COMMENT" ? (
-                <div className="mb-4 p-4 border border-[#168BB0]/30 rounded-lg bg-[#168BB0]/5">
-                  <label className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
-                    <span className="inline-flex items-center gap-1.5">
-                      <span className="text-[#168BB0">📊</span>
-                      Quantity per URL
-                      <span className="text-red-500">*</span>
-                    </span>
-                  </label>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-3">
-                    How many reactions for EACH URL? This quantity will be applied to all URLs.
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      min="1"
-                      max="50"
-                      value={singleQuantity}
-                      onChange={(e) => {
-                        setSingleQuantity(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)));
-                        setFieldErrors({ ...fieldErrors, quantity: false });
-                      }}
-                      className={`w-24 px-3 py-2 rounded-lg border bg-white dark:bg-zinc-800 text-sm text-center font-semibold ${
-                        fieldErrors.quantity
-                          ? 'border-red-300 dark:border-red-700 focus:border-red-500'
-                          : 'border-zinc-200 dark:border-zinc-700 focus:border-[#168BB0]'
-                      }`}
-                    />
-                    <span className="text-xs text-zinc-600 dark:text-zinc-400">
-                      reactions per URL
-                    </span>
-                  </div>
-                  {fieldErrors.quantity && (
-                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">Quantity must be between 1 and 50</p>
-                  )}
-                </div>
-              ) : null}
+          {/* URLs Section */}
+          <div className="p-4">
+            <label className="block text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-2">
+              URLs <span className="text-red-500">*</span>
+            </label>
+            <p className="text-xs text-gray-500 dark:text-zinc-400 mb-4">
+              {orderType === "COMMENT"
+                ? `Add multiple URLs. Each URL will get ${singleQuantity} ${singleReactionType.toLowerCase()} reaction${singleQuantity !== 1 ? 's' : ''}. Total: ${totalQuantity} reaction${totalQuantity !== 1 ? 's' : ''}`
+                : `Add multiple URLs. All reviews will be posted to each URL. Total: ${totalQuantity} reviews`
+              }
+            </p>
 
-              <div className="space-y-3">
-                {urls.map((urlData, index) => {
-                  const currentUrlReviews = urlReviews[index] || { reviews: [""], photos: [] };
-                  return (
-                  <div key={index} className={`border border-zinc-200 dark:border-zinc-700 rounded-lg ${(orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO") ? 'p-4' : 'p-3'} bg-zinc-50/50 dark:bg-zinc-800/50`}>
+            <div className="space-y-4">
+              {urls.map((urlData, urlIndex) => {
+                const currentUrlReviews = urlReviews[urlIndex] || { reviews: [""], photos: [[]] };
+                const filledReviewsCount = currentUrlReviews.reviews.filter(r => r.trim()).length;
+
+                return (
+                  <div key={urlIndex} className="border border-gray-200 dark:border-zinc-700 rounded-lg p-4 bg-gray-50 dark:bg-zinc-800/50">
                     {/* URL Header */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-[#168BB0] text-white flex items-center justify-center text-xs font-bold">
-                          {index + 1}
-                        </div>
-                        <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                          URL {index + 1}
-                        </span>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 rounded-full bg-[#007bff] text-white flex items-center justify-center text-xs font-bold">
+                        {urlIndex + 1}
                       </div>
-                      {urls.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeUrl(index)}
-                          className="p-1 text-zinc-400 hover:text-red-500 rounded"
-                          title="Remove URL"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
+                      <span className="text-sm font-medium text-gray-700 dark:text-zinc-300">
+                        URL {urlIndex + 1}
+                      </span>
                     </div>
 
                     {/* URL Input */}
-                    <div className="mb-0">
-                      <input
-                        type="url"
-                        placeholder="https://www.facebook.com/page..."
-                        value={urlData.url}
-                        onChange={(e) => updateUrl(index, 'url', e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-zinc-800 text-sm ${
-                          fieldErrors.urls?.[index]
-                            ? 'border-red-300 dark:border-red-700 focus:border-red-500'
-                            : 'border-zinc-200 dark:border-zinc-700 focus:border-[#168BB0]'
-                        }`}
-                      />
-                      {fieldErrors.urls?.[index] && (
-                        <p className="mt-1 text-xs text-red-600 dark:text-red-400">Valid Facebook URL required</p>
-                      )}
-                    </div>
+                    <input
+                      type="url"
+                      placeholder="https://..."
+                      value={urlData.url}
+                      onChange={(e) => updateUrl(urlIndex, 'url', e.target.value)}
+                      className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-zinc-800 text-sm mb-4 ${
+                        fieldErrors.urls?.[urlIndex]
+                          ? 'border-red-300 focus:border-red-500'
+                          : 'border-gray-200 dark:border-zinc-700 focus:border-[#007bff]'
+                      }`}
+                    />
 
-                    {/* Reviews Section - For REVIEW and COMMENT_WITH_PHOTO types, shown for ALL URLs */}
+                    {/* Review Contents Section */}
                     {(orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO") && (
-                      <div className="mt-4 space-y-3">
-                        {/* Multiple Reviews Input for this URL */}
-                        <div>
-                          <div className="flex items-center justify-between mb-3">
-                            <label className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                              <span className="inline-flex items-center gap-1.5">
-                                <span className="text-[#168BB0">✍️</span>
-                                Reviews for URL {index + 1}
-                              </span>
-                            </label>
-                            <span className="text-[10px] text-zinc-500">
-                              {currentUrlReviews.reviews.filter(r => r.trim()).length}/50
-                            </span>
-                          </div>
-                          {fieldErrors.maxReviews && (
-                            <p className="mb-2 text-[10px] text-red-600 dark:text-red-400">Maximum 50 reviews per URL</p>
-                          )}
-                          <div className="space-y-3">
-                            {currentUrlReviews.reviews.map((content, reviewIndex) => (
-                              <div key={reviewIndex} className="group relative bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 transition-all hover:border-[#168BB0]/30">
-                                {/* Header with index and remove button */}
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-[#168BB0] to-[#0F7493] text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
-                                      {reviewIndex + 1}
-                                    </div>
-                                    <span className="text-[10px] font-medium text-zinc-600 dark:text-zinc-400">
-                                      {orderType === "COMMENT_WITH_PHOTO" ? 'Comment' : 'Review'} {reviewIndex + 1}
-                                    </span>
-                                  </div>
-                                  {currentUrlReviews.reviews.length > 1 && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const newUrlReviews = [...urlReviews];
-                                        const urlReviewsData = [...newUrlReviews[index].reviews];
-                                        const urlPhotosData = [...newUrlReviews[index].photos];
-                                        const newReviews = urlReviewsData.filter((_, i) => i !== reviewIndex);
-                                        const newPhotos = urlPhotosData.filter((_, i) => i !== reviewIndex);
-                                        newUrlReviews[index] = { reviews: newReviews.length > 0 ? newReviews : [""], photos: newPhotos.length > 0 ? newPhotos : [] };
-                                        setUrlReviews(newUrlReviews);
-                                        const newPhotoErrors = { ...fieldErrors.photos };
-                                        if (newPhotoErrors[index]) {
-                                          delete newPhotoErrors[index][reviewIndex];
-                                        }
-                                        setFieldErrors({ ...fieldErrors, reviews: { ...fieldErrors.reviews, [reviewIndex]: false }, photos: newPhotoErrors });
-                                      }}
-                                      className="p-1 text-zinc-400 hover:text-red-500 rounded transition-colors"
-                                      title="Remove review"
-                                    >
-                                      <X className="w-3 h-3" />
-                                    </button>
-                                  )}
-                                </div>
-
-                                {/* Content and Photo row */}
-                                <div className="flex gap-3 items-start">
-                                  {/* Review Content */}
-                                  <div className="flex-1 min-w-0">
-                                    <textarea
-                                      rows={1}
-                                      maxLength={500}
-                                      value={content}
-                                      onChange={(e) => {
-                                        const newUrlReviews = [...urlReviews];
-                                        newUrlReviews[index] = {
-                                          ...newUrlReviews[index],
-                                          reviews: [...newUrlReviews[index].reviews]
-                                        };
-                                        newUrlReviews[index].reviews[reviewIndex] = e.target.value;
-                                        setUrlReviews(newUrlReviews);
-                                        const newPhotoErrors = { ...fieldErrors.photos };
-                                        if (newPhotoErrors[index]) {
-                                          delete newPhotoErrors[index][reviewIndex];
-                                        }
-                                        setFieldErrors({ ...fieldErrors, reviews: { ...fieldErrors.reviews, [reviewIndex]: false }, photos: newPhotoErrors, maxReviews: false });
-                                      }}
-                                      placeholder={`Enter your ${orderType === "COMMENT_WITH_PHOTO" ? 'comment' : 'review'} content...`}
-                                      className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-zinc-800 resize-none text-sm leading-relaxed ${
-                                        fieldErrors.reviews?.[reviewIndex] || fieldErrors.photos?.[index]?.[reviewIndex]
-                                          ? 'border-red-300 dark:border-red-700 focus:border-red-500'
-                                          : 'border-zinc-200 dark:border-zinc-700 focus:border-[#168BB0] focus:ring-1 focus:ring-[#168BB0]/10'
-                                      }`}
-                                    />
-                                    <p className="mt-1.5 text-[10px] text-zinc-400 dark:text-zinc-500 flex justify-between">
-                                      <span>{content.length}/500 characters</span>
-                                      {(fieldErrors.reviews?.[reviewIndex] || fieldErrors.photos?.[index]?.[reviewIndex]) && (
-                                        <span className="text-red-500 text-[9px]">Required</span>
-                                      )}
-                                    </p>
-                                  </div>
-
-                                  {/* Photo Upload - Only for COMMENT_WITH_PHOTO */}
-                                  {orderType === "COMMENT_WITH_PHOTO" && (
-                                    <div className="flex-shrink-0">
-                                      <PhotoUpload
-                                        onPhotosChange={(photos) => {
-                                          const newUrlReviews = [...urlReviews];
-                                          newUrlReviews[index] = {
-                                            ...newUrlReviews[index],
-                                            reviews: [...newUrlReviews[index].reviews],
-                                            photos: [...newUrlReviews[index].photos]
-                                          };
-                                          newUrlReviews[index].photos[reviewIndex] = photos;
-                                          setUrlReviews(newUrlReviews);
-                                          const newPhotoErrors = { ...fieldErrors.photos, [index]: { ...fieldErrors.photos?.[index] } };
-                                          delete newPhotoErrors[index][reviewIndex];
-                                          setFieldErrors({ ...fieldErrors, photos: newPhotoErrors });
-                                        }}
-                                        maxPhotos={1}
-                                        currentPhotos={currentUrlReviews.photos[reviewIndex] || []}
-                                        size="small"
-                                      />
-                                      {fieldErrors.photos?.[index]?.[reviewIndex] && (
-                                        <p className="mt-1 text-[9px] text-red-500 text-center">Photo required</p>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          {currentUrlReviews.reviews.length < 50 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newUrlReviews = [...urlReviews];
-                                newUrlReviews[index] = {
-                                  ...newUrlReviews[index],
-                                  reviews: [...newUrlReviews[index].reviews, ""],
-                                  photos: [...newUrlReviews[index].photos, []]
-                                };
-                                setUrlReviews(newUrlReviews);
-                              }}
-                              className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-[#168BB0] hover:text-[#168BB0] transition-colors"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                              + Add {orderType === "COMMENT_WITH_PHOTO" ? 'another comment' : 'another review'} for URL {index + 1} ({currentUrlReviews.reviews.length}/50)
-                            </button>
-                          )}
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <label className="block text-sm font-semibold text-gray-900 dark:text-zinc-100">
+                            Review Contents
+                          </label>
                         </div>
 
+                        <div className="space-y-3">
+                          {currentUrlReviews.reviews.map((content, reviewIndex) => (
+                            <div key={reviewIndex} className="relative">
+                              <div className="flex items-start gap-3">
+                                <div className="w-6 h-6 rounded-full bg-[#007bff] text-white flex items-center justify-center text-xs font-bold shrink-0">
+                                  {reviewIndex + 1}
+                                </div>
+
+                                <textarea
+                                  rows={1}
+                                  maxLength={500}
+                                  value={content}
+                                  onChange={(e) => updateReview(urlIndex, reviewIndex, e.target.value)}
+                                  placeholder="This product is good..."
+                                  className={`w-full px-3 py-2 pr-8 rounded-lg border bg-white dark:bg-zinc-800 text-sm resize-none ${
+                                    fieldErrors.reviews?.[reviewIndex]
+                                      ? 'border-red-300 focus:border-red-500'
+                                      : 'border-gray-200 dark:border-zinc-700 focus:border-[#007bff]'
+                                  }`}
+                                />
+
+                                <button
+                                  type="button"
+                                  onClick={() => removeReview(urlIndex, reviewIndex)}
+                                  className="absolute right-2 top-2 text-gray-400 hover:text-red-500 p-1"
+                                  title="Remove review"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+
+                              {/* Photo Upload for COMMENT_WITH_PHOTO */}
+                              {orderType === "COMMENT_WITH_PHOTO" && (
+                                <div className="ml-9 mt-2">
+                                  <PhotoUpload
+                                    onPhotosChange={(photos) => updatePhotos(urlIndex, reviewIndex, photos)}
+                                    maxPhotos={1}
+                                    currentPhotos={currentUrlReviews.photos[reviewIndex] || []}
+                                    size="small"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        {filledReviewsCount < 50 && (
+                          <button
+                            type="button"
+                            onClick={() => addReview(urlIndex)}
+                            className="mt-3 text-sm text-[#007bff] hover:underline flex items-center gap-1"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Add another review ({filledReviewsCount}/50)
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
-                  );
-                })}
-              </div>
-
-              {/* Add URL Button */}
-              {urls.length < 10 && (
-                <button
-                  type="button"
-                  onClick={addUrl}
-                  className="w-full flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-[#168BB0] hover:text-[#168BB0] transition-colors mt-4"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  {urls.length > 0
-                    ? `Add Another URL (${urls.length}/10)`
-                    : "Add URL"}
-                </button>
-              )}
+                );
+              })}
             </div>
 
-            {/* Quantity & Cost Summary */}
+            {/* Add Another URL Button */}
+            {urls.length < 10 && (
+              <button
+                type="button"
+                onClick={addUrl}
+                className="mt-4 text-sm text-[#007bff] hover:underline flex items-center gap-1"
+              >
+                <Plus className="w-4 h-4" />
+                Add Another URL ({urls.length}/10)
+              </button>
+            )}
+          </div>
+
+          {/* Summary Section */}
+          <div className="p-4 border-t border-gray-200 dark:border-zinc-700">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-1.5">
+              {/* Total Reviews Card */}
+              <div className="bg-[#e9f5ff] dark:bg-[#007bff]/10 rounded-lg p-4 border border-[#007bff]/20">
+                <label className="block text-xs font-semibold text-gray-900 dark:text-zinc-100 mb-1">
                   Total Reviews
                 </label>
-                <div className="bg-[#168BB0]/10 rounded-lg px-3 py-2 border border-[#168BB0]/20">
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                    {orderType === "COMMENT"
-                      ? `${urls.length} URL${urls.length !== 1 ? 's' : ''} × ${singleQuantity} ${singleReactionType.toLowerCase()}${singleQuantity !== 1 ? 's' : ''} each`
-                      : `Sum of all reviews across ${urls.length} URL${urls.length !== 1 ? 's' : ''}`
-                    }
-                  </p>
-                  <p className="text-lg font-bold text-[#168BB0]">
-                    {totalQuantity} <span className="text-xs font-normal text-zinc-600 dark:text-zinc-400"> review{totalQuantity !== 1 ? 's' : ''}</span>
-                  </p>
-                </div>
+                <p className="text-xs text-gray-600 dark:text-zinc-400 mb-1">
+                  {totalQuantity} reviews × {urls.filter(u => u.url.trim()).length} URL{urls.filter(u => u.url.trim()).length !== 1 ? 's' : ''}
+                </p>
+                <p className="text-lg font-bold text-[#007bff]">
+                  {totalQuantity} <span className="text-xs font-normal">reviews</span>
+                </p>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-1.5">
+              {/* Total Cost Card */}
+              <div className="bg-[#e9f5ff] dark:bg-[#007bff]/10 rounded-lg p-4 border border-[#007bff]/20">
+                <label className="block text-xs font-semibold text-gray-900 dark:text-zinc-100 mb-1">
                   Total Cost
                 </label>
-                <div className="bg-[#168BB0]/10 rounded-lg px-3 py-2 border border-[#168BB0]/20">
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                    {totalQuantity} × {creditPricing[orderType]}
-                  </p>
-                  <p className="text-lg font-bold text-[#168BB0]">
-                    {requiredCredits} <span className="text-xs font-normal text-zinc-600 dark:text-zinc-400">cr</span>
-                  </p>
-                </div>
+                <p className="text-xs text-gray-600 dark:text-zinc-400 mb-1">
+                  {totalQuantity} × {creditPricing[orderType]}
+                </p>
+                <p className="text-lg font-bold text-[#007bff]">
+                  {requiredCredits} <span className="text-xs font-normal">cr</span>
+                </p>
               </div>
             </div>
           </div>
 
           {/* Submit Button */}
-          <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-3">
+          <div className="p-4 border-t border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800/50 rounded-b-lg flex items-center gap-3">
             <button
               type="button"
               onClick={() => router.back()}
-              className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+              className="px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting || !validation?.hasEnough}
-              className="flex-1 px-4 py-2 bg-gradient-to-r from-[#168BB0] to-[#0F7493] text-white rounded-lg font-semibold hover:from-[#0F7493] hover:to-[#168BB0] transition-all disabled:opacity-50 disabled:cursor-not-accepted flex items-center justify-center gap-1.5"
+              className="flex-1 px-4 py-2 bg-[#007bff] text-white rounded-lg font-medium hover:bg-[#0056b3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {submitting ? 'Creating...' : (
                 <>
                   Create Order
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  <ChevronRight className="w-4 h-4" />
                 </>
               )}
             </button>
@@ -780,5 +609,6 @@ export default function NewReviewOrderPage() {
         </form>
       </div>
     </div>
+    </>
   );
 }

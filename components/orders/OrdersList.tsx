@@ -91,6 +91,10 @@ export default function OrdersList({
 
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || ORDER_STATUS.ALL);
+  const [dateRange, setDateRange] = useState<"thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "custom" | "all">("all");
+  const [customStartDate, setCustomStartDate] = useState<string>("");
+  const [customEndDate, setCustomEndDate] = useState<string>("");
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
   const itemsPerPage = 10;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
@@ -186,12 +190,69 @@ export default function OrdersList({
     }
   };
 
-  // Calculate stats
+  // Calculate stats and apply date range filter
+  const getDateRange = (range: typeof dateRange) => {
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date = new Date();
+
+    switch (range) {
+      case "thisWeek":
+        const dayOfWeek = now.getDay();
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date();
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case "lastWeek":
+        const lastWeekDay = now.getDay();
+        const lastWeekStart = new Date(now);
+        lastWeekStart.setDate(now.getDate() - (lastWeekDay === 0 ? 6 : lastWeekDay - 1) - 7);
+        lastWeekStart.setHours(0, 0, 0, 0);
+        const lastWeekEnd = new Date(lastWeekStart);
+        lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
+        lastWeekEnd.setHours(23, 59, 59, 999);
+        startDate = lastWeekStart;
+        endDate = lastWeekEnd;
+        break;
+      case "thisMonth":
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        break;
+      case "lastMonth":
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0);
+        endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        break;
+      case "custom":
+        if (customStartDate && customEndDate) {
+          startDate = new Date(customStartDate);
+          startDate.setHours(0, 0, 0, 0);
+          endDate = new Date(customEndDate);
+          endDate.setHours(23, 59, 59, 999);
+          return { startDate, endDate };
+        }
+        return null;
+      default:
+        return null;
+    }
+
+    return { startDate, endDate };
+  };
+
+  const dateFilter = getDateRange(dateRange);
+  const filteredOrders = dateFilter
+    ? orders.filter(order => {
+        const orderDate = new Date(order.createdAt);
+        return orderDate >= dateFilter.startDate && orderDate <= dateFilter.endDate;
+      })
+    : orders;
+
   const stats = {
-    total: totalCount,
-    pending: orders.filter(o => o.status === 'PENDING').length,
-    inProgress: orders.filter(o => o.status === 'IN_PROGRESS').length,
-    completed: orders.filter(o => o.status === 'COMPLETED').length
+    total: filteredOrders.length,
+    pending: filteredOrders.filter(o => o.status === 'PENDING').length,
+    inProgress: filteredOrders.filter(o => o.status === 'IN_PROGRESS').length,
+    completed: filteredOrders.filter(o => o.status === 'COMPLETED').length
   };
 
   return (
@@ -273,7 +334,7 @@ export default function OrdersList({
                 </div>
                 <div>
                   <p className="text-xs text-zinc-500">{t("orders.totalRevenue", "Total Revenue")}</p>
-                  <p className="text-2xl font-bold">{orders.reduce((sum, o) => sum + (o.creditsConsumed || 0), 0)} <span className="text-sm font-normal text-zinc-500">credits</span></p>
+                  <p className="text-2xl font-bold">{filteredOrders.reduce((sum, o) => sum + (o.creditsConsumed || 0), 0)} <span className="text-sm font-normal text-zinc-500">credits</span></p>
                 </div>
               </div>
             </Card>
@@ -315,6 +376,38 @@ export default function OrdersList({
           </div>
         </div>
 
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-zinc-500" />
+          <select
+            value={dateRange}
+            onChange={(e) => {
+              setDateRange(e.target.value as typeof dateRange);
+              if (e.target.value !== "custom") {
+                setShowDatePicker(false);
+              }
+            }}
+            className="h-10 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-lg px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+          >
+            <option value="all">All Time</option>
+            <option value="thisWeek">This Week</option>
+            <option value="lastWeek">Last Week</option>
+            <option value="thisMonth">This Month</option>
+            <option value="lastMonth">Last Month</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+
+        {dateRange === "custom" && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDatePicker(!showDatePicker)}
+            className="gap-2"
+          >
+            {showDatePicker ? "Close" : "Select Dates"}
+          </Button>
+        )}
+
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -329,13 +422,64 @@ export default function OrdersList({
 
         {searchTerm && (
           <div className="text-sm text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 px-3 py-2 rounded-lg">
-            {orders.length} {t("common.results", "results")}
+            {filteredOrders.length} {t("common.results", "results")}
           </div>
         )}
       </div>
 
+      {/* Custom Date Range Picker */}
+      {showDatePicker && (
+        <Card className="p-4 border-zinc-200 dark:border-zinc-700">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Start Date</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+              />
+            </div>
+            <div className="flex items-center pt-5">
+              <span className="text-zinc-400">→</span>
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-zinc-500 mb-1">End Date</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
+              />
+            </div>
+            <div className="flex gap-2 pt-5">
+              <Button
+                onClick={() => {
+                  setCustomStartDate("");
+                  setCustomEndDate("");
+                  setShowDatePicker(false);
+                  setDateRange("all");
+                }}
+                variant="outline"
+                size="sm"
+              >
+                Clear
+              </Button>
+              <Button
+                onClick={() => setShowDatePicker(false)}
+                disabled={!customStartDate || !customEndDate}
+                size="sm"
+                className="bg-[#168BB0] hover:bg-[#147aa0]"
+              >
+                Apply
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Orders List - Responsive Table */}
-      {orders.length === 0 ? (
+      {filteredOrders.length === 0 ? (
         <Card className="p-12 text-center border-zinc-200 dark:border-zinc-700">
           <Package className="h-12 w-12 text-zinc-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">{t("orders.noOrders", "No Orders Found")}</h3>
@@ -363,7 +507,7 @@ export default function OrdersList({
 
           {/* Table Body */}
           <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {orders.map((order) => (
+            {filteredOrders.map((order) => (
               <Link
                 key={order.id}
                 href={`${detailPageBasePath}/${order.id}`}
@@ -499,8 +643,8 @@ export default function OrdersList({
       {orders.length > 0 && totalPages > 1 && (
         <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm border border-zinc-200 dark:border-zinc-700">
           <div className="text-sm text-zinc-600 dark:text-zinc-400">
-            {searchTerm || statusFilter !== ORDER_STATUS.ALL
-              ? `${currentPage}/${totalPages} (${orders.length} ${t("common.results", "results")})`
+            {searchTerm || statusFilter !== ORDER_STATUS.ALL || dateRange !== "all"
+              ? `${currentPage}/${totalPages} (${filteredOrders.length} ${t("common.results", "results")})`
               : `${currentPage}/${totalPages} (${totalCount} ${t("common.total", "total")})`
             }
           </div>

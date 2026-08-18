@@ -16,10 +16,14 @@ export async function GET(req: NextRequest) {
       .eq("id", auth.user.id)
       .single();
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: { creditsBalance: data?.credits_balance || 0 }
     });
+
+    // Add cache headers for short-term caching (30 seconds)
+    response.headers.set('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
+    return response;
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message },

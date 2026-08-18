@@ -32,6 +32,7 @@ export const CACHE_KEYS = {
   EMPLOYEE_DASHBOARD: 'employee_dashboard',
   EMPLOYEE_ORDERS: 'employee_orders',
   EMPLOYEE_NOTIFICATIONS: 'employee_notifications',
+  EMPLOYEE_STATS: 'employee_stats',
 
   // Configuration (longer cache)
   PAYMENT_RULES: 'payment_rules',

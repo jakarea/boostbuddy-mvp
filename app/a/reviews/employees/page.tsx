@@ -4,30 +4,38 @@ import EmployeesClient from "./employees-client";
 interface EmployeePerformance {
   id: string;
   userId: string;
-  employeeName: string;
-  employeeEmail: string;
+  name: string;
+  email: string;
   isAvailable: boolean;
   isActive: boolean;
+  is_active: boolean;
   acceptingOrders: boolean;
+  accepting_tasks: boolean;
   ordersCompleted: number;
+  orders_completed: number;
+  creditsCompleted: number;
+  credits_completed: number;
   lastActiveAt: string;
+  last_active_at: string;
   createdAt: string;
+  created_at: string;
   assignedReviews?: any[];
 }
 
 interface PageProps {
-  searchParams: {
+  searchParams: Promise<{
     page?: string;
     pageSize?: string;
     search?: string;
-  };
+  }>;
 }
 
 export default async function AdminReviewsEmployeesPage({ searchParams }: PageProps) {
-  // Parse search params from URL
-  const page = parseInt(searchParams.page || '1', 10);
-  const pageSize = parseInt(searchParams.pageSize || '20', 10);
-  const searchTerm = searchParams.search || undefined;
+  // Parse search params from URL (await in Next.js 16)
+  const params = await searchParams;
+  const page = parseInt(params.page || '1', 10);
+  const pageSize = parseInt(params.pageSize || '20', 10);
+  const searchTerm = params.search || undefined;
 
   // Fetch data on server
   const result = await getEmployeePerformanceAction({
@@ -41,15 +49,21 @@ export default async function AdminReviewsEmployeesPage({ searchParams }: PagePr
     const employees = (result.data as any[])?.map(emp => ({
       id: emp.id,
       userId: emp.user_id || emp.userId,
-      employeeName: emp.employee_name || emp.employeeName || emp.name,
-      employeeEmail: emp.employee_email || emp.employeeEmail || emp.email,
+      name: emp.users?.name || emp.employee_name || emp.employeeName || emp.name,
+      email: emp.users?.email || emp.employee_email || emp.employeeEmail || emp.email,
       isAvailable: emp.is_available || emp.isAvailable || false,
-      isActive: emp.is_active ?? emp.isActive ?? true,
-      acceptingOrders: emp.accepting_orders ?? emp.acceptingOrders ?? true,
-      acceptingTasks: emp.accepting_tasks ?? emp.acceptingTasks ?? true,
+      isActive: emp.users?.is_active ?? emp.is_active ?? emp.isActive ?? true,
+      is_active: emp.users?.is_active ?? emp.is_active ?? emp.isActive ?? true,
+      acceptingOrders: emp.users?.accepting_orders ?? emp.accepting_orders ?? emp.acceptingOrders ?? true,
+      accepting_tasks: emp.accepting_tasks ?? emp.acceptingTasks ?? true,
       ordersCompleted: emp.orders_completed || emp.ordersCompleted || 0,
+      orders_completed: emp.orders_completed || emp.ordersCompleted || 0,
+      creditsCompleted: emp.credits_completed || emp.creditsCompleted || 0,
+      credits_completed: emp.credits_completed || emp.creditsCompleted || 0,
       lastActiveAt: emp.last_active_at || emp.lastActiveAt,
+      last_active_at: emp.last_active_at || emp.lastActiveAt,
       createdAt: emp.created_at || emp.createdAt,
+      created_at: emp.created_at || emp.createdAt,
     })) || [];
 
     const totalCount = result.pagination?.totalCount || 0;
