@@ -873,7 +873,7 @@ export async function getEmployeeReviewOrdersAction() {
     // Fetch PENDING orders (available to all employees)
     const { data: pendingOrders, error: pendingError } = await supabase
       .from("review_orders")
-      .select("id, user_id, business_name, business_url, order_type, review_type, review_content, review_instructions, quantity, credits_consumed, status, created_at, updated_at, users:user_id(name, email)")
+      .select("id, user_id, business_name, facebook_url, order_type, review_type, review_content, review_instructions, quantity, credits_consumed, status, created_at, updated_at, users:user_id(name, email)")
       .eq("status", "PENDING")
       .is("assigned_employee_id", null)
       .order("created_at", { ascending: false });
@@ -885,7 +885,7 @@ export async function getEmployeeReviewOrdersAction() {
       id: order.id,
       userId: order.user_id,
       businessName: order.business_name,
-      businessUrl: order.business_url,
+      businessUrl: order.facebook_url,
       orderType: order.order_type,
       reviewType: order.review_type,
       reviewContent: order.review_content,
@@ -1073,7 +1073,7 @@ export async function getReviewOrderByIdAction(orderId: string) {
     const { data, error } = await supabase
       .from("review_orders")
       .select(`
-        id, user_id, business_name, business_url, order_type, review_type,
+        id, user_id, business_name, facebook_url, order_type, review_type,
         review_content, review_instructions, quantity, credits_consumed, status,
         assigned_employee_id, assigned_at, completed_at, proof_of_completion,
         reaction_type, created_at, updated_at, comment_text, photo_urls, total_urls,
@@ -1121,7 +1121,7 @@ export async function getReviewOrderByIdAction(orderId: string) {
       id: data.id,
       userId: data.user_id,
       businessName: data.business_name,
-      businessUrl: data.business_url,
+      businessUrl: data.facebook_url,
       orderType: data.order_type,
       reviewType: data.review_type,
       reviewContent: data.review_content,
@@ -1170,7 +1170,7 @@ export async function getEmployeeCompletedReviewsAction() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("review_orders")
-      .select("id, business_name, business_url, review_type, review_content, review_instructions, credits_consumed, status, assigned_at, completed_at, proof_of_completion, admin_verification_status, admin_verified_at, created_at")
+      .select("id, business_name, facebook_url, review_type, review_content, review_instructions, credits_consumed, status, assigned_at, completed_at, proof_of_completion, admin_verification_status, admin_verified_at, created_at")
       .eq("assigned_employee_id", auth.user.id)
       .eq("status", "COMPLETED")
       .order("completed_at", { ascending: false });
@@ -1181,7 +1181,7 @@ export async function getEmployeeCompletedReviewsAction() {
     const normalizedData = data?.map(order => ({
       id: order.id,
       businessName: order.business_name,
-      businessUrl: order.business_url || null,
+      businessUrl: order.facebook_url || null,
       reviewType: order.review_type,
       reviewContent: order.review_content,
       reviewInstructions: order.review_instructions,
