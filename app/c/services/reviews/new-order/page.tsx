@@ -202,6 +202,8 @@ export default function NewReviewOrderPage() {
 
   const totalQuantity = orderType === "COMMENT"
     ? singleQuantity * urls.filter(u => u.url.trim()).length
+    : orderType === "REVIEW"
+    ? urlReviews[0].reviews.filter(r => r.trim()).length * urls.filter(u => u.url.trim()).length
     : totalReviewsCount;
 
   const requiredCredits = (creditPricing[orderType] || 0) * totalQuantity;
@@ -294,9 +296,15 @@ export default function NewReviewOrderPage() {
         orderType,
         urls: urls.map((urlData, index) => ({
           url: urlData.url,
-          quantity: orderType === "COMMENT" ? singleQuantity : urlReviews[index].reviews.filter(r => r.trim()).length,
+          quantity: orderType === "COMMENT"
+            ? singleQuantity
+            : orderType === "REVIEW"
+            ? urlReviews[0].reviews.filter(r => r.trim()).length // Use URL #1 review count for all
+            : urlReviews[index].reviews.filter(r => r.trim()).length,
           reviewContents: orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO"
-            ? urlReviews[index].reviews.filter(r => r.trim())
+            ? orderType === "REVIEW"
+              ? urlReviews[0].reviews.filter(r => r.trim()) // Use URL #1 reviews for all URLs
+              : urlReviews[index].reviews.filter(r => r.trim())
             : undefined,
           photos: orderType === "COMMENT_WITH_PHOTO"
             ? urlReviews[index].photos.filter((p, i) => urlReviews[index].reviews[i]?.trim())
@@ -482,67 +490,81 @@ export default function NewReviewOrderPage() {
                     {/* Review Contents Section */}
                     {(orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO") && (
                       <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <label className="block text-sm font-semibold text-gray-900 dark:text-zinc-100">
-                            Review Contents
-                          </label>
-                        </div>
-
-                        <div className="space-y-3">
-                          {currentUrlReviews.reviews.map((content, reviewIndex) => (
-                            <div key={reviewIndex} className="relative">
-                              <div className="flex items-start gap-3">
-                                <div className="w-6 h-6 rounded-full bg-[#007bff] text-white flex items-center justify-center text-xs font-bold shrink-0">
-                                  {reviewIndex + 1}
-                                </div>
-
-                                <textarea
-                                  rows={1}
-                                  maxLength={500}
-                                  value={content}
-                                  onChange={(e) => updateReview(urlIndex, reviewIndex, e.target.value)}
-                                  placeholder="This product is good..."
-                                  className={`w-full px-3 py-2 pr-8 rounded-lg border bg-white dark:bg-zinc-800 text-sm resize-none ${
-                                    fieldErrors.reviews?.[reviewIndex]
-                                      ? 'border-red-300 focus:border-red-500'
-                                      : 'border-gray-200 dark:border-zinc-700 focus:border-[#007bff]'
-                                  }`}
-                                />
-
-                                <button
-                                  type="button"
-                                  onClick={() => removeReview(urlIndex, reviewIndex)}
-                                  className="absolute right-2 top-2 text-gray-400 hover:text-red-500 p-1"
-                                  title="Remove review"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                              </div>
-
-                              {/* Photo Upload for COMMENT_WITH_PHOTO */}
-                              {orderType === "COMMENT_WITH_PHOTO" && (
-                                <div className="ml-9 mt-2">
-                                  <PhotoUpload
-                                    onPhotosChange={(photos) => updatePhotos(urlIndex, reviewIndex, photos)}
-                                    maxPhotos={1}
-                                    currentPhotos={currentUrlReviews.photos[reviewIndex] || []}
-                                    size="small"
-                                  />
-                                </div>
-                              )}
+                        {/* For REVIEW type: Only URL #1 has review inputs, others show message */}
+                        {orderType === "REVIEW" && urlIndex > 0 ? (
+                          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30 rounded-lg p-4">
+                            <p className="text-sm text-blue-800 dark:text-blue-300">
+                              ✓ Same reviews from URL #1 will be posted to this URL
+                            </p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                              Quantity: {filledReviewsCount} reviews
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center justify-between mb-3">
+                              <label className="block text-sm font-semibold text-gray-900 dark:text-zinc-100">
+                                Review Contents
+                              </label>
                             </div>
-                          ))}
-                        </div>
 
-                        {filledReviewsCount < 50 && (
-                          <button
-                            type="button"
-                            onClick={() => addReview(urlIndex)}
-                            className="mt-3 text-sm text-[#007bff] hover:underline flex items-center gap-1"
-                          >
-                            <Plus className="w-4 h-4" />
-                            Add another review ({filledReviewsCount}/50)
-                          </button>
+                            <div className="space-y-3">
+                              {currentUrlReviews.reviews.map((content, reviewIndex) => (
+                                <div key={reviewIndex} className="relative">
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-6 h-6 rounded-full bg-[#007bff] text-white flex items-center justify-center text-xs font-bold shrink-0">
+                                      {reviewIndex + 1}
+                                    </div>
+
+                                    <textarea
+                                      rows={1}
+                                      maxLength={500}
+                                      value={content}
+                                      onChange={(e) => updateReview(urlIndex, reviewIndex, e.target.value)}
+                                      placeholder="This product is good..."
+                                      className={`w-full px-3 py-2 pr-8 rounded-lg border bg-white dark:bg-zinc-800 text-sm resize-none ${
+                                        fieldErrors.reviews?.[reviewIndex]
+                                          ? 'border-red-300 focus:border-red-500'
+                                          : 'border-gray-200 dark:border-zinc-700 focus:border-[#007bff]'
+                                      }`}
+                                    />
+
+                                    <button
+                                      type="button"
+                                      onClick={() => removeReview(urlIndex, reviewIndex)}
+                                      className="absolute right-2 top-2 text-gray-400 hover:text-red-500 p-1"
+                                      title="Remove review"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </div>
+
+                                  {/* Photo Upload for COMMENT_WITH_PHOTO */}
+                                  {orderType === "COMMENT_WITH_PHOTO" && (
+                                    <div className="ml-9 mt-2">
+                                      <PhotoUpload
+                                        onPhotosChange={(photos) => updatePhotos(urlIndex, reviewIndex, photos)}
+                                        maxPhotos={1}
+                                        currentPhotos={currentUrlReviews.photos[reviewIndex] || []}
+                                        size="small"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+
+                            {filledReviewsCount < 50 && (
+                              <button
+                                type="button"
+                                onClick={() => addReview(urlIndex)}
+                                className="mt-3 text-sm text-[#007bff] hover:underline flex items-center gap-1"
+                              >
+                                <Plus className="w-4 h-4" />
+                                Add another review ({filledReviewsCount}/50)
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     )}
