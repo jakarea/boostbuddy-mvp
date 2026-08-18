@@ -370,7 +370,7 @@ export default function EmployeeOrderDetailPage() {
       ) : null}
 
       {/* Legacy single URL system - show when no multi-URLs */}
-      {(!order.reviewUrls || order.reviewUrls.length === 0) && (order.businessUrl || order.facebookUrl) && (
+      {(!order.reviewUrls || order.reviewUrls.length === 0) && (order.businessUrl || order.facebookUrl) ? (
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-3">
             <ExternalLink className="h-5 w-5 text-blue-600 dark:text-blue-400" />
