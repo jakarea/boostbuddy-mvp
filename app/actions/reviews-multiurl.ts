@@ -239,25 +239,28 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
     console.log("🧪 [DEBUG] First URL reactionType:", orderData.urls[0]?.reactionType);
     console.log("🧪 [DEBUG] Shared reaction type:", sharedReactionType);
 
-    // Aggregate all reviews from all URLs for storage
-    const allReviewContents: string[] = [];
-    const allPhotos: string[][] = [];
+    // For COMMENT (reactions) orders: NO reviews should be stored in parent order
+    // For REVIEW/COMMENT_WITH_PHOTO: NO reviews should be aggregated in parent order
+    // Reviews are stored ONLY in reviewUrls table, not aggregated to parent
+    const allReviewContents: string[] = [];  // Empty for parent order
+    const allPhotos: string[][] = [];      // Empty for parent order
 
-    for (const urlData of orderData.urls) {
-      if (urlData.reviewContents) {
-        for (let i = 0; i < urlData.reviewContents.length; i++) {
-          allReviewContents.push(urlData.reviewContents[i]);
-          if (orderData.orderType === "COMMENT_WITH_PHOTO" && urlData.photos && urlData.photos[i]) {
-            allPhotos.push(urlData.photos[i]);
-          }
-        }
-      }
-    }
+    console.log("📝 [MULTI-URL ORDER] Order type:", orderData.orderType);
+    console.log("📝 [MULTI-URL ORDER] NOT aggregating reviews to parent order - stored only in reviewUrls table");
 
-    // Create ReviewOrder with aggregated content
+    // Create ReviewOrder - COMMENT orders have NO review_content
     console.log("📝 [MULTI-URL ORDER] Inserting review order...");
-    console.log("🧪 [DEBUG] About to save with reaction_type:", sharedReactionType);
-    console.log("🧪 [DEBUG] First URL reactionType from data:", orderData.urls[0]?.reactionType);
+    console.log("🧪 [DEBUG] Order type:", orderData.orderType);
+    console.log("🧪 [DEBUG] Reaction type:", sharedReactionType);
+    console.log("🧪 [DEBUG] Total URLs:", orderData.urls.length);
+    console.log("🧪 [DEBUG] Total quantity:", normalizedTotalQuantity);
+
+    // For COMMENT/REACTION orders: NO review_content, only reaction_type
+    // For REVIEW/COMMENT_WITH_PHOTO: NO aggregated review_content (stored per-URL only)
+    const parentReviewContent = (orderData.orderType === "REVIEW" || orderData.orderType === "COMMENT_WITH_PHOTO")
+      ? null  // Don't aggregate - reviews stored per-URL in reviewUrls table only
+      : null;  // COMMENT orders have no review content at all
+
     const { error: orderError, data: insertedOrder } = await (supabaseAdmin as any)
       .from("review_orders")
       .insert({
@@ -266,12 +269,12 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
         business_name: businessName,
         review_type: "FACEBOOK",
         order_type: orderData.orderType,
-        quantity: normalizedTotalQuantity, // Use normalized total quantity
-        total_urls: orderData.urls.length, // Store the total number of URLs
+        quantity: normalizedTotalQuantity,
+        total_urls: orderData.urls.length,
         reaction_type: sharedReactionType,
         credits_consumed: requiredCredits,
-        review_content: allReviewContents.length > 0 ? JSON.stringify(allReviewContents) : null, // Store aggregated reviews
-        photo_urls: allPhotos.length > 0 ? JSON.stringify(allPhotos) : null, // Store aggregated photos
+        review_content: parentReviewContent, // Always null for multi-URL orders (per-URL storage only)
+        photo_urls: null,
         status: "PENDING",
         created_at: now,
         updated_at: now
@@ -297,13 +300,19 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
         ? (urlData.reactionType || "LIKE")
         : null;
 
+      // Only set review_content for REVIEW and COMMENT_WITH_PHOTO orders, NOT for COMMENT
+      // COMMENT orders only have reaction_type, no text content
+      const urlReviewContent = (orderData.orderType === "REVIEW" || orderData.orderType === "COMMENT_WITH_PHOTO")
+        ? urlReviews
+        : [];
+
       return {
         id: randomUUID(),
         review_order_id: orderId,
         url: urlData.url.trim(),
         quantity: urlData.quantity, // Number of reviews for this URL
         reaction_type: urlReactionType,
-        review_content: urlReviews.length > 0 ? JSON.stringify(urlReviews) : null,
+        review_content: urlReviewContent.length > 0 ? JSON.stringify(urlReviewContent) : null,
         photo_urls: urlPhotos.length > 0 ? JSON.stringify(urlPhotos) : null,
         review_index: index,
         status: "PENDING",
