@@ -132,7 +132,8 @@ export async function getAllReviewOrdersAction(filters?: ReviewOrderFilter) {
       const normalizedOrder = {
         ...order,
         // Normalize database column names from snake_case to camelCase
-          facebookUrl: order.facebook_url,
+        // Support both facebook_url (old) and business_url (new) for backward compatibility
+          facebookUrl: order.business_url || order.facebook_url,
         businessName: order.business_name,
         orderType: order.order_type,
         reviewType: order.review_type,
@@ -1087,7 +1088,8 @@ export async function getReviewOrderByIdAction(orderId: string) {
     // Normalize field names from snake_case to camelCase
     const normalizedOrder = {
       ...order,
-      facebookUrl: order.facebook_url,
+      // Support both facebook_url (old) and business_url (new) for backward compatibility
+      facebookUrl: order.business_url || order.facebook_url,
       businessName: order.business_name,
       orderType: order.order_type,
       reviewType: order.review_type,

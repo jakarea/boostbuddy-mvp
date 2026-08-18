@@ -31,6 +31,7 @@ interface ReviewOrder {
   userId: string;
   businessName: string;
   facebookUrl?: string;
+  businessUrl?: string; // Alias for facebookUrl (some data sources use this name)
   orderType: string;
   reviewType: string;
   reviewContent: string;
@@ -282,7 +283,7 @@ export default function OrderDetailClient({ order }: OrderDetailClientProps) {
       ) : null}
 
       {/* Legacy single URL system - show when no multi-URLs */}
-      {(!order.reviewUrls || order.reviewUrls.length === 0) && order.facebookUrl && (
+      {(!order.reviewUrls || order.reviewUrls.length === 0) && (order.facebookUrl || order.businessUrl) && (
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-3">
             <ExternalLink className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -290,17 +291,17 @@ export default function OrderDetailClient({ order }: OrderDetailClientProps) {
           </div>
           <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900/30">
             <a
-              href={order.facebookUrl}
+              href={order.facebookUrl || order.businessUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-blue-700 dark:text-blue-300 font-medium hover:underline truncate flex-1"
             >
-              {order.facebookUrl}
+              {order.facebookUrl || order.businessUrl}
             </a>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => copyToClipboard(order.facebookUrl!)}
+              onClick={() => copyToClipboard((order.facebookUrl || order.businessUrl)!)}
               className="shrink-0"
             >
               <Copy className="h-4 w-4" />
