@@ -341,15 +341,6 @@ export default function EmployeeOrderDetailPage() {
         </Card>
       )}
 
-      {order.status === "COMPLETED" && (
-        <Card className="p-4 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <p className="text-sm font-semibold text-green-900 dark:text-green-100">Order Completed</p>
-          </div>
-        </Card>
-      )}
-
       {/* URLs Section */}
       {hasUrls && (
         <Card className="p-4">
