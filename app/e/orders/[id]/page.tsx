@@ -37,6 +37,7 @@ interface ReviewOrder {
   userId: string;
   businessName: string;
   businessUrl?: string;
+  facebookUrl?: string; // Fallback for some data sources
   orderType: string;
   reviewType: string;
   reviewContent: string;
@@ -369,7 +370,7 @@ export default function EmployeeOrderDetailPage() {
       ) : null}
 
       {/* Legacy single URL system - show when no multi-URLs */}
-      {(!order.reviewUrls || order.reviewUrls.length === 0) && order.businessUrl && (
+      {(!order.reviewUrls || order.reviewUrls.length === 0) && (order.businessUrl || order.facebookUrl) && (
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-3">
             <ExternalLink className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -377,22 +378,31 @@ export default function EmployeeOrderDetailPage() {
           </div>
           <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900/30">
             <a
-              href={order.businessUrl}
+              href={order.businessUrl || order.facebookUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-blue-700 dark:text-blue-300 font-medium hover:underline truncate flex-1"
             >
-              {order.businessUrl}
+              {order.businessUrl || order.facebookUrl}
             </a>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => copyToClipboard(order.businessUrl!)}
+              onClick={() => copyToClipboard((order.businessUrl || order.facebookUrl)!)}
               className="shrink-0"
             >
               <Copy className="h-4 w-4" />
             </Button>
           </div>
+        </Card>
+      ) : null}
+
+      {/* Debug: Show what we're receiving */}
+      {(!order.reviewUrls || order.reviewUrls.length === 0) && (
+        <Card className="p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+          <p className="text-xs text-yellow-800 dark:text-yellow-300">
+            Debug: businessUrl={String(!!order.businessUrl)} facebookUrl={String(!!order.facebookUrl)}
+          </p>
         </Card>
       )}
 

@@ -1122,6 +1122,7 @@ export async function getReviewOrderByIdAction(orderId: string) {
       userId: data.user_id,
       businessName: data.business_name,
       businessUrl: data.facebook_url,
+      facebookUrl: data.facebook_url, // Also set as facebookUrl for consistency
       orderType: data.order_type,
       reviewType: data.review_type,
       reviewContent: data.review_content,

@@ -308,7 +308,16 @@ export default function OrderDetailClient({ order }: OrderDetailClientProps) {
             </Button>
           </div>
         </Card>
-      )}
+      ) : null}
+
+      {/* Debug: Show what we're receiving */}
+      {!order.reviewUrls || order.reviewUrls.length === 0 ? (
+        <Card className="p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+          <p className="text-xs text-yellow-800 dark:text-yellow-300">
+            Debug: facebookUrl={String(!!order.facebookUrl)} businessUrl={String(!!order.businessUrl)}
+          </p>
+        </Card>
+      ) : null}
 
       {/* Review Content */}
       {order.reviewContent && order.reviewContent.trim() && (
