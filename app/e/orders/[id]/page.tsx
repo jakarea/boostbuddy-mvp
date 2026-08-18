@@ -91,6 +91,7 @@ export default function EmployeeOrderDetailPage() {
   const [showUrls, setShowUrls] = useState(true);
   const [showReviews, setShowReviews] = useState(true);
   const [showPhotos, setShowPhotos] = useState(true);
+  const [showOrderDetails, setShowOrderDetails] = useState(true);
 
   const isPending = order?.status === "PENDING" && !order?.completedByEmployeeId;
 
@@ -184,17 +185,6 @@ export default function EmployeeOrderDetailPage() {
     }
   };
 
-  const getReviewTypeIcon = (reviewType: string) => {
-    switch (reviewType) {
-      case "GOOGLE": return "🔍";
-      case "FACEBOOK": return "📘";
-      case "TRUSTPILOT": return "⭐";
-      case "YELP": return "📝";
-      case "AMAZON": return "🛒";
-      default: return "⭐";
-    }
-  };
-
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toastSuccess("Copied to clipboard");
@@ -242,6 +232,55 @@ export default function EmployeeOrderDetailPage() {
         {getStatusBadge(order.status)}
       </div>
 
+      {/* URLs Section - FIRST, Prominently Displayed */}
+      {hasUrls && (
+        <Card className="p-3 border-2 border-blue-200 dark:border-blue-800">
+          <button
+            onClick={() => setShowUrls(!showUrls)}
+            className="w-full flex items-center justify-between mb-2 hover:opacity-70"
+          >
+            <div className="flex items-center gap-2">
+              <LinkIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <span className="font-semibold text-base">URLs ({order.reviewUrls!.length})</span>
+            </div>
+            {showUrls ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+          {showUrls && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {order.reviewUrls!.map((urlItem, index) => (
+                <div key={urlItem.id} className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/30 rounded border border-blue-200 dark:border-blue-800 text-xs group relative">
+                  <span className="font-semibold text-blue-700 dark:text-blue-300">#{index + 1}</span>
+                  <a
+                    href={urlItem.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#168BB0] hover:underline truncate flex-1 font-medium"
+                  >
+                    {urlItem.url}
+                  </a>
+                  <span className="text-zinc-600 dark:text-zinc-400 font-medium">×{urlItem.quantity}</span>
+                  {urlItem.reactionType && (
+                    <span className="text-lg">{urlItem.reactionType === "LIKE" ? "👍" :
+                          urlItem.reactionType === "LOVE" ? "❤️" :
+                          urlItem.reactionType === "CARE" ? "🤗" :
+                          urlItem.reactionType === "WOW" ? "😮" :
+                          urlItem.reactionType}</span>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(urlItem.url)}
+                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 bg-white dark:bg-zinc-800"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
+
       {/* Action Banner */}
       {isPending && (
         <Card className="p-3 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
@@ -275,81 +314,44 @@ export default function EmployeeOrderDetailPage() {
         </Card>
       )}
 
-      {/* Order Details - Compact */}
+      {/* Order Details - Compact, Collapsible */}
       <Card className="p-3">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-          <div>
-            <p className="text-zinc-500">Type</p>
-            <p className="font-medium">
-              {order.orderType === "COMMENT" ? "Reactions" :
-               order.orderType === "REVIEW" ? "Reviews" :
-               order.orderType === "COMMENT_WITH_PHOTO" ? "Photo+" :
-               order.orderType?.replace(/_/g, " ")}
-            </p>
+        <button
+          onClick={() => setShowOrderDetails(!showOrderDetails)}
+          className="w-full flex items-center justify-between mb-2 hover:opacity-70"
+        >
+          <div className="flex items-center gap-2">
+            <Package className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+            <span className="font-semibold text-sm">Order Details</span>
           </div>
-          <div>
-            <p className="text-zinc-500">Qty</p>
-            <p className="font-medium">{order.quantity}</p>
+          {showOrderDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
+        {showOrderDetails && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            <div>
+              <p className="text-zinc-500">Type</p>
+              <p className="font-medium">
+                {order.orderType === "COMMENT" ? "Reactions" :
+                 order.orderType === "REVIEW" ? "Reviews" :
+                 order.orderType === "COMMENT_WITH_PHOTO" ? "Photo+" :
+                 order.orderType?.replace(/_/g, " ")}
+              </p>
+            </div>
+            <div>
+              <p className="text-zinc-500">Qty</p>
+              <p className="font-medium">{order.quantity}</p>
+            </div>
+            <div>
+              <p className="text-zinc-500">Client</p>
+              <p className="font-medium truncate">{order.users?.name || "Unknown"}</p>
+            </div>
+            <div>
+              <p className="text-zinc-500">Created</p>
+              <p className="font-medium">{formatDateShort(order.createdAt)}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-zinc-500">Client</p>
-            <p className="font-medium truncate">{order.users?.name || "Unknown"}</p>
-          </div>
-          <div>
-            <p className="text-zinc-500">Created</p>
-            <p className="font-medium">{formatDateShort(order.createdAt)}</p>
-          </div>
-        </div>
+        )}
       </Card>
-
-      {/* URLs Section - Compact Collapsible */}
-      {hasUrls && (
-        <Card className="p-3">
-          <button
-            onClick={() => setShowUrls(!showUrls)}
-            className="w-full flex items-center justify-between mb-2 hover:opacity-70"
-          >
-            <div className="flex items-center gap-2">
-              <LinkIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <span className="font-semibold text-sm">URLs ({order.reviewUrls!.length})</span>
-            </div>
-            {showUrls ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </button>
-          {showUrls && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {order.reviewUrls!.map((urlItem, index) => (
-                <div key={urlItem.id} className="flex items-center gap-2 p-2 bg-zinc-50 dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800 text-xs">
-                  <span className="font-medium text-zinc-500">#{index + 1}</span>
-                  <a
-                    href={urlItem.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#168BB0] hover:underline truncate flex-1"
-                  >
-                    {urlItem.url}
-                  </a>
-                  <span className="text-zinc-500">×{urlItem.quantity}</span>
-                  {urlItem.reactionType && (
-                    <span>{urlItem.reactionType === "LIKE" ? "👍" :
-                          urlItem.reactionType === "LOVE" ? "❤️" :
-                          urlItem.reactionType === "CARE" ? "🤗" :
-                          urlItem.reactionType === "WOW" ? "😮" :
-                          urlItem.reactionType}</span>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copyToClipboard(urlItem.url)}
-                    className="h-6 w-6 p-0"
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      )}
 
       {/* Reviews Section - Compact Grid */}
       {hasReviews && (
