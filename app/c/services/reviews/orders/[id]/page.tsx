@@ -3,7 +3,7 @@
 import { useContext, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Clock, Copy, Download } from "lucide-react";
+import { Clock, Copy, Download, Package, ChevronDown, ChevronUp, Link as LinkIcon, FileText, ImageIcon, MessageSquare } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { getReviewOrderDetailAction } from "@/app/actions/reviews";
@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { formatDateTime } from "@/lib/dateUtils";
 import { getReactionEmoji, getReactionBadgeClasses } from "@/lib/reactionUtils";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export default function ReviewOrderDetailPage() {
   const { user } = useAuth();
@@ -24,6 +25,11 @@ export default function ReviewOrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<any>(null);
 
+  // Collapsible states
+  const [showUrls, setShowUrls] = useState(true);
+  const [showReviews, setShowReviews] = useState(true);
+  const [showOrderDetails, setShowOrderDetails] = useState(true);
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     success("Copied to clipboard");
@@ -31,17 +37,13 @@ export default function ReviewOrderDetailPage() {
 
   const copyImageUrl = async (imageUrl: string) => {
     try {
-      // Fetch the image as a blob
       const response = await fetch(imageUrl);
       const blob = await response.blob();
-
-      // Create a ClipboardItem and write to clipboard
       await navigator.clipboard.write([
         new ClipboardItem({ [blob.type]: blob })
       ]);
       success("Image copied to clipboard");
     } catch (err) {
-      // If copying image fails, fallback to copying URL
       copyToClipboard(imageUrl);
     }
   };
@@ -60,7 +62,6 @@ export default function ReviewOrderDetailPage() {
       document.body.removeChild(a);
       success("Image downloaded");
     } catch (err) {
-      // Fallback: open in new tab
       window.open(imageUrl, '_blank');
     }
   };
@@ -72,9 +73,6 @@ export default function ReviewOrderDetailPage() {
       const result = await getReviewOrderDetailAction(orderId);
 
       if (result.success) {
-        console.log("=== ORDER DATA ===");
-        console.log(JSON.stringify(result.data, null, 2));
-        console.log("===================");
         setOrder(result.data);
       } else {
         error(result.error || "Failed to load order");
@@ -84,7 +82,7 @@ export default function ReviewOrderDetailPage() {
     };
 
     loadOrder();
-  }, [user, orderId]);
+  }, [user, orderId, error, router]);
 
   if (loading) return <LoadingScreen />;
   if (!order) return (
@@ -101,354 +99,354 @@ export default function ReviewOrderDetailPage() {
     </div>
   );
 
+  const hasUrls = order.reviewUrls && order.reviewUrls.length > 0;
+  const hasReviews = (order.orderType === "REVIEW" && order.content) ||
+                    (order.reviewUrls && order.reviewUrls.some((u: any) => u.reviewContent));
+  const hasPhotos = order.orderType === "COMMENT_WITH_PHOTO" && order.photoUrls && order.photoUrls.length > 0;
+
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => router.back()}
-          className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg"
-        >
-          ←
-        </button>
-        <h1 className="text-2xl font-bold flex-1">
-          {t("reviews.reviewOrder", "Review Order")}
-        </h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg"
+          >
+            ←
+          </button>
+          <h1 className="text-xl font-bold flex-1 flex items-center gap-2">
+            <Package className="h-5 w-5 text-[#168BB0]" />
+            {order.businessName || t("reviews.reviewOrder", "Review Order")}
+          </h1>
+        </div>
         <StatusBadge status={order.status} />
       </div>
 
-      {/* Order Details Card */}
-      <div className="bg-white dark:bg-zinc-800 rounded-lg p-6 shadow space-y-4">
-        {/* Basic Info */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              {t("reviews.orderType", "Order Type")}
-            </h3>
-            <p className="font-medium">
-              {order.orderType === "COMMENT" ? "Reactions" :
-               order.orderType === "REVIEW" ? "Reviews" :
-               order.orderType === "COMMENT_WITH_PHOTO" ? "Photo + Reviews" :
-               order.orderType?.replace(/_/g, ' ')}
-            </p>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              {t("reviews.platform", "Platform")}
-            </h3>
-            <p className="font-medium">{order.reviewType}</p>
-          </div>
-
-          {order.orderType === "COMMENT" && (
-            <div>
-              <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                {t("reviews.reaction", "Reaction")}
-              </h3>
-              <p className={`font-medium text-lg ${getReactionBadgeClasses(order.reactionType || 'LIKE')}`}>
-                {getReactionEmoji(order.reactionType || 'LIKE')}
-              </p>
+      {/* URLs Section - FIRST, Prominently Displayed */}
+      {hasUrls ? (
+        <Card className="p-3 border-2 border-blue-200 dark:border-blue-800">
+          <button
+            onClick={() => setShowUrls(!showUrls)}
+            className="w-full flex items-center justify-between mb-2 hover:opacity-70"
+          >
+            <div className="flex items-center gap-2">
+              <LinkIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <span className="font-semibold text-base">URLs ({order.reviewUrls.length})</span>
+            </div>
+            {showUrls ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+          {showUrls && (
+            <div className="grid grid-cols-1 gap-2">
+              {order.reviewUrls.map((urlItem: any, index: number) => (
+                <div key={urlItem.id} className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded border border-blue-200 dark:border-blue-800 text-xs group relative">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-blue-700 dark:text-blue-300">#{index + 1}</span>
+                    <span className="text-zinc-500 font-medium">×{urlItem.quantity}</span>
+                    {urlItem.reactionType && (
+                      <span className="text-lg">{urlItem.reactionType === "LIKE" ? "👍" :
+                            urlItem.reactionType === "LOVE" ? "❤️" :
+                            urlItem.reactionType === "CARE" ? "🤗" :
+                            urlItem.reactionType === "WOW" ? "😮" :
+                            urlItem.reactionType}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={urlItem.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#168BB0] hover:underline truncate flex-1 font-medium"
+                    >
+                      {urlItem.url}
+                    </a>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard(urlItem.url)}
+                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 bg-white dark:bg-zinc-800"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
-
-          <div>
-            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              {t("reviews.quantity", "Quantity")}
-            </h3>
-            <p className="font-medium">{order.quantity}</p>
+        </Card>
+      ) : order.facebookUrl ? (
+        <Card className="p-3 border-2 border-blue-200 dark:border-blue-800">
+          <div className="flex items-center gap-2 mb-2">
+            <LinkIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <span className="font-semibold text-base">Facebook URL</span>
           </div>
-
-          <div>
-            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              {t("reviews.creditsConsumed", "Credits Consumed")}
-            </h3>
-            <p className="font-medium">{order.creditsConsumed}</p>
-          </div>
-        </div>
-
-        {order.facebookUrl && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                {t("reviews.facebookUrl", "Facebook URL")}
-              </h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => copyToClipboard(order.facebookUrl)}
-                className="shrink-0 gap-2"
-              >
-                <Copy className="h-4 w-4" />
-                Copy
-              </Button>
-            </div>
+          <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/30 rounded border border-blue-200 dark:border-blue-800">
             <a
               href={order.facebookUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#168BB0] hover:underline block"
+              className="text-[#168BB0] hover:underline truncate flex-1 text-sm font-medium"
             >
               {order.facebookUrl}
             </a>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => copyToClipboard(order.facebookUrl)}
+              className="h-6 w-6 p-0 bg-white dark:bg-zinc-800"
+            >
+              <Copy className="h-3 w-3" />
+            </Button>
           </div>
-        )}
+        </Card>
+      ) : null}
 
-        {/* Multi-URL Orders - Display URLs with their review content */}
-        {order.reviewUrls && order.reviewUrls.length > 0 && (
-          <div>
-            {/* URLs Section */}
+      {/* Order Details - Compact, Collapsible */}
+      <Card className="p-3">
+        <button
+          onClick={() => setShowOrderDetails(!showOrderDetails)}
+          className="w-full flex items-center justify-between mb-2 hover:opacity-70"
+        >
+          <div className="flex items-center gap-2">
+            <Package className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+            <span className="font-semibold text-sm">Order Details</span>
+          </div>
+          {showOrderDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
+        {showOrderDetails && (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
             <div>
-              <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3">
-                {t("reviews.urls", "URLs")} ({order.reviewUrls.length})
-              </h3>
-              <div className="space-y-3">
-                {order.reviewUrls.map((urlItem: any, index: number) => (
-                  <div key={urlItem.id} className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 bg-zinc-50 dark:bg-zinc-900">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs font-medium bg-zinc-200 dark:bg-zinc-700 px-2 py-1 rounded">
-                        #{index + 1}
-                      </span>
-                      <span className={`text-xs font-medium px-2 py-1 rounded ${
-                        urlItem.status === 'COMPLETED' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                        urlItem.status === 'ASSIGNED' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                        'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-                      }`}>
-                        {urlItem.status}
-                      </span>
-                      <span className="text-xs text-zinc-500 font-medium">
-                        {t("reviews.quantity", "Qty")}: {urlItem.quantity}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <a
-                        href={urlItem.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-[#168BB0] hover:underline break-all flex-1"
-                      >
-                        {urlItem.url}
-                      </a>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(urlItem.url)}
-                        className="shrink-0"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    {/* Review Content for this URL - Display each review separately */}
-                    {urlItem.reviewContent && urlItem.reviewContent.trim() && (() => {
-                      // Try to parse as JSON array
-                      let reviews: string[] = [];
-                      try {
-                        const parsed = JSON.parse(urlItem.reviewContent);
-                        if (Array.isArray(parsed)) {
-                          reviews = parsed;
-                        } else {
-                          reviews = [urlItem.reviewContent];
-                        }
-                      } catch {
-                        // Not JSON, treat as single review
-                        reviews = [urlItem.reviewContent];
-                      }
-
-                      return reviews.length > 0 ? (
-                        <div className="mt-3">
-                          <h4 className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2">
-                            {t("reviews.reviewContent", "Review Content")}
-                          </h4>
-                          <div className="space-y-2">
-                            {reviews.map((review, reviewIndex) => (
-                              <div key={reviewIndex} className="bg-white dark:bg-zinc-800 p-2 rounded border border-zinc-200 dark:border-zinc-700">
-                                <div className="flex items-start justify-between gap-2">
-                                  <span className="text-xs font-medium text-zinc-400">
-                                    #{reviewIndex + 1}
-                                  </span>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => copyToClipboard(review)}
-                                    className="shrink-0 h-6 px-2"
-                                  >
-                                    <Copy className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                                <p className="text-sm whitespace-pre-wrap mt-1 break-all">
-                                  {review}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null;
-                    })()}
-
-                    {urlItem.proofOfCompletion && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <a
-                          href={urlItem.proofOfCompletion}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-[#168BB0] hover:underline"
-                        >
-                          {t("reviews.viewProof", "View Proof")}
-                        </a>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyImageUrl(urlItem.proofOfCompletion)}
-                          className="shrink-0 h-6 px-2"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <p className="text-zinc-500">Type</p>
+              <p className="font-medium">
+                {order.orderType === "COMMENT" ? "Reactions" :
+                 order.orderType === "REVIEW" ? "Reviews" :
+                 order.orderType === "COMMENT_WITH_PHOTO" ? "Photo+" :
+                 order.orderType?.replace(/_/g, ' ')}
+              </p>
             </div>
-          </div>
-        )}
-
-        {/* Review Content (for REVIEW orders) - OLD SYSTEM, keep for backwards compatibility */}
-        {!order.reviewUrls || order.reviewUrls.length === 0 ? (
-          <>
-            {order.orderType === "REVIEW" && order.content && order.content.trim() && (
+            <div>
+              <p className="text-zinc-500">Platform</p>
+              <p className="font-medium">{order.reviewType}</p>
+            </div>
+            <div>
+              <p className="text-zinc-500">Qty</p>
+              <p className="font-medium">{order.quantity}</p>
+            </div>
+            <div>
+              <p className="text-zinc-500">Credits</p>
+              <p className="font-medium">{order.creditsConsumed}</p>
+            </div>
+            {order.orderType === "COMMENT" && order.reactionType && (
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                    {t("reviews.reviewContent", "Review Content")}
-                  </h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copyToClipboard(order.content)}
-                    className="shrink-0 gap-2"
-                  >
-                    <Copy className="h-4 w-4" />
-                    Copy
-                  </Button>
-                </div>
-                <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-lg">
-                  <p className="whitespace-pre-wrap">{order.content}</p>
-                </div>
+                <p className="text-zinc-500">Reaction</p>
+                <p className={`font-medium text-lg ${getReactionBadgeClasses(order.reactionType)}`}>
+                  {getReactionEmoji(order.reactionType)}
+                </p>
               </div>
             )}
-          </>
-        ) : null}
+            <div>
+              <p className="text-zinc-500">Created</p>
+              <p className="font-medium">{formatDateTime(order.createdAt)}</p>
+            </div>
+            {order.completedAt && (
+              <div>
+                <p className="text-zinc-500">Completed</p>
+                <p className="font-medium text-green-600 dark:text-green-400">{formatDateTime(order.completedAt)}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
 
-        {/* Comment Text (for COMMENT and COMMENT_WITH_PHOTO orders) */}
-        {(order.orderType === "COMMENT" || order.orderType === "COMMENT_WITH_PHOTO") && order.commentText && order.commentText.trim() && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                {t("reviews.commentText", "Comment Text")}
-              </h3>
+      {/* Reviews Section - Compact Grid */}
+      {hasUrls && order.reviewUrls.some((u: any) => u.reviewContent) ? (
+        <Card className="p-3">
+          <button
+            onClick={() => setShowReviews(!showReviews)}
+            className="w-full flex items-center justify-between mb-2 hover:opacity-70"
+          >
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+              <span className="font-semibold text-sm">Reviews</span>
+            </div>
+            {showReviews ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+          {showReviews && (
+            <div className="space-y-2">
+              {order.reviewUrls.map((urlItem: any, urlIndex: number) => {
+                if (!urlItem.reviewContent) return null;
+                let reviews: string[] = [];
+                try {
+                  const parsed = JSON.parse(urlItem.reviewContent);
+                  if (Array.isArray(parsed)) {
+                    reviews = parsed;
+                  } else {
+                    reviews = [urlItem.reviewContent];
+                  }
+                } catch {
+                  reviews = [urlItem.reviewContent];
+                }
+
+                return (
+                  <div key={urlItem.id} className="p-2 bg-zinc-50 dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800 text-xs">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-semibold text-zinc-500">URL #{urlIndex + 1}</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {reviews.map((review, reviewIndex) => (
+                        <div key={reviewIndex} className="p-2 bg-white dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 group relative">
+                          <div className="flex items-start justify-between mb-1">
+                            <span className="font-medium text-zinc-500">#{reviewIndex + 1}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(review)}
+                              className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <p className="text-sm text-zinc-700 dark:text-zinc-300 line-clamp-3 whitespace-pre-wrap">
+                            {review}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+      ) : order.orderType === "REVIEW" && order.content ? (
+        <Card className="p-3">
+          <button
+            onClick={() => setShowReviews(!showReviews)}
+            className="w-full flex items-center justify-between mb-2 hover:opacity-70"
+          >
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+              <span className="font-semibold text-sm">Review Content</span>
+            </div>
+            {showReviews ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+          {showReviews && (
+            <div className="p-2 bg-zinc-50 dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800 text-xs group relative">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => copyToClipboard(order.content)}
+                className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 absolute top-2 right-2"
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+              <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap pr-8">
+                {order.content}
+              </p>
+            </div>
+          )}
+        </Card>
+      ) : null}
+
+      {/* Comment Text */}
+      {(order.orderType === "COMMENT" || order.orderType === "COMMENT_WITH_PHOTO") && order.commentText && order.commentText.trim() && (
+        <Card className="p-3">
+          <button
+            onClick={() => setShowReviews(!showReviews)}
+            className="w-full flex items-center justify-between mb-2 hover:opacity-70"
+          >
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+              <span className="font-semibold text-sm">Comment Text</span>
+            </div>
+            {showReviews ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+          {showReviews && (
+            <div className="p-2 bg-zinc-50 dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800 text-xs group relative">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => copyToClipboard(order.commentText)}
-                className="shrink-0 gap-2"
+                className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 absolute top-2 right-2"
               >
-                <Copy className="h-4 w-4" />
-                Copy
+                <Copy className="h-3 w-3" />
               </Button>
+              <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap pr-8">
+                {order.commentText}
+              </p>
             </div>
-            <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-lg">
-              <p className="whitespace-pre-wrap">{order.commentText}</p>
-            </div>
-          </div>
-        )}
+          )}
+        </Card>
+      )}
 
-        {/* Photos (for COMMENT_WITH_PHOTO orders) */}
-        {order.orderType === "COMMENT_WITH_PHOTO" && order.photoUrls && order.photoUrls.length > 0 && (
-          <div>
-            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
-              {t("reviews.photos", "Photos")}
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
+      {/* Photos Section - Compact Grid */}
+      {hasPhotos && (
+        <Card className="p-3">
+          <button
+            onClick={() => setShowReviews(!showReviews)}
+            className="w-full flex items-center justify-between mb-2 hover:opacity-70"
+          >
+            <div className="flex items-center gap-2">
+              <ImageIcon className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+              <span className="font-semibold text-sm">Photos ({order.photoUrls.length})</span>
+            </div>
+            {showReviews ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+          {showReviews && (
+            <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
               {order.photoUrls.map((url: string, index: number) => {
-                // Extract filename from URL or use default
                 const filename = `photo-${index + 1}.jpg`;
                 return (
                   <div key={index} className="relative group">
-                    <img
-                      src={url}
-                      alt={`Photo ${index + 1}`}
-                      className="w-full h-auto rounded-lg border border-zinc-200 dark:border-zinc-700"
-                      onError={(e) => {
-                        console.error(`Failed to load photo ${index + 1}:`, url);
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                    {/* Copy button - top right */}
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      <img
+                        src={url}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full aspect-square object-cover rounded border border-zinc-300 dark:border-zinc-700 hover:opacity-80 transition-opacity"
+                      />
+                    </a>
+                    <div className="absolute top-1 left-1 bg-black/50 text-white text-xs px-1 rounded">
+                      #{index + 1}
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => copyImageUrl(url)}
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-zinc-800/90 shadow-sm"
-                      title="Copy image"
+                      className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 shadow-sm"
                     >
-                      <Copy className="h-4 w-4" />
+                      <Copy className="h-3 w-3" />
                     </Button>
-                    {/* Download button - bottom right */}
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => downloadImage(url, filename)}
-                      className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-zinc-800/90 shadow-sm"
-                      title="Download image"
+                      className="absolute bottom-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 shadow-sm"
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-3 w-3" />
                     </Button>
                   </div>
                 );
               })}
             </div>
-          </div>
-        )}
-
-        {order.reviewInstructions && (
-          <div>
-            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
-              {t("reviews.instructions", "Additional Instructions")}
-            </h3>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              {order.reviewInstructions}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Timeline Card */}
-      <div className="bg-white dark:bg-zinc-800 rounded-lg p-6 shadow">
-        <h3 className="font-semibold mb-4">
-          {t("reviews.timeline", "Timeline")}
-        </h3>
-        <div className="space-y-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-zinc-500">{t("reviews.created", "Created")}:</span>
-            <span>{formatDateTime(order.createdAt)}</span>
-          </div>
-          {order.updatedAt !== order.createdAt && (
-            <div className="flex justify-between">
-              <span className="text-zinc-500">{t("reviews.lastUpdated", "Last Updated")}:</span>
-              <span>{formatDateTime(order.updatedAt)}</span>
-            </div>
           )}
-          {order.completedAt && (
-            <div className="flex justify-between">
-              <span className="text-zinc-500">{t("reviews.completed", "Completed")}:</span>
-              <span className="text-green-600 font-medium">
-                {formatDateTime(order.completedAt)}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
+        </Card>
+      )}
+
+      {/* Instructions - Compact */}
+      {order.reviewInstructions && (
+        <Card className="p-3 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+          <div className="flex items-center gap-2 mb-1">
+            <MessageSquare className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <span className="font-semibold text-sm">Instructions</span>
+          </div>
+          <p className="text-xs text-zinc-700 dark:text-zinc-300">{order.reviewInstructions}</p>
+        </Card>
+      )}
     </div>
   );
 }
