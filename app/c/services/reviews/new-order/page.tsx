@@ -452,31 +452,23 @@ export default function NewReviewOrderPage() {
             </p>
 
             <div className="space-y-4">
-              {urls.map((urlData, urlIndex) => {
+              {/* URL #1 - Full card with reviews */}
+              {(() => {
+                const urlIndex = 0;
+                const urlData = urls[urlIndex];
                 const currentUrlReviews = urlReviews[urlIndex] || { reviews: [""], photos: [[]] };
                 const filledReviewsCount = currentUrlReviews.reviews.filter(r => r.trim()).length;
 
                 return (
                   <div key={urlIndex} className="border border-gray-200 dark:border-zinc-700 rounded-lg p-4 bg-gray-50 dark:bg-zinc-800/50">
                     {/* URL Header */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-[#007bff] text-white flex items-center justify-center text-xs font-bold">
-                          {urlIndex + 1}
-                        </div>
-                        <span className="text-sm font-medium text-gray-700 dark:text-zinc-300">
-                          URL {urlIndex + 1}
-                        </span>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 rounded-full bg-[#007bff] text-white flex items-center justify-center text-xs font-bold">
+                        1
                       </div>
-                      {urlIndex > 0 && (
-                        <button
-                          onClick={() => removeUrl(urlIndex)}
-                          className="text-gray-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-colors p-1 rounded hover:bg-gray-200 dark:hover:bg-zinc-700"
-                          type="button"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
+                      <span className="text-sm font-medium text-gray-700 dark:text-zinc-300">
+                        Primary URL
+                      </span>
                     </div>
 
                     {/* URL Input */}
@@ -495,87 +487,151 @@ export default function NewReviewOrderPage() {
                     {/* Review Contents Section */}
                     {(orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO") && (
                       <div>
-                        {/* For REVIEW type: Only URL #1 has review inputs, others show message */}
-                        {orderType === "REVIEW" && urlIndex > 0 ? (
-                          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30 rounded-lg p-4">
-                            <p className="text-sm text-blue-800 dark:text-blue-300">
-                              ✓ Same reviews from URL #1 will be posted to this URL
-                            </p>
-                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                              Quantity: {filledReviewsCount} reviews
-                            </p>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="flex items-center justify-between mb-3">
-                              <label className="block text-sm font-semibold text-gray-900 dark:text-zinc-100">
-                                Review Contents
-                              </label>
-                            </div>
+                        <div className="flex items-center justify-between mb-3">
+                          <label className="block text-sm font-semibold text-gray-900 dark:text-zinc-100">
+                            Review Contents
+                          </label>
+                        </div>
 
-                            <div className="space-y-3">
-                              {currentUrlReviews.reviews.map((content, reviewIndex) => (
-                                <div key={reviewIndex} className="relative">
-                                  <div className="flex items-start gap-3">
-                                    <div className="w-6 h-6 rounded-full bg-[#007bff] text-white flex items-center justify-center text-xs font-bold shrink-0">
-                                      {reviewIndex + 1}
-                                    </div>
-
-                                    <textarea
-                                      rows={1}
-                                      maxLength={500}
-                                      value={content}
-                                      onChange={(e) => updateReview(urlIndex, reviewIndex, e.target.value)}
-                                      placeholder="This product is good..."
-                                      className={`w-full px-3 py-2 pr-8 rounded-lg border bg-white dark:bg-zinc-800 text-sm resize-none ${
-                                        fieldErrors.reviews?.[reviewIndex]
-                                          ? 'border-red-300 focus:border-red-500'
-                                          : 'border-gray-200 dark:border-zinc-700 focus:border-[#007bff]'
-                                      }`}
-                                    />
-
-                                    <button
-                                      type="button"
-                                      onClick={() => removeReview(urlIndex, reviewIndex)}
-                                      className="absolute right-2 top-2 text-gray-400 hover:text-red-500 p-1"
-                                      title="Remove review"
-                                    >
-                                      <X className="w-4 h-4" />
-                                    </button>
-                                  </div>
-
-                                  {/* Photo Upload for COMMENT_WITH_PHOTO */}
-                                  {orderType === "COMMENT_WITH_PHOTO" && (
-                                    <div className="ml-9 mt-2">
-                                      <PhotoUpload
-                                        onPhotosChange={(photos) => updatePhotos(urlIndex, reviewIndex, photos)}
-                                        maxPhotos={1}
-                                        currentPhotos={currentUrlReviews.photos[reviewIndex] || []}
-                                        size="small"
-                                      />
-                                    </div>
-                                  )}
+                        <div className="space-y-3">
+                          {currentUrlReviews.reviews.map((content, reviewIndex) => (
+                            <div key={reviewIndex} className="relative">
+                              <div className="flex items-start gap-3">
+                                <div className="w-6 h-6 rounded-full bg-[#007bff] text-white flex items-center justify-center text-xs font-bold shrink-0">
+                                  {reviewIndex + 1}
                                 </div>
-                              ))}
-                            </div>
 
-                            {filledReviewsCount < 50 && (
-                              <button
-                                type="button"
-                                onClick={() => addReview(urlIndex)}
-                                className="mt-3 text-sm text-[#007bff] hover:underline flex items-center gap-1"
-                              >
-                                <Plus className="w-4 h-4" />
-                                Add another review ({filledReviewsCount}/50)
-                              </button>
-                            )}
-                          </>
+                                <textarea
+                                  rows={1}
+                                  maxLength={500}
+                                  value={content}
+                                  onChange={(e) => updateReview(urlIndex, reviewIndex, e.target.value)}
+                                  placeholder="This product is good..."
+                                  className={`w-full px-3 py-2 pr-8 rounded-lg border bg-white dark:bg-zinc-800 text-sm resize-none ${
+                                    fieldErrors.reviews?.[reviewIndex]
+                                      ? 'border-red-300 focus:border-red-500'
+                                      : 'border-gray-200 dark:border-zinc-700 focus:border-[#007bff]'
+                                  }`}
+                                />
+
+                                <button
+                                  type="button"
+                                  onClick={() => removeReview(urlIndex, reviewIndex)}
+                                  className="absolute right-2 top-2 text-gray-400 hover:text-red-500 p-1"
+                                  title="Remove review"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+
+                              {/* Photo Upload for COMMENT_WITH_PHOTO */}
+                              {orderType === "COMMENT_WITH_PHOTO" && (
+                                <div className="ml-9 mt-2">
+                                  <PhotoUpload
+                                    onPhotosChange={(photos) => updatePhotos(urlIndex, reviewIndex, photos)}
+                                    maxPhotos={1}
+                                    currentPhotos={currentUrlReviews.photos[reviewIndex] || []}
+                                    size="small"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        {filledReviewsCount < 50 && (
+                          <button
+                            type="button"
+                            onClick={() => addReview(urlIndex)}
+                            className="mt-3 text-sm text-[#007bff] hover:underline flex items-center gap-1"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Add another review ({filledReviewsCount}/50)
+                          </button>
                         )}
                       </div>
                     )}
                   </div>
                 );
-              })}
+              })()}
+
+              {/* Additional URLs Block - Single card for all extra URLs */}
+              {urls.length > 1 && (
+                <div className="border-2 border-dashed border-gray-300 dark:border-zinc-600 rounded-lg p-4 bg-gray-50 dark:bg-zinc-800/30">
+                  {/* Header with message */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-gray-400 text-white flex items-center justify-center text-xs font-bold">
+                        +
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-700 dark:text-zinc-300">
+                          Additional URLs ({urls.length - 1})
+                        </span>
+                        <p className="text-xs text-gray-500 dark:text-zinc-400">
+                          Same reviews will be posted to all these URLs
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Additional URL inputs */}
+                  <div className="space-y-3">
+                    {urls.slice(1).map((urlData, extraIndex) => {
+                      const urlIndex = extraIndex + 1; // Actual index in urls array
+                      return (
+                        <div key={urlIndex} className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-gray-300 dark:bg-zinc-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                            {urlIndex + 1}
+                          </div>
+                          <input
+                            type="url"
+                            placeholder="https://..."
+                            value={urlData.url}
+                            onChange={(e) => updateUrl(urlIndex, 'url', e.target.value)}
+                            className={`flex-1 px-3 py-2 rounded-lg border bg-white dark:bg-zinc-800 text-sm ${
+                              fieldErrors.urls?.[urlIndex]
+                                ? 'border-red-300 focus:border-red-500'
+                                : 'border-gray-200 dark:border-zinc-700 focus:border-[#007bff]'
+                            }`}
+                          />
+                          <button
+                            onClick={() => removeUrl(urlIndex)}
+                            className="text-gray-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-colors p-1 rounded hover:bg-gray-200 dark:hover:bg-zinc-700"
+                            type="button"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Add URL button inside the block */}
+                  {urls.length < 10 && (
+                    <button
+                      type="button"
+                      onClick={addUrl}
+                      className="mt-3 text-sm text-[#007bff] hover:underline flex items-center gap-1"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Another URL ({urls.length}/10)
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Add URL button when no additional URLs yet */}
+              {urls.length === 1 && urls.length < 10 && (
+                <button
+                  type="button"
+                  onClick={addUrl}
+                  className="text-sm text-[#007bff] hover:underline flex items-center gap-1"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Another URL ({urls.length}/10)
+                </button>
+              )}
             </div>
 
             {/* Add Another URL Button */}
