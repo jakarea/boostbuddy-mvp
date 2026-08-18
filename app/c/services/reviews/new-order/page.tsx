@@ -202,7 +202,7 @@ export default function NewReviewOrderPage() {
 
   const totalQuantity = orderType === "COMMENT"
     ? singleQuantity * urls.filter(u => u.url.trim()).length
-    : orderType === "REVIEW"
+    : (orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO")
     ? urlReviews[0].reviews.filter(r => r.trim()).length * urls.filter(u => u.url.trim()).length
     : totalReviewsCount;
 
@@ -230,9 +230,9 @@ export default function NewReviewOrderPage() {
       const reviewErrors: Record<number, boolean> = {};
       const photoErrors: Record<number, Record<number, boolean>> = {};
 
-      // For REVIEW type: Only validate URL #1 (others use same reviews)
-      // For COMMENT_WITH_PHOTO: Validate all URLs
-      const urlsToValidate = orderType === "REVIEW" ? [0] : urlReviews.map((_, i) => i);
+      // For REVIEW and COMMENT_WITH_PHOTO types: Only validate URL #1 (others use same reviews/photos)
+      // For COMMENT_WITH_PHOTO: Validate all URLs (each URL has unique photos)
+      const urlsToValidate = (orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO") ? [0] : urlReviews.map((_, i) => i);
 
       urlsToValidate.forEach((urlIndex) => {
         const urlData = urlReviews[urlIndex];
@@ -303,16 +303,14 @@ export default function NewReviewOrderPage() {
           url: urlData.url,
           quantity: orderType === "COMMENT"
             ? singleQuantity
-            : orderType === "REVIEW"
+            : (orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO")
             ? urlReviews[0].reviews.filter(r => r.trim()).length // Use URL #1 review count for all
             : urlReviews[index].reviews.filter(r => r.trim()).length,
-          reviewContents: orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO"
-            ? orderType === "REVIEW"
-              ? urlReviews[0].reviews.filter(r => r.trim()) // Use URL #1 reviews for all URLs
-              : urlReviews[index].reviews.filter(r => r.trim())
+          reviewContents: (orderType === "REVIEW" || orderType === "COMMENT_WITH_PHOTO")
+            ? urlReviews[0].reviews.filter(r => r.trim()) // Use URL #1 reviews for all URLs
             : undefined,
           photos: orderType === "COMMENT_WITH_PHOTO"
-            ? urlReviews[index].photos.filter((p, i) => urlReviews[index].reviews[i]?.trim())
+            ? urlReviews[0].photos // Use URL #1 photos for all URLs
             : undefined,
           reactionType: orderType === "COMMENT" ? singleReactionType : urlData.reactionType
         }))
@@ -447,6 +445,8 @@ export default function NewReviewOrderPage() {
             <p className="text-xs text-gray-500 dark:text-zinc-400 mb-4">
               {orderType === "COMMENT"
                 ? `Add multiple URLs. Each URL will get ${singleQuantity} ${singleReactionType.toLowerCase()} reaction${singleQuantity !== 1 ? 's' : ''}. Total: ${totalQuantity} reaction${totalQuantity !== 1 ? 's' : ''}`
+                : orderType === "COMMENT_WITH_PHOTO"
+                ? `Add multiple URLs. Same reviews and photos will be posted to each URL. Total: ${totalQuantity} reviews`
                 : `Add multiple URLs. All reviews will be posted to each URL. Total: ${totalQuantity} reviews`
               }
             </p>
@@ -569,7 +569,10 @@ export default function NewReviewOrderPage() {
                           Additional URLs ({urls.length - 1})
                         </span>
                         <p className="text-xs text-gray-500 dark:text-zinc-400">
-                          Same reviews will be posted to all these URLs
+                          {orderType === "COMMENT_WITH_PHOTO"
+                            ? "Same reviews and photos will be posted to all these URLs"
+                            : "Same reviews will be posted to all these URLs"
+                          }
                         </p>
                       </div>
                     </div>
