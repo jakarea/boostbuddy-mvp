@@ -1060,12 +1060,16 @@ export async function getReviewOrderByIdAction(orderId: string) {
 
     // Fetch review_urls if this is a multi-URL order
     let reviewUrlsData: any[] = [];
+    console.log("🔍 [ADMIN ORDER DEBUG] total_urls:", order.total_urls);
     if (order.total_urls > 0) {
-      const { data: urls } = await supabase
+      const { data: urls, error: urlsError } = await supabase
         .from("review_urls")
         .select("id, url, quantity, reaction_type, review_content, photo_urls, review_index, status, assigned_employee_id, assigned_at, completed_at, proof_of_completion")
         .eq("review_order_id", orderId)
         .order("review_index", { ascending: true });
+
+      console.log("🔍 [ADMIN ORDER DEBUG] urls from review_urls table:", urls);
+      console.log("🔍 [ADMIN ORDER DEBUG] urls error:", urlsError);
 
       if (urls) {
         reviewUrlsData = urls.map((ru: any) => ({
@@ -1084,6 +1088,7 @@ export async function getReviewOrderByIdAction(orderId: string) {
         }));
       }
     }
+    console.log("🔍 [ADMIN ORDER DEBUG] final reviewUrlsData:", reviewUrlsData);
 
     // Normalize field names from snake_case to camelCase
     const normalizedOrder = {

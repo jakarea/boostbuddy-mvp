@@ -1088,12 +1088,16 @@ export async function getReviewOrderByIdAction(orderId: string) {
 
     // Fetch review_urls if this is a multi-URL order
     let reviewUrlsData: any[] = [];
+    console.log("🔍 [EMPLOYEE ORDER DEBUG] total_urls:", data.total_urls);
     if (data.total_urls > 0) {
-      const { data: urls } = await supabase
+      const { data: urls, error: urlsError } = await supabase
         .from("review_urls")
         .select("id, url, quantity, reaction_type, review_content, photo_urls, review_index, status, assigned_employee_id, assigned_at, completed_at, proof_of_completion")
         .eq("review_order_id", orderId)
         .order("review_index", { ascending: true });
+
+      console.log("🔍 [EMPLOYEE ORDER DEBUG] urls from review_urls table:", urls);
+      console.log("🔍 [EMPLOYEE ORDER DEBUG] urls error:", urlsError);
 
       if (urls) {
         reviewUrlsData = urls.map((ru: any) => ({
@@ -1112,6 +1116,7 @@ export async function getReviewOrderByIdAction(orderId: string) {
         }));
       }
     }
+    console.log("🔍 [EMPLOYEE ORDER DEBUG] final reviewUrlsData:", reviewUrlsData);
 
     // Normalize field names - ensure we handle both array and single object returns
     const usersData = Array.isArray(data.users) ? (data.users.length > 0 ? data.users[0] : null) : data.users;
