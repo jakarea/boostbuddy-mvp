@@ -255,9 +255,9 @@ export default function EmployeeOrderDetailPage() {
 
   // Parse reviews from reviewContent (for REVIEW type) or commentText (for COMMENT type)
   const parsedReviews = (() => {
-    // For COMMENT orders, use commentText (pipe-separated)
-    if (order.orderType === "COMMENT" && order.commentText) {
-      return order.commentText.split('|').map(s => s.trim()).filter(Boolean);
+    // COMMENT (reactions) orders have NO review content - only reaction_type
+    if (order.orderType === "COMMENT") {
+      return [];
     }
     // For COMMENT_WITH_PHOTO orders, use commentText
     if (order.orderType === "COMMENT_WITH_PHOTO" && order.commentText) {
