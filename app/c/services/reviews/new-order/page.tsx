@@ -446,13 +446,24 @@ export default function NewReviewOrderPage() {
                 return (
                   <div key={urlIndex} className="border border-gray-200 dark:border-zinc-700 rounded-lg p-4 bg-gray-50 dark:bg-zinc-800/50">
                     {/* URL Header */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-6 h-6 rounded-full bg-[#007bff] text-white flex items-center justify-center text-xs font-bold">
-                        {urlIndex + 1}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-[#007bff] text-white flex items-center justify-center text-xs font-bold">
+                          {urlIndex + 1}
+                        </div>
+                        <span className="text-sm font-medium text-gray-700 dark:text-zinc-300">
+                          URL {urlIndex + 1}
+                        </span>
                       </div>
-                      <span className="text-sm font-medium text-gray-700 dark:text-zinc-300">
-                        URL {urlIndex + 1}
-                      </span>
+                      {urls.length > 1 && (
+                        <button
+                          onClick={() => removeUrl(urlIndex)}
+                          className="text-gray-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 transition-colors p-1 rounded hover:bg-gray-200 dark:hover:bg-zinc-700"
+                          type="button"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
 
                     {/* URL Input */}
