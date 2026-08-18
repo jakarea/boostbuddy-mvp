@@ -183,8 +183,9 @@ export default function EmployeeCompletedOrdersClient({
           <select
             value={dateRange}
             onChange={(e) => {
-              handleDateRangeChange(e.currentTarget.value as typeof dateRange);
-              if (e.currentTarget.value !== "custom") {
+              const value = e.currentTarget?.value || "all";
+              handleDateRangeChange(value as typeof dateRange);
+              if (value !== "custom") {
                 setShowDatePicker(false);
               }
             }}
@@ -219,7 +220,7 @@ export default function EmployeeCompletedOrdersClient({
               <input
                 type="date"
                 value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.currentTarget.value)}
+                onChange={(e) => setCustomStartDate(e.currentTarget?.value || "")}
                 className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
               />
             </div>
@@ -231,7 +232,7 @@ export default function EmployeeCompletedOrdersClient({
               <input
                 type="date"
                 value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.currentTarget.value)}
+                onChange={(e) => setCustomEndDate(e.currentTarget?.value || "")}
                 className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
               />
             </div>
@@ -440,7 +441,7 @@ export default function EmployeeCompletedOrdersClient({
 
                 <select
                   value={itemsPerPage}
-                  onChange={(e) => handleItemsPerPageChange(Number(e.currentTarget.value))}
+                  onChange={(e) => handleItemsPerPageChange(Number(e.currentTarget?.value || "20"))}
                   className="h-8 border border-zinc-300 dark:border-zinc-600 rounded px-2 text-sm bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50"
                 >
                   <option value="10">10 / page</option>
