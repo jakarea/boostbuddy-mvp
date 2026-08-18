@@ -230,7 +230,12 @@ export default function NewReviewOrderPage() {
       const reviewErrors: Record<number, boolean> = {};
       const photoErrors: Record<number, Record<number, boolean>> = {};
 
-      urlReviews.forEach((urlData, urlIndex) => {
+      // For REVIEW type: Only validate URL #1 (others use same reviews)
+      // For COMMENT_WITH_PHOTO: Validate all URLs
+      const urlsToValidate = orderType === "REVIEW" ? [0] : urlReviews.map((_, i) => i);
+
+      urlsToValidate.forEach((urlIndex) => {
+        const urlData = urlReviews[urlIndex];
         const validUrlReviews = urlData.reviews.filter(r => r.trim().length > 0);
         totalReviews += validUrlReviews.length;
 
