@@ -351,17 +351,6 @@ export default function OrderDetailClient({ order }: OrderDetailClientProps) {
         </Card>
       )}
 
-      {/* Proof of Completion - Compact */}
-      {order.proofOfCompletion && (
-        <Card className="p-3 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-          <div className="flex items-center gap-2 mb-1">
-            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <span className="font-semibold text-sm">Proof of Completion</span>
-          </div>
-          <p className="text-xs text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">{order.proofOfCompletion}</p>
-        </Card>
-      )}
-
       {/* Client Feedback - Compact */}
       {order.clientFeedback && (
         <Card className="p-3">
