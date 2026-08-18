@@ -252,15 +252,26 @@ export default function EmployeeOrderDetailPage() {
   if (loading) return <LoadingScreen />;
   if (!order) return null;
 
-  // Parse reviews from reviewContent
+  // Parse reviews from reviewContent (for REVIEW type) or commentText (for COMMENT type)
   const parsedReviews = (() => {
-    if (!order.reviewContent) return [];
-    try {
-      const parsed = JSON.parse(order.reviewContent);
-      return Array.isArray(parsed) ? parsed : [order.reviewContent];
-    } catch {
-      return [order.reviewContent];
+    // For COMMENT orders, use commentText (pipe-separated)
+    if (order.orderType === "COMMENT" && order.commentText) {
+      return order.commentText.split('|').map(s => s.trim()).filter(Boolean);
     }
+    // For COMMENT_WITH_PHOTO orders, use commentText
+    if (order.orderType === "COMMENT_WITH_PHOTO" && order.commentText) {
+      return order.commentText.split('|').map(s => s.trim()).filter(Boolean);
+    }
+    // For REVIEW orders, use reviewContent (JSON array or single string)
+    if (order.reviewContent) {
+      try {
+        const parsed = JSON.parse(order.reviewContent);
+        return Array.isArray(parsed) ? parsed : [order.reviewContent];
+      } catch {
+        return [order.reviewContent];
+      }
+    }
+    return [];
   })();
 
   const hasUrls = order.reviewUrls && order.reviewUrls.length > 0;
