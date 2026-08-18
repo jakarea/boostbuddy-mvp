@@ -37,6 +37,7 @@ interface ReviewOrder {
   reviewInstructions?: string;
   quantity: number;
   creditsConsumed: number;
+  reactionType?: string;
   status: string;
   assignedEmployeeId?: string;
   assignedAt?: string;

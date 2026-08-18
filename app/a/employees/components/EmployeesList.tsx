@@ -260,7 +260,7 @@ const EmployeesList = memo(function EmployeesList({
               <input
                 type="date"
                 value={customStartDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomStartDate(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomStartDate?.(e.target.value)}
                 className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
               />
             </div>
@@ -272,17 +272,17 @@ const EmployeesList = memo(function EmployeesList({
               <input
                 type="date"
                 value={customEndDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomEndDate(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomEndDate?.(e.target.value)}
                 className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
               />
             </div>
             <div className="flex gap-2 pt-5">
               <Button
                 onClick={() => {
-                  setCustomStartDate("");
-                  setCustomEndDate("");
-                  setShowDatePicker(false);
-                  setDateRange("all");
+                  setCustomStartDate?.("");
+                  setCustomEndDate?.("");
+                  setShowDatePicker?.(false);
+                  setDateRange?.("all");
                 }}
                 variant="outline"
                 size="sm"
@@ -290,7 +290,7 @@ const EmployeesList = memo(function EmployeesList({
                 Clear
               </Button>
               <Button
-                onClick={() => setShowDatePicker(false)}
+                onClick={() => setShowDatePicker?.(false)}
                 disabled={!customStartDate || !customEndDate}
                 size="sm"
                 className="bg-[#168BB0] hover:bg-[#147aa0]"

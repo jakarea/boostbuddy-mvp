@@ -29,7 +29,7 @@ function sanitizeComment(text: string): string {
   return text
     .trim()
     .replace(/<[^>]*>/g, '')           // Strip HTML tags
-    .replace(/<script[^>]*>.*?<\/script>/gis, '')  // Strip script tags (case-insensitive)
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')  // Strip script tags (case-insensitive)
     .replace(/javascript:/gi, '')     // Remove javascript: protocol
     .replace(/on\w+\s*=/gi, '')       // Remove event handlers (onclick=, etc.)
     .replace(/"/g, '&quot;')          // HTML entity for double quotes
