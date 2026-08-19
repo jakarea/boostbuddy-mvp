@@ -20,7 +20,8 @@ import {
   Download,
   Image as ImageIcon,
   Link as LinkIcon,
-  Check
+  Check,
+  UserCheck
 } from "lucide-react";
 import { formatDateShort } from "@/lib/dateUtils";
 import {
@@ -80,6 +81,7 @@ export default function EmployeeOrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
   const [order, setOrder] = useState<ReviewOrder | null>(null);
+  const [copiedItem, setCopiedItem] = useState<string | null>(null);
 
   // Track "done" state for each item - load from localStorage
   const [doneUrls, setDoneUrls] = useState<Set<string>>(() => {
@@ -209,9 +211,29 @@ export default function EmployeeOrderDetailPage() {
     }
   };
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, label: string = "Text") => {
     navigator.clipboard.writeText(text);
-    toastSuccess("Copied to clipboard");
+    setCopiedItem(label);
+    setTimeout(() => setCopiedItem(null), 1500);
+  };
+
+  const copyImageToClipboard = async (imageUrl: string, index: number) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [blob.type]: blob
+        })
+      ]);
+      setCopiedItem("Image");
+      setTimeout(() => setCopiedItem(null), 1500);
+    } catch (error) {
+      console.error('Failed to copy image:', error);
+      navigator.clipboard.writeText(imageUrl);
+      setCopiedItem("Image URL");
+      setTimeout(() => setCopiedItem(null), 1500);
+    }
   };
 
   const toggleUrlDone = (urlId: string) => {
@@ -253,17 +275,29 @@ export default function EmployeeOrderDetailPage() {
   if (loading) return <LoadingScreen />;
   if (!order) return null;
 
-  // Parse reviews from reviewContent (for REVIEW type) or commentText (for COMMENT type)
+  // Parse reviews from reviewUrls (for REVIEW and COMMENT_WITH_PHOTO types) or commentText (for COMMENT type)
   const parsedReviews = (() => {
     // COMMENT (reactions) orders have NO review content - only reaction_type
     if (order.orderType === "COMMENT") {
       return [];
     }
-    // For COMMENT_WITH_PHOTO orders, use commentText
-    if (order.orderType === "COMMENT_WITH_PHOTO" && order.commentText) {
-      return order.commentText.split('|').map(s => s.trim()).filter(Boolean);
+    // For COMMENT_WITH_PHOTO orders, extract text from photoReviews array
+    if (order.orderType === "COMMENT_WITH_PHOTO" && order.photoReviews && order.photoReviews.length > 0) {
+      return order.photoReviews.map(pr => pr.text);
     }
-    // For REVIEW orders, use reviewContent (JSON array or single string)
+    // For REVIEW orders, get reviews from reviewUrls (stored per-URL, not aggregated)
+    if (order.orderType === "REVIEW" && order.reviewUrls && order.reviewUrls.length > 0) {
+      const firstUrlReviews = order.reviewUrls[0].reviewContent;
+      if (firstUrlReviews) {
+        try {
+          const parsed = typeof firstUrlReviews === 'string' ? JSON.parse(firstUrlReviews) : firstUrlReviews;
+          return Array.isArray(parsed) ? parsed : [firstUrlReviews];
+        } catch {
+          return [firstUrlReviews];
+        }
+      }
+    }
+    // Fallback: check order.reviewContent for backward compatibility
     if (order.reviewContent) {
       try {
         const parsed = JSON.parse(order.reviewContent);
@@ -285,9 +319,34 @@ export default function EmployeeOrderDetailPage() {
     donePhotos.size === (order.photoReviews?.length || 0);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <>
+      {/* CSS for fade animation */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+
+      <div className="space-y-6">
+        {/* Copied notification */}
+        {copiedItem && (
+          <div className="fixed top-20 right-4 z-50" style={{ animation: 'fadeIn 0.3s ease-out' }}>
+            <div className="bg-green-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-2">
+              <Check className="h-3.5 w-3.5" />
+              {copiedItem} copied!
+            </div>
+          </div>
+        )}
+
+        {/* Header */}
+        <div className="flex items-center justify-between">
         <Button
           variant="outline"
           size="sm"
@@ -300,14 +359,21 @@ export default function EmployeeOrderDetailPage() {
       </div>
 
       {/* Order Info Header */}
-      <Card className="p-4">
-        <div className="flex flex-wrap items-center gap-4">
-          <div>
-            <p className="text-xs text-zinc-500">Order ID</p>
-            <p className="font-mono text-sm font-medium text-zinc-900 dark:text-zinc-100">{order.id.slice(0, 8)}...</p>
+      <Card className="p-5 bg-gradient-to-r from-zinc-50 to-blue-50 dark:from-zinc-900 dark:to-blue-900/20">
+        <div className="flex flex-wrap items-center gap-6">
+          <div className="flex-1 min-w-[200px]">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Order ID</p>
+            <button
+              onClick={() => copyToClipboard(order.id, "Order ID")}
+              className="font-mono text-sm font-medium text-zinc-900 dark:text-zinc-100 break-all hover:text-[#168BB0] dark:hover:text-[#45B0D2] transition-colors flex items-center gap-1"
+              title="Click to copy"
+            >
+              {order.id}
+              <Copy className="h-3 w-3 opacity-50" />
+            </button>
           </div>
-          <div>
-            <p className="text-xs text-zinc-500">Type</p>
+          <div className="flex-1 min-w-[120px]">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Type</p>
             <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
               {order.orderType === "COMMENT" ? "Reactions" :
                order.orderType === "REVIEW" ? "Reviews" :
@@ -315,15 +381,20 @@ export default function EmployeeOrderDetailPage() {
                order.orderType?.replace(/_/g, " ")}
             </p>
           </div>
-          <div>
-            <p className="text-xs text-zinc-500">Credits</p>
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{order.creditsConsumed}</p>
+          <div className="flex-1 min-w-[100px]">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Credits</p>
+            <p className="text-sm font-bold text-[#168BB0]">{order.creditsConsumed}</p>
           </div>
-          <div>
-            <p className="text-xs text-zinc-500">Created</p>
+          <div className="flex-1 min-w-[120px]">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Created</p>
             <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{formatDateShort(order.createdAt)}</p>
           </div>
-          {getStatusBadge(order.status)}
+          <div className="flex-1 min-w-[150px]">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Status</p>
+            <div className="flex items-center gap-2">
+              {getStatusBadge(order.status)}
+            </div>
+          </div>
         </div>
       </Card>
 
@@ -392,7 +463,7 @@ export default function EmployeeOrderDetailPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => copyToClipboard(urlItem.url)}
+                    onClick={() => copyToClipboard(urlItem.url, "URL")}
                     className="h-8 w-8 p-0"
                   >
                     <Copy className="h-4 w-4" />
@@ -424,7 +495,8 @@ export default function EmployeeOrderDetailPage() {
       )}
 
       {/* Reviews Section - List format like URLs */}
-      {hasReviews && (
+      {/* Don't show for COMMENT_WITH_PHOTO since reviews are displayed with photos */}
+      {hasReviews && order.orderType !== 'COMMENT_WITH_PHOTO' && (
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-4">
             <Package className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
@@ -447,7 +519,7 @@ export default function EmployeeOrderDetailPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => copyToClipboard(review)}
+                    onClick={() => copyToClipboard(review, "Review")}
                     className="h-8 w-8 p-0 shrink-0"
                   >
                     <Copy className="h-4 w-4" />
@@ -483,9 +555,9 @@ export default function EmployeeOrderDetailPage() {
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-4">
             <ImageIcon className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
-            <h3 className="font-semibold text-lg">Photos ({order.photoReviews!.length})</h3>
+            <h3 className="font-semibold text-lg">Photo + Reviews ({order.photoReviews!.length})</h3>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {order.photoReviews!.map((review, index) => {
               const isDone = donePhotos.has(index);
               const photoUrl = review.photos && review.photos.length > 0 ? review.photos[0] : null;
@@ -496,67 +568,91 @@ export default function EmployeeOrderDetailPage() {
               return (
                 <div
                   key={index}
-                  className={`relative rounded-lg border-2 p-2 transition-colors ${
+                  className={`rounded-lg border-2 overflow-hidden transition-colors ${
                     isDone
                       ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
-                      : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'
+                      : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
                   }`}
                 >
-                  <a
-                    href={photoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block"
-                  >
-                    <img
-                      src={photoUrl}
-                      alt={`Photo ${index + 1}`}
-                      className="w-full aspect-square object-cover rounded mb-2"
-                    />
-                  </a>
-                  <div className="absolute top-3 left-3 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                    #{index + 1}
+                  {/* Photo with overlay controls */}
+                  <div className="relative">
+                    <a
+                      href={photoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      <img
+                        src={photoUrl}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full aspect-square object-cover"
+                      />
+                    </a>
+                    <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded font-medium">
+                      #{index + 1}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyImageToClipboard(photoUrl, index)}
+                      className="absolute top-2 right-2 h-8 w-8 p-0 bg-white/90 dark:bg-zinc-800/90 shadow-sm"
+                      title="Copy image to paste anywhere"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copyToClipboard(review.text)}
-                    className="absolute top-3 right-3 h-8 w-8 p-0 bg-white/90 dark:bg-zinc-800/90 shadow-sm"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      const a = document.createElement('a');
-                      a.href = photoUrl;
-                      a.download = `photo-${index + 1}.jpg`;
-                      a.click();
-                    }}
-                    className="absolute bottom-12 right-3 h-8 w-8 p-0 bg-white/90 dark:bg-zinc-800/90 shadow-sm"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={isDone ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => togglePhotoDone(index)}
-                    className={`w-full gap-2 ${
-                      isDone
-                        ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
-                        : ''
-                    }`}
-                  >
-                    {isDone ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Done
-                      </>
-                    ) : (
-                      'Mark Done'
-                    )}
-                  </Button>
+
+                  {/* Review text section */}
+                  <div className="p-3 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-700">
+                    <div className="flex items-start gap-2 mb-2 relative">
+                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 shrink-0">#{index + 1}</span>
+                      <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap flex-1 pr-8">{review.text}</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(review.text, "Review")}
+                        className="absolute top-0 right-0 h-7 w-7 p-0 bg-white dark:bg-zinc-800 shadow-sm border border-zinc-200 dark:border-zinc-600"
+                        title="Copy review text"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const a = document.createElement('a');
+                          a.href = photoUrl;
+                          a.download = `photo-${index + 1}.jpg`;
+                          a.click();
+                        }}
+                        className="h-7 px-2 gap-1.5 text-xs"
+                      >
+                        <Download className="h-3 w-3" />
+                        Download
+                      </Button>
+                      <Button
+                        variant={isDone ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => togglePhotoDone(index)}
+                        className={`h-7 px-3 gap-1.5 text-xs ${
+                          isDone
+                            ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
+                            : ''
+                        }`}
+                      >
+                        {isDone ? (
+                          <>
+                            <Check className="h-3 w-3" />
+                            Done
+                          </>
+                        ) : (
+                          'Mark Done'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               );
             })}
@@ -574,6 +670,7 @@ export default function EmployeeOrderDetailPage() {
           <p className="text-xs text-zinc-700 dark:text-zinc-300">{order.reviewInstructions}</p>
         </Card>
       )}
-    </div>
+      </div>
+    </>
   );
 }

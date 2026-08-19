@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Settings, Search, Plus, Minus, RefreshCw, CheckCircle2, User } from "lucide-react";
+import { ArrowLeft, Settings, Plus, Minus, RefreshCw, CheckCircle2, User, Loader2 } from "lucide-react";
 
 export default function AdjustCreditsPage() {
   const router = useRouter();
@@ -20,10 +20,22 @@ export default function AdjustCreditsPage() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [currentBalance, setCurrentBalance] = useState(0);
+  const [previousBalance, setPreviousBalance] = useState(0);
+  const [balanceJustUpdated, setBalanceJustUpdated] = useState(false);
   const [formData, setFormData] = useState({
     amount: "",
     reason: "",
   });
+
+  // Check if form is valid
+  const isFormValid = () => {
+    const hasAmount = formData.amount && formData.amount.trim().length > 0;
+    const hasReason = formData.reason && formData.reason.trim().length > 0;
+    const amountNum = parseInt(formData.amount);
+    const isValidAmount = !isNaN(amountNum) && amountNum > 0;
+    console.log("Form validation:", { hasAmount, hasReason, isValidAmount, amount: formData.amount, reason: formData.reason });
+    return hasAmount && hasReason && isValidAmount;
+  };
 
   const searchUsers = async (query: string) => {
     if (!query || query.length < 2) {
@@ -59,12 +71,15 @@ export default function AdjustCreditsPage() {
       return;
     }
 
-    if (!formData.amount || !formData.reason) {
+    const trimmedReason = formData.reason?.trim() || "";
+    const trimmedAmount = formData.amount?.trim() || "";
+
+    if (!trimmedAmount || !trimmedReason) {
       error(t("error_amount_and_reason", "Please provide amount and reason"));
       return;
     }
 
-    const amount = parseInt(formData.amount);
+    const amount = parseInt(trimmedAmount);
     if (isNaN(amount) || amount <= 0) {
       error(t("error_valid_amount", "Please provide a valid amount"));
       return;
@@ -87,14 +102,29 @@ export default function AdjustCreditsPage() {
         reason: formData.reason,
       });
 
+      console.log("Credit adjustment response:", res);
+
       if (res.success && res.data) {
-        success(t("success_adjust", "Credits adjusted successfully. New balance: {{balance}}", { balance: res.data.newBalance }));
+        setPreviousBalance(currentBalance);
         setCurrentBalance(res.data.newBalance);
+        setBalanceJustUpdated(true);
+        setTimeout(() => setBalanceJustUpdated(false), 2000);
+
+        const balanceChange = res.data.newBalance - currentBalance;
+        const changeText = balanceChange > 0 ? `+${balanceChange}` : `${balanceChange}`;
+
+        success(t("success_adjust", "Credits {{change}}! New balance: {{balance}}", {
+          change: changeText,
+          balance: res.data.newBalance
+        }));
+
         setFormData({ amount: "", reason: "" });
       } else {
+        console.error("Credit adjustment failed:", res);
         error(res.error || t("error_failed_adjust", "Failed to adjust credits"));
       }
     } catch (err) {
+      console.error("Credit adjustment exception:", err);
       error(t("error_failed_adjust", "Failed to adjust credits"));
     } finally {
       setIsLoading(false);
@@ -210,10 +240,22 @@ export default function AdjustCreditsPage() {
                     <span className="text-sm text-zinc-500">{t("label_email", "Email:")}</span>
                     <span className="font-medium">{selectedUser.email}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span className="text-sm text-zinc-500">{t("label_current_balance", "Current Balance:")}</span>
-                    <span className="font-bold text-[#168BB0]">{t("credits_count", "{{count}} credits", { count: currentBalance })}</span>
+                    <span className={`font-bold text-lg transition-all duration-500 ${
+                      balanceJustUpdated
+                        ? 'text-green-600 scale-110'
+                        : 'text-[#168BB0]'
+                    }`}>
+                      {t("credits_count", "{{count}} credits", { count: currentBalance })}
+                    </span>
                   </div>
+                  {balanceJustUpdated && (
+                    <div className="text-xs text-green-600 font-medium flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Updated!
+                    </div>
+                  )}
                 </div>
               </Card>
             )}
@@ -250,23 +292,66 @@ export default function AdjustCreditsPage() {
                     />
                   </div>
 
+                  {/* Balance Preview */}
+                  {formData.amount && (
+                    <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg p-4 space-y-2">
+                      <div className="text-sm font-medium">{t("balance_preview", "Balance Preview")}</div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-zinc-500">{t("current", "Current")}:</span>
+                        <span className="font-medium">{currentBalance}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-zinc-500">{t("adjustment", "Adjustment")}:</span>
+                        <span className={`font-medium ${parseInt(formData.amount) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {parseInt(formData.amount) > 0 ? '+' : '-'}{formData.amount}
+                        </span>
+                      </div>
+                      <div className="border-t border-zinc-200 dark:border-zinc-700 pt-2 mt-2">
+                        <div className="flex justify-between text-sm font-bold">
+                          <span>{t("new_balance", "New Balance")}:</span>
+                          <span className="text-[#168BB0]">
+                            {currentBalance + (parseInt(formData.amount) || 0)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Action Buttons */}
                   <div className="grid grid-cols-2 gap-4">
                     <Button
                       onClick={() => handleAdjust("add")}
-                      disabled={isLoading || !formData.amount || !formData.reason}
+                      disabled={isLoading || !isFormValid()}
                       className="bg-green-600 hover:bg-green-700"
                     >
-                      <Plus className="h-4 w-4 mr-2" />
-                      {isLoading ? t("processing", "Processing...") : t("add_credits", "Add Credits")}
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          {t("processing", "Processing...")}
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-2" />
+                          {t("add_credits", "Add Credits")}
+                        </>
+                      )}
                     </Button>
                     <Button
                       onClick={() => handleAdjust("remove")}
-                      disabled={isLoading || !formData.amount || !formData.reason}
+                      disabled={isLoading || !isFormValid()}
                       variant="destructive"
                     >
-                      <Minus className="h-4 w-4 mr-2" />
-                      {isLoading ? t("processing", "Processing...") : t("remove_credits", "Remove Credits")}
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          {t("processing", "Processing...")}
+                        </>
+                      ) : (
+                        <>
+                          <Minus className="h-4 w-4 mr-2" />
+                          {t("remove_credits", "Remove Credits")}
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>

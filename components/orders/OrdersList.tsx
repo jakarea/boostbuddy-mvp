@@ -136,7 +136,10 @@ export default function OrdersList({
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    // For CLIENT: show PENDING as "In Progress"
+    const displayStatus = (role === "CLIENT" && status === "PENDING") ? "IN_PROGRESS" : status;
+
+    switch (displayStatus) {
       case 'PENDING':
         return (
           <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">

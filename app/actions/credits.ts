@@ -131,7 +131,7 @@ export async function createCreditPackageAction(data: CreditPackageData) {
     if (error) throw error;
 
     // Invalidate credit package caches
-    revalidateTag(CacheTags.CREDIT_PACKAGES, 'no-store');
+    revalidateTag(CacheTags.CREDIT_PACKAGES);
     revalidatePath("/a/services/credits");
     revalidatePath("/c/wallet");
     return { success: true, data: package_ };
@@ -167,7 +167,7 @@ export async function updateCreditPackageAction(packageId: string, data: Partial
     if (error) throw error;
 
     // Invalidate credit package caches
-    revalidateTag(CacheTags.CREDIT_PACKAGES, 'no-store');
+    revalidateTag(CacheTags.CREDIT_PACKAGES);
     revalidatePath("/a/services/credits");
     revalidatePath("/c/wallet");
     return { success: true, data: package_ };
@@ -557,7 +557,7 @@ export async function getCreditsHistoryAction(userId?: string, limit: number = 2
 
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from("credit_transactions")
+      .from("CreditTransaction")
       .select("id, user_id, amount, balance_after, type, description, reference_id, created_at")
       .eq("user_id", targetUserId)
       .order("created_at", { ascending: false })
@@ -608,7 +608,7 @@ export async function getWalletSummaryAction(limit: number = 10) {
         .eq("id", auth.user.id)
         .single(),
       supabase
-        .from("credit_transactions")
+        .from("CreditTransaction")
         .select("id, user_id, amount, balance_after, type, description, reference_id, created_at")
         .eq("user_id", auth.user.id)
         .order("created_at", { ascending: false })
@@ -665,13 +665,13 @@ export async function getAllCreditTransactionsAction(filters?: {
 
     console.log("🔍 [TRANSACTIONS] Testing: Count all transactions first");
     const { count } = await supabase
-      .from("credit_transactions")
+      .from("CreditTransaction")
       .select("*", { count: "exact", head: true });
     console.log("🔍 [TRANSACTIONS] Total transactions in database:", count);
 
-    console.log("🔍 [TRANSACTIONS] Querying credit_transactions table...");
+    console.log("🔍 [TRANSACTIONS] Querying CreditTransaction table...");
     let query = supabase
-      .from("credit_transactions")
+      .from("CreditTransaction")
       .select("id, user_id, amount, balance_after, type, description, reference_id, created_at")
       .order("created_at", { ascending: false });
 
@@ -784,33 +784,54 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
 
     const newBalance = creditResult.newBalance!;
 
-    // Get user details for notification
-    const { data: user } = await (supabase
-      .from("users") as any)
-      .select("email, name")
-      .eq("id", data.userId)
-      .single();
+    console.log("✅ [CREDIT ADJUST] Credits updated successfully:", { newBalance, adjustment: data.amount });
 
-    // Send notification to user
+    // Get user details for notification (non-blocking, don't fail entire operation if this fails)
+    let userEmail = data.userId; // fallback to userId if email fetch fails
+    try {
+      const { data: user } = await (supabase
+        .from("users") as any)
+        .select("email, name")
+        .eq("id", data.userId)
+        .single();
+
+      if (user?.email) {
+        userEmail = user.email;
+      }
+    } catch (userError) {
+      console.warn("Failed to fetch user details (non-blocking):", userError);
+    }
+
+    // Send notification to user (non-blocking, don't fail if notification fails)
     const { sendNotificationAction } = await import("./notifications");
     const notificationTitle = data.amount > 0
       ? "🔄 Credits Added to Your Account"
       : "🔄 Credits Removed from Your Account";
 
-    await sendNotificationAction(
-      user?.email || data.userId,
+    // Fire and forget - don't await to avoid blocking the response
+    sendNotificationAction(
+      userEmail,
       notificationTitle,
       `Your credits balance has been adjusted by ${data.amount > 0 ? '+' : ''}${data.amount} credits. Reason: ${data.reason}. New balance: ${newBalance} credits.`,
       "TELEGRAM",
       "REVIEWS_CREDITS_ADJUSTED",
       "HIGH",   // Priority: Financial adjustment requiring immediate attention
       undefined      // No related order ID for admin adjustments
-    );
+    ).catch((err) => {
+      console.warn("Notification failed (non-blocking):", err);
+    });
 
-    // Invalidate credit-related caches
-    CacheRevalidator.revalidateCredits(); // Uses default 'no-store' profile for immediate invalidation
-    revalidatePath("/a/services/credits");
-    revalidatePath("/c/wallet");
+    // Invalidate credit-related caches (fire and forget - don't block response)
+    const { CacheRevalidator } = await import("@/lib/cache/cache-tags");
+    try {
+      CacheRevalidator.revalidateCredits();
+      revalidatePath("/a/services/credits");
+      revalidatePath("/c/wallet");
+    } catch (cacheError) {
+      console.warn("Cache revalidation failed (non-blocking):", cacheError);
+    }
+
+    console.log("✅ [CREDIT ADJUST] Returning success response");
 
     return {
       success: true,
@@ -844,13 +865,13 @@ export async function getCreditsOverviewAction() {
     ] = await Promise.all([
       // Get total credits sold
       supabase
-        .from("credit_transactions")
+        .from("CreditTransaction")
         .select("amount")
         .eq("type", "PURCHASE"),
 
       // Get total credits consumed
       supabase
-        .from("credit_transactions")
+        .from("CreditTransaction")
         .select("amount")
         .eq("type", "PURCHASE"),
 
@@ -862,7 +883,7 @@ export async function getCreditsOverviewAction() {
 
       // Get total transactions
       supabase
-        .from("credit_transactions")
+        .from("CreditTransaction")
         .select("*", { count: "exact", head: true })
     ]);
 

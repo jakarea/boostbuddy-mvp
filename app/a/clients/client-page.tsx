@@ -56,7 +56,6 @@ export default function ClientsContent({
   // Search/Filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1", 10));
   const itemsPerPage = 10;
 
   // Edit/Details states
@@ -110,11 +109,17 @@ export default function ClientsContent({
     }) || [];
   }, [clients, searchTerm, statusFilter]);
 
-  // Reset to first page when filters change
-  useEffect(() => {
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    setCurrentPage(page);
+  // Derive current page from URL params (useMemo instead of useEffect to avoid setState)
+  const currentPage = useMemo(() => {
+    return parseInt(searchParams.get("page") || "1", 10);
   }, [searchParams]);
+
+  // Handle page change by updating URL
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', newPage.toString());
+    router.push(`/a/clients?${params.toString()}`);
+  };
 
   useEffect(() => {
     // Reset to page 1 when filters change
@@ -162,7 +167,7 @@ export default function ClientsContent({
       searchTerm={searchTerm}
       setSearchTerm={setSearchTerm}
       currentPage={currentPage}
-      setCurrentPage={setCurrentPage}
+      setCurrentPage={handlePageChange}
       filteredClients={filteredClients}
       itemsPerPage={itemsPerPage}
       profileCounts={profileCounts}

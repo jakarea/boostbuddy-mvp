@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/context/ToastContext";
@@ -26,18 +26,31 @@ export default function AdminTransactionsPage() {
     dateTo: "",
   });
 
-  useEffect(() => {
-    loadTransactions();
-  }, [filters]);
+  // Memoize filter changes to prevent unnecessary re-renders
+  const filterValue = useMemo(() => JSON.stringify(filters), [filters]);
 
-  const loadTransactions = async () => {
+  // Debounced search to prevent rapid API calls
+  const [debouncedSearch, setDebouncedSearch] = useState(filters.userSearch);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(filters.userSearch);
+    }, 500); // 500ms debounce
+    return () => clearTimeout(timer);
+  }, [filters.userSearch]);
+
+  // Define loadTransactions with useCallback to prevent stale closures
+  const loadTransactions = useCallback(async () => {
     try {
       devLog("🔍 [UI] Loading transactions with filters:", filters);
-      setIsLoading(true);
+      // Only show loading spinner on initial load, not on filter changes
+      if (transactions.length === 0) {
+        setIsLoading(true);
+      }
       const { getAllCreditTransactionsAction } = await import("@/app/actions/credits");
 
       const filterData: any = {};
-      if (filters.userSearch.trim()) filterData.userSearch = filters.userSearch.trim();
+      if (debouncedSearch.trim()) filterData.userSearch = debouncedSearch.trim();
       if (filters.type !== "all") filterData.type = filters.type;
       if (filters.dateFrom) filterData.dateFrom = filters.dateFrom;
       if (filters.dateTo) filterData.dateTo = filters.dateTo;
@@ -74,7 +87,11 @@ export default function AdminTransactionsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [debouncedSearch, filters.type, filters.dateFrom, filters.dateTo, transactions.length, error, t]);
+
+  useEffect(() => {
+    loadTransactions();
+  }, [loadTransactions]);
 
   const getTransactionIcon = (type: string) => {
     switch (type) {

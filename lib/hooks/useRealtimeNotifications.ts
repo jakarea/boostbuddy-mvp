@@ -172,11 +172,12 @@ export function useRealtimeNotifications(): UseRealtimeNotificationsResult {
       }
       stopPolling();
     };
-  }, []);
+  }, [stopPolling]);
 
   // Fallback polling system (only runs if Realtime fails)
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
+  // Move polling functions before useEffect to fix "accessed before declared" error
   const startPolling = useCallback(() => {
     // Don't start polling if already active
     if (pollingInterval) return;

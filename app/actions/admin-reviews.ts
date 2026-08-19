@@ -330,7 +330,7 @@ export async function cancelReviewOrderAction(orderId: string, reason: string) {
       const newBalance = (user.credits_balance || 0) + (order as any).credits_consumed;
 
       // Create refund transaction
-      await (supabase.from("credit_transactions") as any).insert({
+      await (supabase.from("CreditTransaction") as any).insert({
         id: randomUUID(),
         user_id: (order as any).user_id,
         amount: (order as any).credits_consumed,

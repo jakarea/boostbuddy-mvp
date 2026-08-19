@@ -112,7 +112,7 @@ export async function updateCreditBalanceWithRetry(
 
       // Step 3: Create transaction record
       const { error: transactionError } = await (supabase
-        .from("credit_transactions") as any)
+        .from("CreditTransaction") as any)
         .insert({
           user_id: userId,
           amount: creditsAmount,

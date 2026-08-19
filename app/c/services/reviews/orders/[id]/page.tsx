@@ -3,7 +3,7 @@
 import { useContext, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Copy, Download, Package, Check, Link as LinkIcon, FileText, ImageIcon, MessageSquare, Coins } from "lucide-react";
+import { Copy, Download, Package, Check, Link as LinkIcon, FileText, ImageIcon, MessageSquare, Coins, ArrowLeft, UserCheck, Clock, AlertCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { getReviewOrderDetailAction } from "@/app/actions/reviews";
@@ -24,15 +24,17 @@ export default function ReviewOrderDetailPage() {
 
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<any>(null);
+  const [copiedItem, setCopiedItem] = useState<string | null>(null);
 
   // Track "done" state for each item
   const [doneUrls, setDoneUrls] = useState<Set<string>>(new Set());
   const [doneReviews, setDoneReviews] = useState<Set<number>>(new Set());
   const [donePhotos, setDonePhotos] = useState<Set<number>>(new Set());
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, label: string = "Text") => {
     navigator.clipboard.writeText(text);
-    success("Copied to clipboard");
+    setCopiedItem(label);
+    setTimeout(() => setCopiedItem(null), 1500);
   };
 
   const copyImageUrl = async (imageUrl: string) => {
@@ -42,9 +44,10 @@ export default function ReviewOrderDetailPage() {
       await navigator.clipboard.write([
         new ClipboardItem({ [blob.type]: blob })
       ]);
-      success("Image copied to clipboard");
+      setCopiedItem("Image");
+      setTimeout(() => setCopiedItem(null), 1500);
     } catch (err) {
-      copyToClipboard(imageUrl);
+      copyToClipboard(imageUrl, "Image URL");
     }
   };
 
@@ -141,26 +144,61 @@ export default function ReviewOrderDetailPage() {
   const hasPhotos = order.orderType === "COMMENT_WITH_PHOTO" && order.photoUrls && order.photoUrls.length > 0;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      {/* Header */}
+    <>
+      {/* CSS for fade animation */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+
+      <div className="max-w-3xl mx-auto space-y-6">
+        {/* Copied notification */}
+        {copiedItem && (
+          <div className="fixed top-20 right-4 z-50" style={{ animation: 'fadeIn 0.3s ease-out' }}>
+            <div className="bg-green-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-2">
+              <Check className="h-3.5 w-3.5" />
+              {copiedItem} copied!
+            </div>
+          </div>
+        )}
+
+        {/* Header */}
       <div className="flex items-center justify-between">
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => router.back()}
-          className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg"
+          className="gap-2"
         >
-          ←
-        </button>
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
       </div>
 
       {/* Order Info Header */}
-      <Card className="p-4">
-        <div className="flex flex-wrap items-center gap-4">
-          <div>
-            <p className="text-xs text-zinc-500">Order ID</p>
-            <p className="font-mono text-sm font-medium text-zinc-900 dark:text-zinc-100">{order.id.slice(0, 8)}...</p>
+      <Card className="p-5 bg-gradient-to-r from-zinc-50 to-blue-50 dark:from-zinc-900 dark:to-blue-900/20">
+        <div className="flex flex-wrap items-center gap-6">
+          <div className="flex-1 min-w-[200px]">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Order ID</p>
+            <button
+              onClick={() => copyToClipboard(order.id, "Order ID")}
+              className="font-mono text-sm font-medium text-zinc-900 dark:text-zinc-100 break-all hover:text-[#168BB0] dark:hover:text-[#45B0D2] transition-colors flex items-center gap-1"
+              title="Click to copy"
+            >
+              {order.id}
+              <Copy className="h-3 w-3 opacity-50" />
+            </button>
           </div>
-          <div>
-            <p className="text-xs text-zinc-500">Type</p>
+          <div className="flex-1 min-w-[120px]">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Type</p>
             <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
               {order.orderType === "COMMENT" ? "Reactions" :
                order.orderType === "REVIEW" ? "Reviews" :
@@ -168,15 +206,40 @@ export default function ReviewOrderDetailPage() {
                order.orderType?.replace(/_/g, ' ')}
             </p>
           </div>
-          <div>
-            <p className="text-xs text-zinc-500">Credits</p>
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{order.creditsConsumed}</p>
+          <div className="flex-1 min-w-[100px]">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Credits</p>
+            <p className="text-sm font-bold text-[#168BB0]">{order.creditsConsumed}</p>
           </div>
-          <div>
-            <p className="text-xs text-zinc-500">Created</p>
+          <div className="flex-1 min-w-[120px]">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Created</p>
             <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{formatDateTime(order.createdAt)}</p>
           </div>
-          <StatusBadge status={order.status} />
+          <div className="flex-1 min-w-[180px]">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Assigned Employee</p>
+            <div className="flex items-center gap-1.5">
+              {order.employees ? (
+                <>
+                  <UserCheck className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{order.employees.name}</p>
+                </>
+              ) : order.status === 'PENDING' ? (
+                <>
+                  <Clock className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
+                  <p className="text-sm text-zinc-500 italic">Unassigned</p>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                  <p className="text-sm text-zinc-400">—</p>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="flex-1 min-w-[120px]">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Status</p>
+            {/* For CLIENT: display PENDING as "In Progress" */}
+            <StatusBadge status={order.status === "PENDING" ? "IN_PROGRESS" : order.status} type="order" />
+          </div>
         </div>
       </Card>
 
@@ -219,7 +282,7 @@ export default function ReviewOrderDetailPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => copyToClipboard(urlItem.url)}
+                    onClick={() => copyToClipboard(urlItem.url, "URL")}
                     className="h-8 w-8 p-0"
                   >
                     <Copy className="h-4 w-4" />
@@ -480,6 +543,7 @@ export default function ReviewOrderDetailPage() {
           <p className="text-xs text-zinc-700 dark:text-zinc-300">{order.reviewInstructions}</p>
         </Card>
       )}
-    </div>
+      </div>
+    </>
   );
 }

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     // Get recent credit transactions
     const { data: transactions } = await supabase
-      .from("credit_transactions")
+      .from("CreditTransaction")
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })

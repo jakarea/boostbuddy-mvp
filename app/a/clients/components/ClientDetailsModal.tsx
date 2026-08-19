@@ -52,19 +52,11 @@ export default function ClientDetailsModal({
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [approving, setApproving] = useState(false);
   const [verifyingEmail, setVerifyingEmail] = useState(false);
-  const [isEmailVerified, setIsEmailVerified] = useState(client.email_verified ?? false);
-  const [userRole, setUserRole] = useState<"ADMIN" | "CLIENT" | "EMPLOYEE">(client.role as "ADMIN" | "CLIENT" | "EMPLOYEE");
   const [roleUpdating, setRoleUpdating] = useState(false);
 
-  // Sync isEmailVerified when client changes
-  useEffect(() => {
-    setIsEmailVerified(client.email_verified ?? false);
-  }, [client.email_verified]);
-
-  // Sync userRole when client changes
-  useEffect(() => {
-    setUserRole(client.role as "ADMIN" | "CLIENT" | "EMPLOYEE");
-  }, [client.role]);
+  // Derive from client prop instead of using useEffect
+  const isEmailVerified = client.email_verified ?? false;
+  const userRole = client.role as "ADMIN" | "CLIENT" | "EMPLOYEE";
 
   // Dedicated quick approval handler (without modifying or requiring billing data)
   const handleApproveRegistration = (e?: React.FormEvent) => {
@@ -90,7 +82,6 @@ export default function ClientDetailsModal({
     startTransition(async () => {
       const result = await verifyClientEmailAction(client.id);
       if (result.success) {
-        setIsEmailVerified(true);
         success(t("alert_email_verified_success", { defaultValue: "Email marked as verified successfully!" }));
         onRefresh?.();
       } else {
@@ -209,7 +200,6 @@ export default function ClientDetailsModal({
     startTransition(async () => {
       const result = await updateUserRoleAction(client.id, newRole);
       if (result.success) {
-        setUserRole(newRole);
         success(`Role updated to ${newRole} successfully!`);
 
         // If role changed from CLIENT to something else, redirect to employee management

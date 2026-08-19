@@ -1086,6 +1086,12 @@ export async function getReviewOrderByIdAction(orderId: string) {
     if (error) throw error;
     if (!data) return { success: false, error: "Order not found" };
 
+    // Verify this order is assigned to this employee (security check)
+    // Employees can only view orders assigned to them
+    if (auth.user.role === 'EMPLOYEE' && data.assigned_employee_id !== auth.user.id) {
+      return { success: false, error: "Unauthorized - You can only view your assigned orders" };
+    }
+
     // Fetch review_urls using admin client (bypasses RLS)
     // Safe because we've already verified this order is assigned to this employee
     const adminClient = createAdminClient();

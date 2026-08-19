@@ -58,9 +58,9 @@ export class CacheRevalidator {
   /**
    * Revalidate a single cache tag
    * @param tag - Cache tag to revalidate
-   * @param profile - Cache life profile (default: 'no-store' for immediate invalidation)
+   * @param profile - Cache life profile (default: 'max' for immediate invalidation)
    */
-  static revalidate(tag: CacheTag, profile: 'no-store' | 'short' | 'long' | 'max' = 'no-store'): void {
+  static revalidate(tag: CacheTag, profile: 'no-store' | 'short' | 'long' | 'max' = 'max'): void {
     if (typeof revalidateTag === 'function') {
       revalidateTag(tag, profile);
       console.log(`[CACHE] Revalidated tag: ${tag} with profile: ${profile}`);
@@ -70,7 +70,7 @@ export class CacheRevalidator {
   /**
    * Revalidate multiple cache tags
    */
-  static revalidateMany(tags: CacheTag[], profile: 'no-store' | 'short' | 'long' | 'max' = 'no-store'): void {
+  static revalidateMany(tags: CacheTag[], profile: 'no-store' | 'short' | 'long' | 'max' = 'max'): void {
     tags.forEach(tag => this.revalidate(tag, profile));
   }
 

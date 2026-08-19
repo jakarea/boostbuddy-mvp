@@ -4,7 +4,7 @@
 
 export type ProfileStatus = "AVAILABLE" | "ASSIGNED" | "ACTIVE" | "EXPIRED" | "BANNED" | "CANCELLED" | "REQUEST_CHANGE";
 export type ClientStatus = "ACTIVE" | "PENDING" | "DEACTIVATED";
-export type OrderStatus = "PENDING" | "PAID" | "FAILED";
+export type OrderStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "PAID" | "FAILED";
 
 /**
  * Get badge styling classes for profile status
@@ -65,6 +65,12 @@ export function getOrderStatusBadgeStyle(status?: OrderStatus): string {
   if (status === "PENDING") {
     return "bg-[#168BB0]/15 text-[#0F7493] dark:text-[#45B0D2]";
   }
+  if (status === "IN_PROGRESS") {
+    return "bg-blue-500/15 text-blue-700 dark:text-blue-400";
+  }
+  if (status === "COMPLETED") {
+    return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
+  }
   if (status === "FAILED") {
     return "bg-red-500/15 text-red-700 dark:text-red-400";
   }
@@ -85,6 +91,8 @@ export function getStatusLabel(status?: string): string {
     CANCELLED: "Cancelled",
     REQUEST_CHANGE: "Change Requested",
     PENDING: "Pending",
+    IN_PROGRESS: "In Progress",
+    COMPLETED: "Completed",
     DEACTIVATED: "Deactivated",
     PAID: "Paid",
     FAILED: "Failed",
