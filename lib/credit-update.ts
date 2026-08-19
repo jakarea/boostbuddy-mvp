@@ -1,6 +1,8 @@
 /**
  * Credit balance update utility with retry logic
  * Handles concurrent updates and race conditions with exponential backoff
+ *
+ * IMPORTANT: Uses CreditTransaction table (not credit_transactions)
  */
 
 import { retryWithBackoff, RetryOptions } from './retry';
