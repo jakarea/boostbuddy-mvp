@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from '@/lib/auth/server-auth';
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { randomUUID } from 'crypto';
 
 // --- PURE HELPER FUNCTIONS ---
