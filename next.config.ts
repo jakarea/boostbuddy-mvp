@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+/**
+ * Next.js Configuration
+ * Optimized for Vercel deployment with performance enhancements
+ */
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
