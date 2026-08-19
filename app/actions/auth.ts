@@ -17,6 +17,13 @@ export type AuthState = {
 /**
  * Sign in action - authenticate user and redirect based on role
  */
+// Helper function to mask email for logging (prevents email exposure in logs)
+function maskEmail(email: string): string {
+  if (!email || !email.includes('@')) return '***@***';
+  const [username, domain] = email.split('@');
+  return `${username.slice(0, 2)}***@${domain}`;
+}
+
 export async function signInAction(prevState: AuthState | undefined, formData: FormData): Promise<AuthState> {
   console.group(`${LOG_PREFIX} signInAction`);
   const email = formData.get("email") as string;
@@ -41,7 +48,7 @@ export async function signInAction(prevState: AuthState | undefined, formData: F
 
   console.log("Rate limit check passed for IP:", clientIp, "Remaining attempts:", rateLimitCheck.remaining);
 
-  console.log("Step 1: Signing in with email:", email);
+  console.log("Step 1: Signing in with email:", process.env.NODE_ENV === 'development' ? email : maskEmail(email));
   const supabase = await createClient();
 
   const { error } = await supabase.auth.signInWithPassword({
@@ -148,10 +155,10 @@ export async function signUpAction(prevState: AuthState | undefined, formData: F
     return { success: false, error: "Passwords do not match." };
   }
 
-  if (password.length < 12) {
-    console.log("❌ Password too short");
+  if (password.length < 12 || password.length > 128) {
+    console.log("❌ Password length invalid");
     console.groupEnd();
-    return { success: false, error: "Password must be at least 12 characters long." };
+    return { success: false, error: "Password must be 12-128 characters long." };
   }
 
   // Check password complexity
@@ -180,7 +187,7 @@ export async function signUpAction(prevState: AuthState | undefined, formData: F
   console.log("Rate limit check passed for IP:", clientIp, "Remaining attempts:", rateLimitCheck.remaining);
 
   // Create Supabase auth user (triggers database profile creation via handle_new_user)
-  console.log("Step 2: Creating Supabase auth user:", email);
+  console.log("Step 2: Creating Supabase auth user:", process.env.NODE_ENV === 'development' ? email : maskEmail(email));
   const supabase = await createClient();
 
   const { data, error: signUpError } = await supabase.auth.signUp({
@@ -287,7 +294,7 @@ export async function resetPasswordAction(
 
   console.log("Rate limit check passed for IP:", clientIp, "Remaining attempts:", rateLimitCheck.remaining);
 
-  console.log("Step 1: Sending password reset email to:", email);
+  console.log("Step 1: Sending password reset email to:", process.env.NODE_ENV === 'development' ? email : maskEmail(email));
   const supabase = await createClient();
   const host = (await headers()).get("host");
   const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
@@ -346,10 +353,10 @@ export async function updatePasswordAction(
     return { success: false, error: "Passwords do not match." };
   }
 
-  if (password.length < 12) {
-    console.log("❌ Password too short");
+  if (password.length < 12 || password.length > 128) {
+    console.log("❌ Password length invalid");
     console.groupEnd();
-    return { success: false, error: "Password must be at least 12 characters long." };
+    return { success: false, error: "Password must be 12-128 characters long." };
   }
 
   // Check password complexity
@@ -364,7 +371,7 @@ export async function updatePasswordAction(
     return { success: false, error: "Password must contain uppercase, lowercase, number, and special character." };
   }
 
-  console.log("Step 2: Updating password for user:", user.email);
+  console.log("Step 2: Updating password for user:", process.env.NODE_ENV === 'development' ? user.email : maskEmail(user.email || ''));
   const { error } = await supabase.auth.updateUser({
     password,
   });

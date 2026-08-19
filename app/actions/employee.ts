@@ -58,9 +58,9 @@ export async function createEmployeeAction(data: CreateEmployeeData) {
       return { success: false, error: "Name, email, and password are required" };
     }
 
-    if (data.password.length < 12) {
-      console.log("❌ [EMPLOYEE] Password too short");
-      return { success: false, error: "Password must be at least 12 characters" };
+    if (data.password.length < 12 || data.password.length > 128) {
+      console.log("❌ [EMPLOYEE] Password length invalid");
+      return { success: false, error: "Password must be 12-128 characters" };
     }
 
     // Check password complexity

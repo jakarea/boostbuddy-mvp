@@ -42,9 +42,9 @@ export async function createClientAction(data: CreateClientData) {
       return { success: false, error: "Name, email, and password are required" };
     }
 
-    if (data.password.length < 12) {
-      console.log("❌ [CLIENT] Password too short");
-      return { success: false, error: "Password must be at least 12 characters long." };
+    if (data.password.length < 12 || data.password.length > 128) {
+      console.log("❌ [CLIENT] Password length invalid");
+      return { success: false, error: "Password must be 12-128 characters long." };
     }
 
     // Check password complexity

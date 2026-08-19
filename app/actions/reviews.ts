@@ -215,9 +215,7 @@ export async function validateCreditsForOrderAction(orderData: ReviewOrderData) 
 
     // Sanitize comment text to prevent XSS
     if (orderData.commentText) {
-      orderData.commentText = orderData.commentText.trim();
-      // Remove any HTML tags
-      orderData.commentText = orderData.commentText.replace(/<[^>]*>/g, '');
+      orderData.commentText = sanitizeComment(orderData.commentText);
     }
 
     // Type-specific validations
@@ -334,6 +332,17 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
       return auth;
     }
 
+    // Rate limiting for expensive operations
+    const { checkRateLimit, getClientIp, RateLimitPresets } = await import("@/lib/rate-limit");
+    const headersList = await headers();
+    const clientIp = getClientIp(headersList);
+    const rateLimitCheck = checkRateLimit(`order:${auth.user.id}:${clientIp}`, RateLimitPresets.EXPENSIVE);
+
+    if (!rateLimitCheck.allowed) {
+      console.warn("⚠️ [ORDER] Rate limit exceeded for user:", auth.user.id);
+      return { success: false, error: rateLimitCheck.error || "Too many orders. Please try again later." };
+    }
+
     console.log("📍 [ORDER] Auth passed, validating credits...");
     // Validate credits first
     const validation = await validateCreditsForOrderAction(orderData);
@@ -363,21 +372,26 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
     // Production mode: Use Supabase
     const supabaseAdmin = await createAdminClient();
 
-    // SECURITY: Optimistic concurrency control to prevent race conditions.
-    const expectedBalance = validation.currentBalance;
-    const newBalance = expectedBalance - requiredCredits;
+    // SECURITY: Use updateCreditBalanceWithRetry to prevent race conditions
+    // This utility handles optimistic concurrency with automatic retry on concurrent modifications
+    const { updateCreditBalanceWithRetry } = await import("@/lib/credit-update");
 
-    const { data: deducted, error: deductError } = await (supabaseAdmin as any)
-      .from("users")
-      .update({ credits_balance: newBalance })
-      .eq("id", auth.user.id)
-      .eq("credits_balance", expectedBalance)
-      .select();
+    const creditResult = await updateCreditBalanceWithRetry({
+      supabase: supabaseAdmin,
+      userId: auth.user.id,
+      creditsAmount: -requiredCredits,
+      description: `${orderData.orderType} order (${orderData.quantity} units)`,
+      referenceId: orderId,
+      type: "SPEND"
+    });
 
-    if (deductError) throw deductError;
-    if (!deducted || deducted.length === 0) {
-      return { success: false, error: "Credit balance changed. Please try again." };
+    if (!creditResult.success) {
+      console.error("❌ [ORDER] Credit update failed after retries:", creditResult.error);
+      return { success: false, error: creditResult.error || "Failed to update credit balance. Please try again." };
     }
+
+    const newBalance = creditResult.newBalance || 0;
+    console.log("✅ [ORDER] Credits deducted successfully, new balance:", newBalance);
 
     // Generate a business name from the Facebook URL
     const businessName = extractBusinessNameFromUrl(orderData.facebookUrl);
@@ -459,17 +473,7 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
 
     console.log("✅ [ORDER] Order created successfully in database");
 
-    // Create transaction record (non-blocking - fire and forget)
-    (supabaseAdmin as any).from("credit_transactions").insert({
-      id: randomUUID(),
-      user_id: auth.user.id,
-      amount: -requiredCredits,
-      balance_after: newBalance,
-      type: "PURCHASE",
-      description: `${orderData.orderType} order (${orderData.quantity} units)`,
-      reference_id: orderId
-    }).catch((err: any) => console.error("Failed to create transaction record:", err));
-
+    // Transaction record already created by updateCreditBalanceWithRetry utility
     finalNewBalance = newBalance;
     console.log("📍 [ORDER] Supabase order created successfully");
 

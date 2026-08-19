@@ -378,9 +378,6 @@ export async function fulfillCreditsPurchase(sessionId: string) {
     console.log("📍 [LOG#14] Credits amount:", creditsAmount, "Price:", amount);
 
     console.log("📍 [LOG#46] Using production Supabase mode");
-    console.log("📍 [LOG#46a] Checking SUPABASE_SERVICE_ROLE_KEY...");
-    console.log("📍 [LOG#46b] Service key exists:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-    console.log("📍 [LOG#46c] Service key length:", process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0);
 
     let supabase;
     try {
@@ -746,6 +743,14 @@ export async function adminAdjustCreditsAction(data: CreditAdjustmentData) {
     const auth = await requireAuth({ role: 'ADMIN' });
     if (!auth.success) return auth;
 
+    // Rate limiting for expensive admin operations
+    const headersList = await headers();
+    const clientIp = getClientIp(headersList);
+    const rateLimit = checkRateLimit(`admin:credits:${auth.user.id}:${clientIp}`, RateLimitPresets.EXPENSIVE);
+    if (!rateLimit.allowed) {
+      return { success: false, error: rateLimit.error || "Too many admin operations. Please try again later." };
+    }
+
     // Validate inputs
     if (!data.userId || !data.reason) {
       return { success: false, error: "User ID and reason are required" };
@@ -895,10 +900,19 @@ export async function searchUsersForCreditsAction(query: string) {
 
     const supabase = await createClient();
 
+    // SECURITY: Use safe search sanitization to prevent filter manipulation
+    const { sanitizeSearchInput, isSafeSearchInput } = await import("@/lib/search");
+
+    const sanitized = sanitizeSearchInput(trimmed);
+
+    // Validate input is safe before using in query
+    if (!isSafeSearchInput(sanitized)) {
+      console.warn("[SECURITY] Unsafe search input rejected:", trimmed);
+      return { success: true, data: [] };
+    }
+
     // Use ILIKE only on text columns (name, email) - NOT on UUID id column
     // PostgreSQL doesn't support ILIKE on UUID types
-    // Sanitize input to prevent PostgREST filter manipulation
-    const sanitized = trimmed.replace(/[,\.\(\)%\\]/g, '');
     const { data, error } = await supabase
       .from("users")
       .select("id, name, email, credits_balance")

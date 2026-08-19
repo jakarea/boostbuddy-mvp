@@ -44,6 +44,17 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
       return auth;
     }
 
+    // Rate limiting for expensive operations
+    const { checkRateLimit, getClientIp, RateLimitPresets } = await import("@/lib/rate-limit");
+    const headersList = await headers();
+    const clientIp = getClientIp(headersList);
+    const rateLimitCheck = checkRateLimit(`order:${auth.user.id}:${clientIp}`, RateLimitPresets.EXPENSIVE);
+
+    if (!rateLimitCheck.allowed) {
+      console.warn("⚠️ [MULTI-URL ORDER] Rate limit exceeded for user:", auth.user.id);
+      return { success: false, error: rateLimitCheck.error || "Too many orders. Please try again later." };
+    }
+
     console.log("✅ [MULTI-URL ORDER] Auth passed, validating data...");
 
     // Validate order data
@@ -288,6 +299,99 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
     }
     console.log("✅ [MULTI-URL ORDER] Order inserted successfully:", insertedOrder);
 
+    // ============================================
+    // AUTO-ASSIGNMENT: LOAD BALANCING LOGIC
+    // ============================================
+    console.log("🎯 [AUTO-ASSIGN] Starting load balancing assignment...");
+
+    // Find available employees with accepting_orders = true
+    const { data: availableEmployees, error: employeesError } = await (supabaseAdmin as any)
+      .from("users")
+      .select("id, name, email")
+      .eq("role", "EMPLOYEE")
+      .eq("status", "ACTIVE")
+      .eq("accepting_orders", true);
+
+    if (employeesError) {
+      console.error("❌ [AUTO-ASSIGN] Failed to fetch employees:", employeesError);
+    } else if (availableEmployees && availableEmployees.length > 0) {
+      console.log(`✅ [AUTO-ASSIGN] Found ${availableEmployees.length} available employees`);
+
+      // Count IN_PROGRESS orders for each employee
+      const employeeWorkloads: Array<{ employeeId: string; employeeName: string; count: number }> = [];
+
+      for (const employee of availableEmployees) {
+        const { data: inProgressOrders, error: countError } = await (supabaseAdmin as any)
+          .from("review_orders")
+          .select("id")
+          .eq("assigned_employee_id", employee.id)
+          .eq("status", "IN_PROGRESS");
+
+        if (!countError) {
+          const count = inProgressOrders?.length || 0;
+          employeeWorkloads.push({
+            employeeId: employee.id,
+            employeeName: employee.name,
+            count
+          });
+          console.log(`📊 [AUTO-ASSIGN] ${employee.name}: ${count} in-progress orders`);
+        }
+      }
+
+      // Find employee with minimum workload
+      if (employeeWorkloads.length > 0) {
+        // Sort by count ascending
+        employeeWorkloads.sort((a, b) => a.count - b.count);
+
+        const minCount = employeeWorkloads[0].count;
+        const minEmployees = employeeWorkloads.filter(e => e.count === minCount);
+
+        // Random selection from employees with minimum count
+        const selectedEmployee = minEmployees.length === 1
+          ? minEmployees[0]
+          : minEmployees[Math.floor(Math.random() * minEmployees.length)];
+
+        console.log(`🎯 [AUTO-ASSIGN] Selected: ${selectedEmployee.employeeName} (${selectedEmployee.count} in-progress)`);
+
+        // Assign the order
+        const { error: assignError } = await (supabaseAdmin as any)
+          .from("review_orders")
+          .update({
+            assigned_employee_id: selectedEmployee.employeeId,
+            status: "IN_PROGRESS",
+            assigned_at: now
+          })
+          .eq("id", orderId);
+
+        if (assignError) {
+          console.error("❌ [AUTO-ASSIGN] Assignment failed:", assignError);
+        } else {
+          console.log("✅ [AUTO-ASSIGN] Order auto-assigned successfully");
+
+          // Send notification to assigned employee (non-blocking)
+          (async () => {
+            try {
+              const { sendNotificationAction } = await import("./notifications");
+              await sendNotificationAction(
+                selectedEmployee.employeeName,
+                "🎯 New Review Order Assigned",
+                `You have been assigned a new ${orderData.orderType} order for ${businessName}. Please complete it as soon as possible.`,
+                "TELEGRAM",
+                "EMPLOYEE_ORDER_ASSIGNED",
+                "HIGH",
+                orderId
+              );
+            } catch (notifError) {
+              console.warn("⚠️ [AUTO-ASSIGN] Failed to send notification (non-blocking):", notifError);
+            }
+          })();
+        }
+      }
+    } else {
+      console.log("ℹ️ [AUTO-ASSIGN] No available employees - order remains PENDING for manual pickup");
+    }
+    console.log("🏁 [AUTO-ASSIGN] Load balancing completed");
+
     // Create ReviewUrl entries with per-URL reviews and photos
     const reviewUrlsData = normalizedUrls.map((urlData, index) => {
       // Get the original URL data to access reviewContents and photos
@@ -374,17 +478,30 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
       }
     })();
 
-    // Broadcast to employees
+    // Broadcast to employees ONLY if order is still PENDING (not auto-assigned)
     (async () => {
       try {
-        const { broadcastToEmployeesAction } = await import("./notifications");
-        await broadcastToEmployeesAction(
-          `🔔 New ${formatOrderType(orderData.orderType)} Order Available`,
-          `A new ${formatOrderType(orderData.orderType).toLowerCase()} order for ${normalizedTotalQuantity} review${normalizedTotalQuantity > 1 ? 's' : ''} across ${orderData.urls.length} URL${orderData.urls.length > 1 ? 's' : ''} is ready to process.`,
-          "EMPLOYEE_NEW_ORDER_AVAILABLE",
-          "HIGH",
-          orderId
-        );
+        // Check current order status
+        const { data: currentOrder } = await (supabaseAdmin as any)
+          .from("review_orders")
+          .select("status, assigned_employee_id")
+          .eq("id", orderId)
+          .single();
+
+        // Only broadcast if still PENDING and not assigned
+        if (currentOrder && currentOrder.status === "PENDING" && !currentOrder.assigned_employee_id) {
+          const { broadcastToEmployeesAction } = await import("./notifications");
+          await broadcastToEmployeesAction(
+            `🔔 New ${formatOrderType(orderData.orderType)} Order Available`,
+            `A new ${formatOrderType(orderData.orderType).toLowerCase()} order for ${normalizedTotalQuantity} review${normalizedTotalQuantity > 1 ? 's' : ''} across ${orderData.urls.length} URL${orderData.urls.length > 1 ? 's' : ''} is ready to process.`,
+            "EMPLOYEE_NEW_ORDER_AVAILABLE",
+            "HIGH",
+            orderId
+          );
+          console.log("📢 [MULTI-URL ORDER] Broadcast sent to employees (order available for pickup)");
+        } else {
+          console.log("🔇 [MULTI-URL ORDER] No broadcast sent (order was auto-assigned)");
+        }
       } catch (broadcastError) {
         console.warn("Failed to broadcast to employees:", broadcastError);
       }

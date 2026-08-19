@@ -78,6 +78,15 @@ export async function uploadInvoiceAction(formData: FormData) {
     const auth = await requireAuth({ role: 'ADMIN' });
     if (!auth.success) return auth;
 
+    // Rate limiting for file upload operations
+    const { checkRateLimit, getClientIp, RateLimitPresets } = await import("@/lib/rate-limit");
+    const headersList = await headers();
+    const clientIp = getClientIp(headersList);
+    const rateLimit = checkRateLimit(`upload:invoice:${auth.user.id}:${clientIp}`, RateLimitPresets.UPLOAD);
+    if (!rateLimit.allowed) {
+      return { success: false, error: rateLimit.error || "Too many upload attempts. Please try again later." };
+    }
+
     const file = formData.get("file") as File;
     if (!file) {
       console.error("❌ [INVOICE UPLOAD] No file provided");
