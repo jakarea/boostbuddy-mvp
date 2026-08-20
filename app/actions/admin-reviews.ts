@@ -208,13 +208,13 @@ export async function assignReviewToEmployeeAction(data: AdminAssignmentData) {
 
     const clientEmail = ((order as any).users as any)?.email || null;
 
-    // Check employee availability
+    // Check employee availability (is_active controls order distribution)
     const { data: employee } = await supabase
       .from("users")
       .select("id, email, accepting_orders")
       .eq("id", data.employeeId)
       .eq("role", "EMPLOYEE")
-      .eq("status", "ACTIVE")
+      .eq("is_active", true)           // Check order distribution (not status/login)
       .single();
 
     if (!employee || !(employee as any).accepting_orders) {
@@ -420,6 +420,7 @@ export async function cancelReviewOrderAction(orderId: string, reason: string) {
 
 /**
  * Get available employees for assignment (admin only)
+ * Uses is_active to check order distribution (not status for login)
  */
 export async function getAvailableEmployeesAction() {
   try {
@@ -429,9 +430,9 @@ export async function getAvailableEmployeesAction() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("users")
-      .select("id, name, email, status, accepting_orders, employee_stats(*)")
+      .select("id, name, email, status, is_active, accepting_orders, employee_stats(*)")
       .eq("role", "EMPLOYEE")
-      .eq("status", "ACTIVE")
+      .eq("is_active", true)           // Check order distribution (not status/login)
       .order("employee_stats.orders_completed", { ascending: false })
       .order("name", { ascending: true });
 

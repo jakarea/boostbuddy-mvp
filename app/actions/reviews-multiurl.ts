@@ -305,12 +305,12 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
     // ============================================
     console.log("🎯 [AUTO-ASSIGN] Starting load balancing assignment...");
 
-    // Find available employees with accepting_orders = true
+    // Find available employees with is_active = true (order distribution enabled)
     const { data: availableEmployees, error: employeesError } = await (supabaseAdmin as any)
       .from("users")
       .select("id, name, email")
       .eq("role", "EMPLOYEE")
-      .eq("status", "ACTIVE")
+      .eq("is_active", true)           // Check order distribution (not status/login)
       .eq("accepting_orders", true);
 
     if (employeesError) {

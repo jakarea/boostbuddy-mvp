@@ -38,11 +38,18 @@ export default function EmployeeDetailsModal({
   const [userRole, setUserRole] = useState<"ADMIN" | "CLIENT" | "EMPLOYEE">(employee.role);
   const [roleUpdating, setRoleUpdating] = useState(false);
 
+  // Local optimistic state for instant UI updates
+  const [localAccountStatus, setLocalAccountStatus] = useState(employee.status);
+  // Track the last confirmed status from server (for revert on error)
+  const [confirmedAccountStatus, setConfirmedAccountStatus] = useState(employee.status);
+
   // Sync states when employee changes
   useEffect(() => {
     setIsEmailVerified(employee.email_verified ?? false);
     setUserRole(employee.role as "ADMIN" | "CLIENT" | "EMPLOYEE");
-  }, [employee.email_verified, employee.role]);
+    setLocalAccountStatus(employee.status);
+    setConfirmedAccountStatus(employee.status);
+  }, [employee.email_verified, employee.role, employee.status]);
 
   // Load admin notes
   useEffect(() => {
@@ -61,17 +68,28 @@ export default function EmployeeDetailsModal({
         error(result.error || t("alert_notes_failed", { defaultValue: "Failed to save notes" }));
       }
       setAdminNotesSaving(false);
-      router.refresh();
+      // Note: router.refresh() removed - onRefresh() already updates state via SWR
     });
   };
 
-  // Toggle employee status
+  // Toggle employee status - optimistic update (instant UI, background API call)
   const handleToggleStatus = (checked: boolean) => {
-    startTransition(async () => {
-      const newStatus = checked ? "ACTIVE" : "DEACTIVATED";
-      await updateClientStatusAction(employee.id, newStatus);
-      onRefresh?.();
-      router.refresh();
+    // Update UI instantly
+    const newStatus = checked ? "ACTIVE" : "DEACTIVATED";
+    const previousStatus = confirmedAccountStatus;
+    setLocalAccountStatus(newStatus);
+
+    // Call backend API silently in background
+    updateClientStatusAction(employee.id, newStatus).then((result) => {
+      if (result.success) {
+        // Update confirmed status on success
+        setConfirmedAccountStatus(newStatus);
+        onRefresh?.();
+      } else {
+        // Revert UI to last confirmed status on error
+        setLocalAccountStatus(previousStatus);
+        error(result.error || "Failed to update status");
+      }
     });
   };
 
@@ -115,7 +133,7 @@ export default function EmployeeDetailsModal({
         error(result.error || t("alert_email_failed", { defaultValue: "Failed to verify email" }));
       }
       setVerifyingEmail(false);
-      router.refresh();
+      // Note: router.refresh() removed - local state update is sufficient
     });
   };
 
@@ -164,7 +182,7 @@ export default function EmployeeDetailsModal({
                 </div>
                 <div>
                   <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{t("lbl_status", { defaultValue: "Status" })}</Label>
-                  <div className="text-sm mt-1">{employee.status}</div>
+                  <div className="text-sm mt-1">{localAccountStatus}</div>
                 </div>
               </div>
             </CardContent>
@@ -206,20 +224,20 @@ export default function EmployeeDetailsModal({
                 )}
               </div>
 
-              {/* Account Status */}
+              {/* Account Status - Controls login access */}
               <div className="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-zinc-800 pb-3">
                 <div className="space-y-0.5">
                   <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-                    {t("lbl_account_status", { defaultValue: "Account Status" })}
+                    {t("lbl_account_status", { defaultValue: "Login Access" })}
                   </Label>
                   <div className="text-[10px] text-zinc-500">
-                    {employee.status === "ACTIVE"
-                      ? t("desc_active", { defaultValue: "Account is active" })
-                      : t("desc_inactive", { defaultValue: "Account is deactivated" })}
+                    {localAccountStatus === "ACTIVE"
+                      ? t("desc_active", { defaultValue: "Can log into system" })
+                      : t("desc_inactive", { defaultValue: "Cannot log into system" })}
                   </div>
                 </div>
                 <Switch
-                  checked={employee.status === "ACTIVE"}
+                  checked={localAccountStatus === "ACTIVE"}
                   onCheckedChange={handleToggleStatus}
                 />
               </div>

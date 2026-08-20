@@ -36,8 +36,8 @@ import {
   RefreshCw,
   TrendingUp,
   UserPlus,
-  Power,
   PauseCircle,
+  Play,
   Loader2,
   ChevronLeft,
   ChevronRight,
@@ -139,6 +139,9 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
   const initialSearchTerm = searchParams.get('search') || '';
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Optimistic state for employee isActive - tracks local changes before server confirms
+  const [optimisticActiveStates, setOptimisticActiveStates] = useState<Record<string, boolean>>({});
 
   // Use SWR data
   const employees = swrData?.employees || [];
@@ -260,29 +263,55 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
   };
 
   const handleToggleActive = async (employee: EmployeePerformance) => {
-    const nextActive = !employee.isActive;
+    const currentActive = optimisticActiveStates[employee.userId] ?? employee.isActive ?? employee.is_active;
+    const nextActive = !currentActive;
     const confirmed = await confirm({
       title: nextActive
-        ? t("manage.activateConfirm.title", "Activate Employee?")
-        : t("manage.deactivateConfirm.title", "Deactivate Employee?"),
+        ? t("manage.activateConfirm.title", "Start Order Distribution?")
+        : t("manage.deactivateConfirm.title", "Stop Order Distribution?"),
       message: nextActive
-        ? t("manage.activateConfirm.message", "This employee will be able to log in and accept orders again.")
-        : t("manage.deactivateConfirm.message", "This employee will be signed out and unable to access the employee portal."),
+        ? t("manage.activateConfirm.message", "New orders will be assigned to this employee.")
+        : t("manage.deactivateConfirm.message", "This employee will stop receiving new orders. Current orders will continue."),
       confirmText: nextActive
-        ? t("manage.activateConfirm.confirm", "Activate")
-        : t("manage.deactivateConfirm.confirm", "Deactivate"),
+        ? t("manage.activateConfirm.confirm", "Start")
+        : t("manage.deactivateConfirm.confirm", "Stop"),
       confirmVariant: nextActive ? "default" : "destructive",
     });
 
     if (!confirmed) return;
 
-    const result = await setEmployeeActiveStatusAction(employee.userId, nextActive);
-    if (result.success) {
-      refresh(); // Refresh SWR cache instead of optimistic update
-      success(nextActive ? "Employee activated" : "Employee deactivated");
-    } else {
-      showError(result.error || "Failed to update");
-    }
+    // Optimistic update - update UI instantly
+    setOptimisticActiveStates(prev => ({ ...prev, [employee.userId]: nextActive }));
+
+    // Call backend API silently in background
+    setEmployeeActiveStatusAction(employee.userId, nextActive).then((result) => {
+      if (result.success) {
+        refresh(); // Refresh SWR cache to get confirmed state
+        success(nextActive ? "Order distribution started" : "Order distribution stopped");
+        // Clear optimistic state on success (SWR refresh will have the real value)
+        setOptimisticActiveStates(prev => {
+          const newState = { ...prev };
+          delete newState[employee.userId];
+          return newState;
+        });
+      } else {
+        // Revert UI on error
+        setOptimisticActiveStates(prev => {
+          const newState = { ...prev };
+          delete newState[employee.userId];
+          return newState;
+        });
+        showError(result.error || "Failed to update");
+      }
+    }).catch(() => {
+      // Revert UI on exception
+      setOptimisticActiveStates(prev => {
+        const newState = { ...prev };
+        delete newState[employee.userId];
+        return newState;
+      });
+      showError("Failed to update");
+    });
   };
 
   const isActiveRecently = (lastActiveAt: string | undefined) => {
@@ -444,17 +473,27 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
                     View Orders
                   </Button>
                   <Button
-                    variant={employee.isActive || employee.is_active ? "outline" : "default"}
+                    variant={(optimisticActiveStates[employee.userId] ?? employee.isActive ?? employee.is_active) ? "outline" : "default"}
                     size="sm"
                     className={`h-8 text-xs px-3 gap-1.5 ${
-                      employee.isActive || employee.is_active
+                      (optimisticActiveStates[employee.userId] ?? employee.isActive ?? employee.is_active)
                         ? 'text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/30'
                         : ''
                     }`}
                     onClick={() => handleToggleActive(employee)}
+                    title={(optimisticActiveStates[employee.userId] ?? employee.isActive ?? employee.is_active) ? "Stop assigning new orders" : "Start assigning new orders"}
                   >
-                    <Power className="h-3 w-3" />
-                    {employee.isActive || employee.is_active ? "Deactivate" : "Activate"}
+                    {(optimisticActiveStates[employee.userId] ?? employee.isActive ?? employee.is_active) ? (
+                      <>
+                        <PauseCircle className="h-3 w-3" />
+                        Stop Orders
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-3 w-3" />
+                        Start Orders
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>

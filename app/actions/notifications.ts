@@ -348,7 +348,7 @@ export async function broadcastToEmployeesAction(
       .from("users")
       .select("email")
       .eq("role", "EMPLOYEE")
-      .eq("status", "ACTIVE")
+      .eq("is_active", true)           // Check order distribution (not status/login)
       .eq("accepting_orders", true);
 
     if (error) throw error;

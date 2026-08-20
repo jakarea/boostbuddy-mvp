@@ -4,11 +4,14 @@
  * - Admin: All admins receive same notification → fallback to web if no Telegram
  * - Employee: Single group notification → fallback to web if no group
  * - Client: Individual personal notification → fallback to web if no Chat ID
+ *
+ * ENHANCED: Now supports rich formatting with HTML and inline buttons
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from '@/lib/auth/server-auth';
+import { formatRichTelegramMessage, RichTelegramMessage } from './telegram-rich-format';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -152,27 +155,52 @@ async function getClientChatId(supabase: any, userEmail: string): Promise<string
 
 /**
  * Send message to a specific Telegram chat
+ * Enhanced with rich formatting support (HTML + inline buttons)
  */
 async function sendToTelegramChat(
   botToken: string,
   chatId: string,
   subject: string,
-  message: string
+  message: string,
+  richMessage?: RichTelegramMessage
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    let payload: any;
+
+    if (richMessage) {
+      // Use rich formatting with HTML and buttons
+      const { text, reply_markup } = formatRichTelegramMessage(richMessage);
+      payload = {
+        chat_id: chatId,
+        text: text,
+        parse_mode: "HTML",
+        disable_web_page_preview: false,
+        reply_markup: reply_markup
+      };
+    } else {
+      // Legacy format (Markdown)
+      payload = {
+        chat_id: chatId,
+        text: `*${subject}*\n\n${message}`,
+        parse_mode: "Markdown",
+        disable_web_page_preview: true
+      };
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const response = await fetch(
       `https://api.telegram.org/bot${botToken}/sendMessage`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: `*${subject}*\n\n${message}`,
-          parse_mode: "Markdown",
-          disable_web_page_preview: true
-        })
+        body: JSON.stringify(payload),
+        signal: controller.signal
       }
     );
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const error = await response.json();
@@ -756,3 +784,19 @@ export async function getTelegramRoutingStatusAction(): Promise<{
     return { success: false, error: error?.message || "Failed to get status" };
   }
 }
+
+// ── Re-exports for Rich Formatting ─────────────────────────────────────
+
+export {
+  formatRichTelegramMessage,
+  buildOrderAssignedMessage,
+  buildOrderCompletedMessage,
+  buildCreditsAdjustedMessage,
+  buildAccountReadyMessage,
+  buildAccountApprovedMessage,
+  buildOrderPickedUpMessage,
+  buildSimpleNotification,
+  buildSystemNotification,
+  RichTelegramMessage,
+  TelegramButton
+} from './telegram-rich-format';

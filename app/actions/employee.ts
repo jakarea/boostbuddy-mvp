@@ -923,6 +923,18 @@ export async function acceptReviewOrderAction(orderId: string) {
       return { success: false, error: "Unauthorized - Employee only" };
     }
 
+    // Check if employee is eligible for order distribution (is_active = true)
+    const supabaseAdmin = await createAdminClient();
+    const { data: employeeData } = await supabaseAdmin
+      .from("users")
+      .select("is_active")
+      .eq("id", auth.user.id)
+      .single();
+
+    if (!employeeData || !employeeData.is_active) {
+      return { success: false, error: "You are not eligible to accept orders at this time" };
+    }
+
     const supabase = await createClient();
     // Use admin client for update to bypass RLS
     const supabaseAdmin = await createAdminClient();

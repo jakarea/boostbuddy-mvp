@@ -139,9 +139,13 @@
     @apply font-sans;
     font-size: 120%;
     }
-  button, a, [role="button"], input[type="submit"], input[type="button"], input[type="reset"] {
+  button, a, [role="button"], input[type="submit"], input[type="button"], input[type="reset"], input[type="radio"], input[type="checkbox"], label, select, textarea {
     @apply cursor-pointer;
-    }
+  }
+  /* Base UI components and other interactive elements */
+  [data-slot="switch"], [data-slot="select-trigger"], [data-slot="select-item"], [data-slot="tabs-trigger"], [data-slot="dropdown-menu-trigger"], [data-slot="dialog-trigger"], [data-slot="popover-trigger"] {
+    @apply cursor-pointer;
+  }
 }
 
 /* BoostBuddy Logo Styles */
