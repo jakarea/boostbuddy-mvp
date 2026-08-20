@@ -104,6 +104,27 @@ export function useRealtimeNotifications(): UseRealtimeNotificationsResult {
     }
   }, []);
 
+  // Fallback polling system (only runs if Realtime fails)
+  // NOTE: Must be declared before the useEffect that uses these functions
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+
+  const startPolling = useCallback(() => {
+    // Don't start polling if already active
+    if (pollingInterval) return;
+
+    console.log('[REALTIME] Starting fallback polling (30-second intervals)');
+    setPollingInterval(setInterval(() => {
+      refreshNotifications();
+    }, 30000)); // Poll every 30 seconds
+  }, [refreshNotifications, pollingInterval]);
+
+  const stopPolling = useCallback(() => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+  }, [pollingInterval]);
+
   // Subscribe to HIGH priority notifications via Supabase Realtime
   useEffect(() => {
     let channel: RealtimeChannel | null = null;
@@ -172,28 +193,7 @@ export function useRealtimeNotifications(): UseRealtimeNotificationsResult {
       }
       stopPolling();
     };
-  }, [stopPolling]);
-
-  // Fallback polling system (only runs if Realtime fails)
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
-
-  // Move polling functions before useEffect to fix "accessed before declared" error
-  const startPolling = useCallback(() => {
-    // Don't start polling if already active
-    if (pollingInterval) return;
-
-    console.log('[REALTIME] Starting fallback polling (30-second intervals)');
-    setPollingInterval(setInterval(() => {
-      refreshNotifications();
-    }, 30000)); // Poll every 30 seconds
-  }, [refreshNotifications]);
-
-  const stopPolling = useCallback(() => {
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-      setPollingInterval(null);
-    }
-  }, [pollingInterval]);
+  }, [stopPolling, startPolling]);
 
   // Play notification sound
   const playNotificationSound = () => {
