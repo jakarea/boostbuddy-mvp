@@ -936,8 +936,8 @@ export async function acceptReviewOrderAction(orderId: string) {
     }
 
     const supabase = await createClient();
+    // supabaseAdmin already declared above for is_active check
     // Use admin client for update to bypass RLS
-    const supabaseAdmin = await createAdminClient();
 
     // Check if order is still available (PENDING and unassigned)
     const { data: order, error: fetchError } = await supabase
