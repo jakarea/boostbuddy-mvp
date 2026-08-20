@@ -214,27 +214,30 @@ export default function ReviewOrderDetailPage() {
             <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Created</p>
             <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{formatDateTime(order.createdAt)}</p>
           </div>
-          <div className="flex-1 min-w-[180px]">
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Assigned Employee</p>
-            <div className="flex items-center gap-1.5">
-              {order.employees ? (
-                <>
-                  <UserCheck className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{order.employees.name}</p>
-                </>
-              ) : order.status === 'PENDING' ? (
-                <>
-                  <Clock className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
-                  <p className="text-sm text-zinc-500 italic">Unassigned</p>
-                </>
-              ) : (
-                <>
-                  <AlertCircle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
-                  <p className="text-sm text-zinc-400">—</p>
-                </>
-              )}
+          {/* Assigned Employee - hidden from clients */}
+          {user?.role !== 'CLIENT' && (
+            <div className="flex-1 min-w-[180px]">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Assigned Employee</p>
+              <div className="flex items-center gap-1.5">
+                {order.employees ? (
+                  <>
+                    <UserCheck className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{order.employees.name}</p>
+                  </>
+                ) : order.status === 'PENDING' ? (
+                  <>
+                    <Clock className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
+                    <p className="text-sm text-zinc-500 italic">Unassigned</p>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                    <p className="text-sm text-zinc-400">—</p>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          )}
           <div className="flex-1 min-w-[120px]">
             <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Status</p>
             {/* For CLIENT: display PENDING as "In Progress" */}
@@ -287,25 +290,28 @@ export default function ReviewOrderDetailPage() {
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant={isDone ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => toggleUrlDone(urlItem.id)}
-                    className={`h-8 px-3 gap-2 ${
-                      isDone
-                        ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
-                        : ''
-                    }`}
-                  >
-                    {isDone ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Done
-                      </>
-                    ) : (
-                      'Mark Done'
-                    )}
-                  </Button>
+                  {/* Mark Done button - hidden from clients (employees only) */}
+                  {user?.role !== 'CLIENT' && (
+                    <Button
+                      variant={isDone ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => toggleUrlDone(urlItem.id)}
+                      className={`h-8 px-3 gap-2 ${
+                        isDone
+                          ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
+                          : ''
+                      }`}
+                    >
+                      {isDone ? (
+                        <>
+                          <Check className="h-4 w-4" />
+                          Done
+                        </>
+                      ) : (
+                        'Mark Done'
+                      )}
+                    </Button>
+                  )}
                 </div>
               );
             })}
@@ -388,25 +394,28 @@ export default function ReviewOrderDetailPage() {
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant={isDone ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => toggleReviewDone(Number(globalIndex))}
-                            className={`h-8 px-3 gap-2 shrink-0 ${
-                              isDone
-                                ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
-                                : ''
-                            }`}
-                          >
-                            {isDone ? (
-                              <>
-                                <Check className="h-4 w-4" />
-                                Done
-                              </>
-                            ) : (
-                              'Mark Done'
-                            )}
-                          </Button>
+                          {/* Mark Done button - hidden from clients (employees only) */}
+                          {user?.role !== 'CLIENT' && (
+                            <Button
+                              variant={isDone ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => toggleReviewDone(Number(globalIndex))}
+                              className={`h-8 px-3 gap-2 shrink-0 ${
+                                isDone
+                                  ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
+                                  : ''
+                              }`}
+                            >
+                              {isDone ? (
+                                <>
+                                  <Check className="h-4 w-4" />
+                                  Done
+                                </>
+                              ) : (
+                                'Mark Done'
+                              )}
+                            </Button>
+                          )}
                         </div>
                       );
                     })}
@@ -507,25 +516,28 @@ export default function ReviewOrderDetailPage() {
                   >
                     <Download className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant={isDone ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => togglePhotoDone(index)}
-                    className={`w-full gap-2 ${
-                      isDone
-                        ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
-                        : ''
-                    }`}
-                  >
-                    {isDone ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Done
-                      </>
-                    ) : (
-                      'Mark Done'
-                    )}
-                  </Button>
+                  {/* Mark Done button - hidden from clients (employees only) */}
+                  {user?.role !== 'CLIENT' && (
+                    <Button
+                      variant={isDone ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => togglePhotoDone(index)}
+                      className={`w-full gap-2 ${
+                        isDone
+                          ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
+                          : ''
+                      }`}
+                    >
+                      {isDone ? (
+                        <>
+                          <Check className="h-4 w-4" />
+                          Done
+                        </>
+                      ) : (
+                        'Mark Done'
+                      )}
+                    </Button>
+                  )}
                 </div>
               );
             })}

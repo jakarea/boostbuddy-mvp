@@ -503,7 +503,9 @@ export default function OrdersList({
             {role === "CLIENT" && (
               <div className="col-span-1 text-center">{t("orders.credits", "Credits")}</div>
             )}
-            <div className={role === "CLIENT" ? "col-span-1" : "col-span-2"}>{role === "CLIENT" ? t("orders.employee", "Employee") : t("orders.employee", "Employee")}</div>
+            {role !== "CLIENT" && (
+              <div className="col-span-2">{t("orders.employee", "Employee")}</div>
+            )}
             <div className="col-span-1">{t("orders.status", "Status")}</div>
             <div className="col-span-1 text-right">{t("orders.created", "Created")}</div>
           </div>
@@ -550,19 +552,21 @@ export default function OrdersList({
                     </div>
                   )}
 
-                  {/* Employee */}
-                  <div className={role === "CLIENT" ? "col-span-1" : "col-span-2"}>
-                    {order.employees ? (
-                      <div className="flex items-center gap-1 text-sm">
-                        <UserCheck className="h-3 w-3 text-green-600 dark:text-green-400" />
-                        <span className="text-zinc-700 dark:text-zinc-300 truncate">{order.employees.name}</span>
-                      </div>
-                    ) : order.status === 'PENDING' ? (
-                      <span className="text-xs text-zinc-500 italic">Unassigned</span>
-                    ) : (
-                      <span className="text-xs text-zinc-400">—</span>
-                    )}
-                  </div>
+                  {/* Employee - hidden from CLIENT */}
+                  {role !== "CLIENT" && (
+                    <div className="col-span-2">
+                      {order.employees ? (
+                        <div className="flex items-center gap-1 text-sm">
+                          <UserCheck className="h-3 w-3 text-green-600 dark:text-green-400" />
+                          <span className="text-zinc-700 dark:text-zinc-300 truncate">{order.employees.name}</span>
+                        </div>
+                      ) : order.status === 'PENDING' ? (
+                        <span className="text-xs text-zinc-500 italic">Unassigned</span>
+                      ) : (
+                        <span className="text-xs text-zinc-400">—</span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Status */}
                   <div className="col-span-1">
@@ -597,22 +601,8 @@ export default function OrdersList({
                       </span>
                     </div>
 
-                    {role === "CLIENT" && (
+                    {role === "CLIENT" ? (
                       <>
-                        <div className="flex items-center justify-between">
-                          <span className="text-zinc-500">{t("orders.employee", "Employee")}:</span>
-                          <div className="flex items-center gap-1">
-                            {order.employees ? (
-                              <>
-                                <UserCheck className="h-3 w-3 text-green-600 dark:text-green-400" />
-                                <span className="text-zinc-700 dark:text-zinc-300">{order.employees.name}</span>
-                              </>
-                            ) : (
-                              <span className="text-zinc-500 italic text-xs">Unassigned</span>
-                            )}
-                          </div>
-                        </div>
-
                         <div className="flex items-center justify-between">
                           <span className="text-zinc-500">{t("orders.qty", "Qty")}:</span>
                           <span className="text-zinc-700 dark:text-zinc-300 font-medium">{order.quantity || 1}</span>
@@ -626,6 +616,20 @@ export default function OrdersList({
                           </div>
                         </div>
                       </>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <span className="text-zinc-500">{t("orders.employee", "Employee")}:</span>
+                        <div className="flex items-center gap-1">
+                          {order.employees ? (
+                            <>
+                              <UserCheck className="h-3 w-3 text-green-600 dark:text-green-400" />
+                              <span className="text-zinc-700 dark:text-zinc-300">{order.employees.name}</span>
+                            </>
+                          ) : (
+                            <span className="text-zinc-500 italic text-xs">Unassigned</span>
+                          )}
+                        </div>
+                      </div>
                     )}
 
                     <div className="flex items-center justify-between">
