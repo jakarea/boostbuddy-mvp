@@ -2,7 +2,7 @@
  * Credit balance update utility with retry logic
  * Handles concurrent updates and race conditions with exponential backoff
  *
- * IMPORTANT: Uses CreditTransaction table (not credit_transactions)
+ * IMPORTANT: Uses credit_transactions table
  */
 
 import { retryWithBackoff, RetryOptions } from './retry';
@@ -114,7 +114,7 @@ export async function updateCreditBalanceWithRetry(
 
       // Step 3: Create transaction record
       const { error: transactionError } = await (supabase
-        .from("CreditTransaction") as any)
+        .from("credit_transactions") as any)
         .insert({
           user_id: userId,
           amount: creditsAmount,

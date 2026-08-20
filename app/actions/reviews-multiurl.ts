@@ -439,7 +439,7 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
 
     // Create credit transaction
     console.log("📝 [MULTI-URL ORDER] Creating credit transaction...");
-    const { error: transactionError } = await (supabaseAdmin as any).from("CreditTransaction").insert({
+    const { error: transactionError } = await (supabaseAdmin as any).from("credit_transactions").insert({
       id: randomUUID(),
       user_id: auth.user.id,
       amount: -requiredCredits,

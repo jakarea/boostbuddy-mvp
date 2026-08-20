@@ -557,7 +557,7 @@ export async function getCreditsHistoryAction(userId?: string, limit: number = 2
 
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from("CreditTransaction")
+      .from("credit_transactions")
       .select("id, user_id, amount, balance_after, type, description, reference_id, created_at")
       .eq("user_id", targetUserId)
       .order("created_at", { ascending: false })
@@ -585,7 +585,7 @@ export async function getCreditsHistoryAction(userId?: string, limit: number = 2
 }
 
 // Alias for wallet page
-export const getCreditTransactionsAction = getCreditsHistoryAction;
+export const getcredit_transactionssAction = getCreditsHistoryAction;
 
 /**
  * Get wallet summary (balance + recent transactions) - optimized single call
@@ -608,7 +608,7 @@ export async function getWalletSummaryAction(limit: number = 10) {
         .eq("id", auth.user.id)
         .single(),
       supabase
-        .from("CreditTransaction")
+        .from("credit_transactions")
         .select("id, user_id, amount, balance_after, type, description, reference_id, created_at")
         .eq("user_id", auth.user.id)
         .order("created_at", { ascending: false })
@@ -647,7 +647,7 @@ export async function getWalletSummaryAction(limit: number = 10) {
 /**
  * Get all credit transactions (admin only)
  */
-export async function getAllCreditTransactionsAction(filters?: {
+export async function getAllcredit_transactionssAction(filters?: {
   userSearch?: string;
   type?: string;
   dateFrom?: string;
@@ -665,13 +665,13 @@ export async function getAllCreditTransactionsAction(filters?: {
 
     console.log("🔍 [TRANSACTIONS] Testing: Count all transactions first");
     const { count } = await supabase
-      .from("CreditTransaction")
+      .from("credit_transactions")
       .select("*", { count: "exact", head: true });
     console.log("🔍 [TRANSACTIONS] Total transactions in database:", count);
 
-    console.log("🔍 [TRANSACTIONS] Querying CreditTransaction table...");
+    console.log("🔍 [TRANSACTIONS] Querying credit_transactions table...");
     let query = supabase
-      .from("CreditTransaction")
+      .from("credit_transactions")
       .select("id, user_id, amount, balance_after, type, description, reference_id, created_at")
       .order("created_at", { ascending: false });
 
@@ -865,13 +865,13 @@ export async function getCreditsOverviewAction() {
     ] = await Promise.all([
       // Get total credits sold
       supabase
-        .from("CreditTransaction")
+        .from("credit_transactions")
         .select("amount")
         .eq("type", "PURCHASE"),
 
       // Get total credits consumed
       supabase
-        .from("CreditTransaction")
+        .from("credit_transactions")
         .select("amount")
         .eq("type", "PURCHASE"),
 
@@ -883,7 +883,7 @@ export async function getCreditsOverviewAction() {
 
       // Get total transactions
       supabase
-        .from("CreditTransaction")
+        .from("credit_transactions")
         .select("*", { count: "exact", head: true })
     ]);
 
