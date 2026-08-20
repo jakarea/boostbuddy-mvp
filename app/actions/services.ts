@@ -7,7 +7,10 @@ import { revalidatePath } from "next/cache";
 
 export async function getServicesAction() {
   const auth = await requireAuth();
-  if (!auth.success) throw new Error(auth.error);
+  if (!auth.success) {
+    console.warn("[getServicesAction] Auth failed:", auth.error);
+    return { success: false, error: auth.error, data: [] };
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -17,10 +20,10 @@ export async function getServicesAction() {
 
   if (error) {
     console.error("Failed to fetch services:", error);
-    throw new Error("Failed to fetch services");
+    return { success: false, error: "Failed to fetch services", data: [] };
   }
 
-  return data;
+  return { success: true, data: data || [] };
 }
 
 export async function upsertServiceAction(formData: FormData, serviceId?: string) {

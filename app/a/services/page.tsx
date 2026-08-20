@@ -11,7 +11,8 @@ export const metadata = {
 export const revalidate = 300;
 
 export default async function ServicesPage() {
-  const initialServices = await getServicesAction();
+  const servicesResult = await getServicesAction();
+  const initialServices = servicesResult.success ? (servicesResult.data || []) : [];
 
   return (
     <Suspense fallback={<LoadingScreen />}>

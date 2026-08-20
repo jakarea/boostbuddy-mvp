@@ -15,7 +15,7 @@ export default async function DashboardInvoicesPage() {
   const user = await getCachedUser();
 
   const supabase = await createClient();
-  const [response, services, ordersRes] = await Promise.all([
+  const [response, servicesResult, ordersRes] = await Promise.all([
     getClientInvoicesAction(),
     getServicesAction(),
     user
@@ -24,12 +24,13 @@ export default async function DashboardInvoicesPage() {
   ]);
 
   const initialInvoices = response.success && response.data ? response.data : [];
+  const services = servicesResult.success ? (servicesResult.data || []) : [];
   const orders = ordersRes.data || [];
 
   return (
     <Suspense fallback={<LoadingScreen />}>
-      <ClientInvoices 
-        initialInvoices={initialInvoices} 
+      <ClientInvoices
+        initialInvoices={initialInvoices}
         services={services}
         orders={orders}
       />

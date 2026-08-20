@@ -151,9 +151,9 @@ export default function DashboardClient({ initialProfiles, creditsBalance = 0, w
   // Fetch active services list
   useEffect(() => {
     getServicesAction()
-      .then((data: any) => {
-        if (data) {
-          setServices(data.filter((s: any) => s.is_active));
+      .then((result: any) => {
+        if (result && result.success) {
+          setServices(result.data.filter((s: any) => s.is_active));
         }
       })
       .catch((err) => console.error("Error loading services:", err));

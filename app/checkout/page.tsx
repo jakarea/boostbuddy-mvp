@@ -18,15 +18,17 @@ export default async function CheckoutPage() {
   }
 
   // Fetch data needed for checkout rendering
-  const [services, { data: profiles }] = await Promise.all([
+  const [servicesResult, { data: profiles }] = await Promise.all([
     getServicesAction(),
     supabase.from("profile_accounts").select("*").eq("assigned_client_id", user.id)
   ]);
 
+  const services = servicesResult.success ? (servicesResult.data || []) : [];
+
   return (
     <Suspense fallback={<LoadingScreen />}>
       <CheckoutClient
-        services={services || []}
+        services={services}
         profiles={(profiles || [])}
         userName={user.user_metadata?.name || user.email || ""}
       />

@@ -12,7 +12,7 @@ export const metadata = {
 
 export default async function InvoicesPage() {
   const supabase = await createClient();
-  const [response, allClients, services, ordersRes, billingRes] = await Promise.all([
+  const [response, allClients, servicesResult, ordersRes, billingRes] = await Promise.all([
     getAdminInvoicesAction(),
     getClientsAction(),
     getServicesAction(),
@@ -29,13 +29,14 @@ export default async function InvoicesPage() {
 
   const initialInvoices = (response.success ? response.data : []) as any[];
   const activeClients = allClients.filter(c => c.status === "ACTIVE");
+  const services = servicesResult.success ? (servicesResult.data || []) : [];
   const allOrders = ordersRes.data || [];
   const allBilling = billingRes.data || [];
 
   return (
     <Suspense fallback={<LoadingScreen />}>
-      <InvoicesClient 
-        initialInvoices={initialInvoices} 
+      <InvoicesClient
+        initialInvoices={initialInvoices}
         activeClients={activeClients}
         services={services}
         orders={allOrders}

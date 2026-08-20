@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 export async function createClient() {
   const cookieStore = await cookies();
 
-  return createServerClient(
+  const client = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -27,4 +27,18 @@ export async function createClient() {
       },
     }
   );
+
+  // Refresh session if expired
+  try {
+    const { data: { session } } = await client.auth.getSession();
+    if (!session) {
+      // Try to refresh using refresh token from cookie
+      await client.auth.refreshSession();
+    }
+  } catch (error) {
+    // Session refresh failed (expired refresh token, etc.)
+    // This is expected for logged-out users
+  }
+
+  return client;
 }
