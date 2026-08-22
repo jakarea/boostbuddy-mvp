@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useTransition } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,12 +29,9 @@ import {
   Check,
   X,
   Loader2,
-  MessageSquare,
-  Settings,
   RefreshCw,
+  MessageSquare,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
 import {
   getTelegramGroupsAction,
   addTelegramGroupAction,
@@ -41,41 +39,33 @@ import {
   deleteTelegramGroupAction,
   testTelegramGroupAction,
   verifyAllGroupsAction,
+  type TelegramGroupConfig,
 } from "@/app/actions/telegram-groups";
+import { cn } from "@/lib/utils";
 
-interface TelegramGroup {
-  id: string;
-  group_name: string;
-  group_chat_id: string;
-  group_type: "ADMIN" | "EMPLOYEE" | "CLIENT_SUPPORT" | "BILLING";
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-const GROUP_TYPE_LABELS = {
-  ADMIN: "Admin Team",
-  EMPLOYEE: "All Employees",
+const GROUP_TYPE_LABELS: Record<string, string> = {
+  ADMIN: "Admin Alerts",
+  EMPLOYEE: "Employee Task Alerts",
   CLIENT_SUPPORT: "Client Support",
-  BILLING: "Billing Team",
+  BILLING: "Billing Alerts",
 };
 
-const GROUP_TYPE_COLORS = {
+const GROUP_TYPE_COLORS: Record<string, string> = {
   ADMIN: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
   EMPLOYEE: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
   CLIENT_SUPPORT: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20",
-  BILLING: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
+  BILLING: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
 };
 
-export default function TelegramGroupManager() {
+export function TelegramGroupManager() {
   const { t } = useTranslation("notifications");
-  const [groups, setGroups] = useState<TelegramGroup[]>([]);
+  const [groups, setGroups] = useState<TelegramGroupConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPending, startTransition] = useTransition();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editingGroup, setEditingGroup] = useState<TelegramGroup | null>(null);
-  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [editingGroup, setEditingGroup] = useState<TelegramGroupConfig | null>(null);
+  const [feedback, setFeedback] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [isPending, startTransition] = useTransition();
   const [verifying, setVerifying] = useState(false);
 
   // Form state
@@ -86,9 +76,10 @@ export default function TelegramGroupManager() {
     is_active: true,
   });
 
-  useEffect(() => {
-    loadGroups();
-  }, []);
+  const showFeedback = (msg: string, ok: boolean) => {
+    setFeedback({ msg, ok });
+    setTimeout(() => setFeedback(null), 4000);
+  };
 
   const loadGroups = () => {
     startTransition(async () => {
@@ -101,97 +92,9 @@ export default function TelegramGroupManager() {
     });
   };
 
-  const handleAdd = () => {
-    setFeedback(null);
-    startTransition(async () => {
-      const formPayload = new FormData();
-      formPayload.append("group_name", formData.group_name);
-      formPayload.append("group_chat_id", formData.group_chat_id);
-      formPayload.append("group_type", formData.group_type);
-
-      const result = await addTelegramGroupAction(formPayload);
-      if (result.success) {
-        setFeedback({ ok: true, msg: "Group added successfully!" });
-        setShowAddDialog(false);
-        resetForm();
-        loadGroups();
-      } else {
-        setFeedback({ ok: false, msg: result.error || "Failed to add group" });
-      }
-    });
-  };
-
-  const handleEdit = () => {
-    if (!editingGroup) return;
-
-    setFeedback(null);
-    startTransition(async () => {
-      const formPayload = new FormData();
-      formPayload.append("group_name", formData.group_name);
-      formPayload.append("group_chat_id", formData.group_chat_id);
-      formPayload.append("group_type", formData.group_type);
-      formPayload.append("is_active", formData.is_active.toString());
-
-      const result = await updateTelegramGroupAction(editingGroup.id, formPayload);
-      if (result.success) {
-        setFeedback({ ok: true, msg: "Group updated successfully!" });
-        setShowEditDialog(false);
-        setEditingGroup(null);
-        resetForm();
-        loadGroups();
-      } else {
-        setFeedback({ ok: false, msg: result.error || "Failed to update group" });
-      }
-    });
-  };
-
-  const handleDelete = (groupId: string, groupName: string) => {
-    if (!confirm(`Are you sure you want to delete "${groupName}"?`)) return;
-
-    setFeedback(null);
-    startTransition(async () => {
-      const result = await deleteTelegramGroupAction(groupId);
-      if (result.success) {
-        setFeedback({ ok: true, msg: "Group deleted successfully!" });
-        loadGroups();
-      } else {
-        setFeedback({ ok: false, msg: result.error || "Failed to delete group" });
-      }
-    });
-  };
-
-  const handleTest = (groupId: string) => {
-    setFeedback(null);
-    startTransition(async () => {
-      const result = await testTelegramGroupAction(groupId);
-      if (result.success) {
-        setFeedback({ ok: true, msg: "Test message sent successfully! Check your Telegram group." });
-      } else {
-        setFeedback({ ok: false, msg: result.error || "Failed to send test message" });
-      }
-    });
-  };
-
-  const handleVerifyAll = () => {
-    setFeedback(null);
-    setVerifying(true);
-    startTransition(async () => {
-      const result = await verifyAllGroupsAction();
-      setVerifying(false);
-
-      if (result.success && result.results) {
-        const accessible = result.results.filter((r) => r.accessible).length;
-        const total = result.results.length;
-        setFeedback({
-          ok: accessible === total,
-          msg: `Verification complete: ${accessible}/${total} groups accessible`,
-        });
-        loadGroups(); // Reload to show updated active status
-      } else {
-        setFeedback({ ok: false, msg: result.error || "Verification failed" });
-      }
-    });
-  };
+  useEffect(() => {
+    loadGroups();
+  }, []);
 
   const resetForm = () => {
     setFormData({
@@ -200,14 +103,109 @@ export default function TelegramGroupManager() {
       group_type: "EMPLOYEE",
       is_active: true,
     });
+    setEditingGroup(null);
   };
 
-  const openEditDialog = (group: TelegramGroup) => {
+  const handleAdd = () => {
+    if (!formData.group_name.trim() || !formData.group_chat_id.trim()) {
+      showFeedback(t("telegram_groups.fill_required", "Please fill in all required fields"), false);
+      return;
+    }
+
+    startTransition(async () => {
+      const formPayload = new FormData();
+      formPayload.append("group_name", formData.group_name.trim());
+      formPayload.append("group_chat_id", formData.group_chat_id.trim());
+      formPayload.append("group_type", formData.group_type);
+
+      const result = await addTelegramGroupAction(formPayload);
+      if (result.success) {
+        showFeedback(t("telegram_groups.add_success", "Telegram group added successfully!"), true);
+        setShowAddDialog(false);
+        resetForm();
+        loadGroups();
+      } else {
+        showFeedback(result.error || t("telegram_groups.add_failed", "Failed to add group"), false);
+      }
+    });
+  };
+
+  const handleEdit = () => {
+    if (!editingGroup || !formData.group_name.trim() || !formData.group_chat_id.trim()) {
+      showFeedback(t("telegram_groups.fill_required", "Please fill in all required fields"), false);
+      return;
+    }
+
+    startTransition(async () => {
+      const formPayload = new FormData();
+      formPayload.append("group_name", formData.group_name.trim());
+      formPayload.append("group_chat_id", formData.group_chat_id.trim());
+      formPayload.append("group_type", formData.group_type);
+      formPayload.append("is_active", formData.is_active.toString());
+
+      const result = await updateTelegramGroupAction(editingGroup.id, formPayload);
+      if (result.success) {
+        showFeedback(t("telegram_groups.update_success", "Telegram group updated successfully!"), true);
+        setShowEditDialog(false);
+        setEditingGroup(null);
+        resetForm();
+        loadGroups();
+      } else {
+        showFeedback(result.error || t("telegram_groups.update_failed", "Failed to update group"), false);
+      }
+    });
+  };
+
+  const handleDelete = (groupId: string, groupName: string) => {
+    if (!confirm(t("telegram_groups.delete_confirm", { name: groupName, defaultValue: `Are you sure you want to delete "${groupName}"?` }))) return;
+
+    startTransition(async () => {
+      const result = await deleteTelegramGroupAction(groupId);
+      if (result.success) {
+        showFeedback(t("telegram_groups.delete_success", "Telegram group deleted successfully!"), true);
+        loadGroups();
+      } else {
+        showFeedback(result.error || t("telegram_groups.delete_failed", "Failed to delete group"), false);
+      }
+    });
+  };
+
+  const handleTest = (groupId: string) => {
+    startTransition(async () => {
+      const result = await testTelegramGroupAction(groupId);
+      if (result.success) {
+        showFeedback(t("telegram_groups.test_success", "Test message sent successfully!"), true);
+      } else {
+        showFeedback(result.error || t("telegram_groups.test_failed", "Failed to send test message"), false);
+      }
+    });
+  };
+
+  const handleVerifyAll = async () => {
+    setVerifying(true);
+    const result = await verifyAllGroupsAction();
+    if (result.success && result.data) {
+      showFeedback(
+        t("telegram_groups.verified_summary", {
+          active: result.data.active,
+          total: result.data.total,
+          defaultValue: `Verified ${result.data.active}/${result.data.total} groups active`,
+        }),
+        result.data.active > 0
+      );
+      loadGroups();
+    } else {
+      showFeedback(result.error || t("telegram_groups.verify_failed", "Failed to verify groups"), false);
+    }
+    setVerifying(false);
+  };
+
+  const openEditDialog = (group: TelegramGroupConfig) => {
     setEditingGroup(group);
     setFormData({
       group_name: group.group_name,
       group_chat_id: group.group_chat_id,
-      group_type: group.group_type,
+      group_type: group.group_type as any,
       is_active: group.is_active,
     });
     setShowEditDialog(true);
@@ -225,15 +223,15 @@ export default function TelegramGroupManager() {
             <Users className="h-4 w-4" />
           </div>
           <div>
-            <h3 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100">Telegram Groups</h3>
-            <p className="text-[10px] text-zinc-500">Team-based notifications</p>
+            <h3 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100">{t("telegram_groups.title", "Telegram Groups")}</h3>
+            <p className="text-[10px] text-zinc-500">{t("telegram_groups.subtitle", "Team-based notifications")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Button
             size="sm"
             variant="outline"
-            className="h-7 px-2 text-[11px] gap-1"
+            className="h-7 px-2 text-[11px] gap-1 cursor-pointer"
             onClick={handleVerifyAll}
             disabled={verifying || isPending}
           >
@@ -242,18 +240,18 @@ export default function TelegramGroupManager() {
             ) : (
               <RefreshCw className="h-3 w-3" />
             )}
-            Verify All
+            {t("telegram_groups.verify_all", "Verify All")}
           </Button>
           <Button
             size="sm"
-            className="bg-[#168BB0] hover:bg-[#0F7493] text-white h-7 px-3 text-xs gap-1"
+            className="bg-[#168BB0] hover:bg-[#0F7493] text-white h-7 px-3 text-xs gap-1 cursor-pointer"
             onClick={() => {
               resetForm();
               setShowAddDialog(true);
             }}
           >
             <Plus className="h-3.5 w-3.5" />
-            Add Group
+            {t("telegram_groups.add_group", "Add Group")}
           </Button>
         </div>
       </div>
@@ -281,14 +279,14 @@ export default function TelegramGroupManager() {
       ) : groups.length === 0 ? (
         <div className="text-center py-8">
           <MessageSquare className="h-8 w-8 text-zinc-300 dark:text-zinc-600 mx-auto mb-2" />
-          <p className="text-xs text-zinc-500">No Telegram groups configured yet.</p>
+          <p className="text-xs text-zinc-500">{t("telegram_groups.no_groups", "No Telegram groups configured yet.")}</p>
           <Button
             size="sm"
             variant="outline"
-            className="mt-3 text-xs"
+            className="mt-3 text-xs cursor-pointer"
             onClick={() => setShowAddDialog(true)}
           >
-            Add Your First Group
+            {t("telegram_groups.add_first_group", "Add Your First Group")}
           </Button>
         </div>
       ) : (
@@ -297,7 +295,7 @@ export default function TelegramGroupManager() {
           {activeGroups.length > 0 && (
             <div>
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2">
-                Active Groups ({activeGroups.length})
+                {t("telegram_groups.active_groups", "Active Groups")} ({activeGroups.length})
               </p>
               <div className="space-y-2">
                 {activeGroups.map((group) => (
@@ -317,7 +315,7 @@ export default function TelegramGroupManager() {
           {inactiveGroups.length > 0 && (
             <div>
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2">
-                Inactive Groups ({inactiveGroups.length})
+                {t("telegram_groups.inactive_groups", "Inactive Groups")} ({inactiveGroups.length})
               </p>
               <div className="space-y-2">
                 {inactiveGroups.map((group) => (
@@ -339,14 +337,14 @@ export default function TelegramGroupManager() {
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="max-w-md bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
           <DialogHeader>
-            <DialogTitle className="text-base font-extrabold">Add Telegram Group</DialogTitle>
+            <DialogTitle className="text-base font-extrabold">{t("telegram_groups.add_title", "Add Telegram Group")}</DialogTitle>
             <DialogDescription className="text-xs text-zinc-500 leading-relaxed mt-1">
-              Add a Telegram group for team-based notifications. All employees in the group will receive messages.
+              {t("telegram_groups.add_desc", "Add a Telegram group for team-based notifications. All employees in the group will receive messages.")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3.5 mt-2">
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Group Name</Label>
+              <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{t("telegram_groups.group_name", "Group Name")}</Label>
               <Input
                 value={formData.group_name}
                 onChange={(e) => setFormData({ ...formData, group_name: e.target.value })}
@@ -356,7 +354,7 @@ export default function TelegramGroupManager() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Group Chat ID</Label>
+              <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{t("telegram_groups.group_chat_id", "Group Chat ID")}</Label>
               <Input
                 value={formData.group_chat_id}
                 onChange={(e) => setFormData({ ...formData, group_chat_id: e.target.value })}
@@ -364,12 +362,12 @@ export default function TelegramGroupManager() {
                 className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 h-9 text-xs"
               />
               <p className="text-[10px] text-zinc-500">
-                Get this from @GetMyId bot (must be a negative number for groups)
+                {t("telegram_groups.chat_id_hint", "Get this from @GetMyId bot (must be a negative number for groups)")}
               </p>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Group Type</Label>
+              <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{t("telegram_groups.group_type", "Group Type")}</Label>
               <Select value={formData.group_type} onValueChange={(value: any) => setFormData({ ...formData, group_type: value })}>
                 <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 h-9 text-xs">
                   <SelectValue />
@@ -385,16 +383,16 @@ export default function TelegramGroupManager() {
             </div>
 
             <div className="flex justify-end gap-2 mt-4">
-              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setShowAddDialog(false)}>
-                Cancel
+              <Button size="sm" variant="outline" className="h-8 text-xs cursor-pointer" onClick={() => setShowAddDialog(false)}>
+                {t("common.cancel", "Cancel")}
               </Button>
               <Button
                 size="sm"
-                className="bg-[#168BB0] hover:bg-[#0F7493] text-white h-8 text-xs"
+                className="bg-[#168BB0] hover:bg-[#0F7493] text-white h-8 text-xs cursor-pointer"
                 onClick={handleAdd}
                 disabled={isPending || !formData.group_name.trim() || !formData.group_chat_id.trim()}
               >
-                {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Add Group"}
+                {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : t("telegram_groups.add_group", "Add Group")}
               </Button>
             </div>
           </div>
@@ -405,14 +403,14 @@ export default function TelegramGroupManager() {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="max-w-md bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
           <DialogHeader>
-            <DialogTitle className="text-base font-extrabold">Edit Telegram Group</DialogTitle>
+            <DialogTitle className="text-base font-extrabold">{t("telegram_groups.edit_title", "Edit Telegram Group")}</DialogTitle>
             <DialogDescription className="text-xs text-zinc-500 leading-relaxed mt-1">
-              Update the Telegram group configuration
+              {t("telegram_groups.edit_desc", "Update the Telegram group configuration")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3.5 mt-2">
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Group Name</Label>
+              <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{t("telegram_groups.group_name", "Group Name")}</Label>
               <Input
                 value={formData.group_name}
                 onChange={(e) => setFormData({ ...formData, group_name: e.target.value })}
@@ -421,7 +419,7 @@ export default function TelegramGroupManager() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Group Chat ID</Label>
+              <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{t("telegram_groups.group_chat_id", "Group Chat ID")}</Label>
               <Input
                 value={formData.group_chat_id}
                 onChange={(e) => setFormData({ ...formData, group_chat_id: e.target.value })}
@@ -430,7 +428,7 @@ export default function TelegramGroupManager() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Group Type</Label>
+              <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{t("telegram_groups.group_type", "Group Type")}</Label>
               <Select value={formData.group_type} onValueChange={(value: any) => setFormData({ ...formData, group_type: value })}>
                 <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 h-9 text-xs">
                   <SelectValue />
@@ -454,21 +452,21 @@ export default function TelegramGroupManager() {
                 className="rounded border-zinc-300"
               />
               <Label htmlFor="is_active" className="text-xs text-zinc-700 dark:text-zinc-300">
-                Active (enable notifications for this group)
+                {t("telegram_groups.active_label", "Active (enable notifications for this group)")}
               </Label>
             </div>
 
             <div className="flex justify-end gap-2 mt-4">
-              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setShowEditDialog(false)}>
-                Cancel
+              <Button size="sm" variant="outline" className="h-8 text-xs cursor-pointer" onClick={() => setShowEditDialog(false)}>
+                {t("common.cancel", "Cancel")}
               </Button>
               <Button
                 size="sm"
-                className="bg-[#168BB0] hover:bg-[#0F7493] text-white h-8 text-xs"
+                className="bg-[#168BB0] hover:bg-[#0F7493] text-white h-8 text-xs cursor-pointer"
                 onClick={handleEdit}
                 disabled={isPending}
               >
-                {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save Changes"}
+                {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : t("common.save_changes", "Save Changes")}
               </Button>
             </div>
           </div>
@@ -484,11 +482,12 @@ function GroupCard({
   onDelete,
   onTest,
 }: {
-  group: TelegramGroup;
+  group: TelegramGroupConfig;
   onEdit: () => void;
   onDelete: () => void;
   onTest: () => void;
 }) {
+  const { t } = useTranslation("notifications");
   return (
     <div
       className={cn(
@@ -505,14 +504,14 @@ function GroupCard({
             <Badge
               className={cn(
                 "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0 border",
-                GROUP_TYPE_COLORS[group.group_type]
+                GROUP_TYPE_COLORS[group.group_type] || "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400"
               )}
             >
-              {GROUP_TYPE_LABELS[group.group_type]}
+              {GROUP_TYPE_LABELS[group.group_type] || group.group_type}
             </Badge>
             {!group.is_active && (
               <Badge className="bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0">
-                Inactive
+                {t("status.inactive", "Inactive")}
               </Badge>
             )}
           </div>
@@ -520,14 +519,14 @@ function GroupCard({
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1 text-zinc-500" onClick={onTest}>
+          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1 text-zinc-500 cursor-pointer" onClick={onTest}>
             <TestTube className="h-3 w-3" />
-            Test
+            {t("telegram.test", "Test")}
           </Button>
-          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1 text-zinc-500" onClick={onEdit}>
+          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1 text-zinc-500 cursor-pointer" onClick={onEdit}>
             <Edit className="h-3 w-3" />
           </Button>
-          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1 text-red-500" onClick={onDelete}>
+          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1 text-red-500 cursor-pointer" onClick={onDelete}>
             <Trash2 className="h-3 w-3" />
           </Button>
         </div>
@@ -535,3 +534,5 @@ function GroupCard({
     </div>
   );
 }
+
+export default TelegramGroupManager;

@@ -240,7 +240,7 @@ export default function NewReviewOrderPage() {
         totalReviews += validUrlReviews.length;
 
         if (validUrlReviews.length > 50) {
-          toastError("Maximum 50 reviews per URL");
+          toastError(t("validation.max_50_per_url", "Maximum 50 reviews per URL"));
           return;
         }
 
@@ -261,13 +261,13 @@ export default function NewReviewOrderPage() {
       });
 
       if (totalReviews > 500) {
-        toastError("Maximum 500 reviews total across all URLs");
+        toastError(t("validation.max_500_total", "Maximum 500 reviews total across all URLs"));
         return;
       }
 
       if (totalReviews === 0) {
         setFieldErrors({ reviews: { 0: true } });
-        toastError("Please add at least one review");
+        toastError(t("validation.at_least_one_review", "Please add at least one review"));
         return;
       }
 
@@ -278,7 +278,7 @@ export default function NewReviewOrderPage() {
 
       if (Object.keys(photoErrors).length > 0) {
         setFieldErrors({ photos: photoErrors });
-        toastError("Please add photos for all reviews");
+        toastError(t("validation.add_photos_all", "Please add photos for all reviews"));
         return;
       }
     }
@@ -287,7 +287,7 @@ export default function NewReviewOrderPage() {
     const validUrls = urls.filter(u => u.url.trim().length > 0);
     if (validUrls.length === 0) {
       setFieldErrors({ urls: { 0: true } });
-      toastError("Please add at least one URL");
+      toastError(t("validation.at_least_one_url", "Please add at least one URL"));
       return;
     }
 
@@ -428,11 +428,11 @@ export default function NewReviewOrderPage() {
                   }`}
                 />
                 <span className="text-xs text-gray-600 dark:text-zinc-400">
-                  reactions per URL
+                  {t("reviews.reactions_per_url", "reactions per URL")}
                 </span>
               </div>
               {fieldErrors.quantity && (
-                <p className="mt-1 text-xs text-red-600 dark:text-red-400">Quantity must be between 1 and 50</p>
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{t("validation.quantity_range", "Quantity must be between 1 and 50")}</p>
               )}
             </div>
           )}
@@ -632,7 +632,7 @@ export default function NewReviewOrderPage() {
                   className="text-sm text-[#007bff] hover:underline flex items-center gap-1"
                 >
                   <Plus className="w-4 h-4" />
-                  Add Another URL ({urls.length}/10)
+                  {t("reviews.add_another_url", "Add Another URL")} ({urls.length}/10)
                 </button>
               )}
             </div>
@@ -644,20 +644,20 @@ export default function NewReviewOrderPage() {
               {/* Total Reviews Card */}
               <div className="bg-[#e9f5ff] dark:bg-[#007bff]/10 rounded-lg p-4 border border-[#007bff]/20">
                 <label className="block text-xs font-semibold text-gray-900 dark:text-zinc-100 mb-1">
-                  Total Reviews
+                  {t("reviews.total_reviews", "Total Reviews")}
                 </label>
                 <p className="text-xs text-gray-600 dark:text-zinc-400 mb-1">
-                  {totalQuantity} reviews × {urls.filter(u => u.url.trim()).length} URL{urls.filter(u => u.url.trim()).length !== 1 ? 's' : ''}
+                  {totalQuantity} {t("reviews.reviews", "reviews")} × {urls.filter(u => u.url.trim()).length} URL{urls.filter(u => u.url.trim()).length !== 1 ? 's' : ''}
                 </p>
                 <p className="text-lg font-bold text-[#007bff]">
-                  {totalQuantity} <span className="text-xs font-normal">reviews</span>
+                  {totalQuantity} <span className="text-xs font-normal">{t("reviews.reviews", "reviews")}</span>
                 </p>
               </div>
 
               {/* Total Cost Card */}
               <div className="bg-[#e9f5ff] dark:bg-[#007bff]/10 rounded-lg p-4 border border-[#007bff]/20">
                 <label className="block text-xs font-semibold text-gray-900 dark:text-zinc-100 mb-1">
-                  Total Cost
+                  {t("reviews.total_cost", "Total Cost")}
                 </label>
                 <p className="text-xs text-gray-600 dark:text-zinc-400 mb-1">
                   {totalQuantity} × {creditPricing[orderType]}
@@ -674,18 +674,18 @@ export default function NewReviewOrderPage() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+              className="px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             >
-              Cancel
+              {t("common.cancel", "Cancel")}
             </button>
             <button
               type="submit"
               disabled={submitting || !validation?.hasEnough}
-              className="flex-1 px-4 py-2 bg-[#007bff] text-white rounded-lg font-medium hover:bg-[#0056b3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-[#007bff] text-white rounded-lg font-medium hover:bg-[#0056b3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
             >
-              {submitting ? 'Creating...' : (
+              {submitting ? t("reviews.creating", "Creating...") : (
                 <>
-                  Create Order
+                  {t("reviews.create_order", "Create Order")}
                   <ChevronRight className="w-4 h-4" />
                 </>
               )}

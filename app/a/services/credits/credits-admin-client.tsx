@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,17 +16,35 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Coins, Plus, Edit, Trash2, Power, RefreshCw, Wallet } from "lucide-react";
-import Swal from "sweetalert2";
+import {
+  Coins,
+  Plus,
+  Edit,
+  Trash2,
+  Power,
+  RefreshCw,
+  Wallet
+} from "lucide-react";
+import {
+  getCreditPackagesAdminAction,
+  createCreditPackageAction,
+  updateCreditPackageAction,
+  deleteCreditPackageAction,
+  togglePackageStatusAction,
+  getCreditsOverviewAction
+} from "@/app/actions/credits";
 
-interface Package {
+interface CreditPackage {
   id: string;
   name: string;
   description?: string;
   creditsAmount: number;
   price: number;
+  stripePriceId?: string;
   isActive: boolean;
+  displayOrder: number;
   createdAt: string;
+  updatedAt: string;
 }
 
 interface Overview {
@@ -36,21 +54,26 @@ interface Overview {
   totalTransactions: number;
 }
 
+interface CreditsAdminClientProps {
+  initialPackages: CreditPackage[];
+  initialOverview: Overview;
+}
+
 export default function CreditsAdminClient({
   initialPackages,
   initialOverview,
-}: {
-  initialPackages: Package[];
-  initialOverview: Overview;
-}) {
-  const router = useRouter();
-  const { t } = useTranslation("admin_reviews");
+}: CreditsAdminClientProps) {
+  const { t } = useTranslation("credits_admin");
   const { success, error } = useToast();
-  const [packages, setPackages] = useState<Package[]>(initialPackages);
+  const router = useRouter();
+
+  const [packages, setPackages] = useState<CreditPackage[]>(initialPackages);
   const [overview, setOverview] = useState<Overview>(initialOverview);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingPackage, setEditingPackage] = useState<Package | null>(null);
+  const [editingPackage, setEditingPackage] = useState<CreditPackage | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -59,39 +82,38 @@ export default function CreditsAdminClient({
   });
 
   const loadData = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const { getCreditPackagesAdminAction, getCreditsOverviewAction } = await import("@/app/actions/credits");
       const [packagesRes, overviewRes] = await Promise.all([
         getCreditPackagesAdminAction(),
         getCreditsOverviewAction(),
       ]);
 
       if (packagesRes.success && packagesRes.data) {
-        setPackages(packagesRes.data as Package[]);
+        setPackages(packagesRes.data);
       }
       if (overviewRes.success && overviewRes.data) {
-        setOverview(overviewRes.data as Overview);
+        setOverview(overviewRes.data);
       }
     } catch (err) {
-      error("Failed to load data");
+      error(t("packages.load_error", "Failed to load credits data"));
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const handleCreate = () => {
     setEditingPackage(null);
-    setFormData({ name: "", description: "", creditsAmount: "", price: "" });
+    setFormData({
+      name: "",
+      description: "",
+      creditsAmount: "",
+      price: "",
+    });
     setDialogOpen(true);
   };
 
-  const handleEdit = (pkg: Package) => {
+  const handleEdit = (pkg: CreditPackage) => {
     setEditingPackage(pkg);
     setFormData({
       name: pkg.name,
@@ -102,105 +124,85 @@ export default function CreditsAdminClient({
     setDialogOpen(true);
   };
 
-  const handleToggle = async (pkg: Package) => {
+  const handleToggle = async (pkg: CreditPackage) => {
     try {
-      setIsLoading(true);
-      const { togglePackageStatusAction } = await import("@/app/actions/credits");
-      const res = await togglePackageStatusAction(pkg.id) as any;
-
-      if (!res.success || !res.data) {
-        error(res.error || "Failed to toggle package");
-        return;
+      const res = await togglePackageStatusAction(pkg.id);
+      if (res.success) {
+        success(pkg.isActive ? t("packages.deactivated", "Package deactivated") : t("packages.activated", "Package activated"));
+        loadData();
+      } else {
+        error(res.error || t("packages.toggle_error", "Failed to toggle package status"));
       }
-
-      success(res.data.isActive ? "Package activated" : "Package deactivated");
-      setPackages(packages.map(p => p.id === pkg.id ? { ...p, isActive: res.data.isActive } : p));
-      loadData();
     } catch (err) {
-      error("Failed to toggle package");
-    } finally {
-      setIsLoading(false);
+      error(t("packages.toggle_error", "Failed to toggle package status"));
     }
   };
 
-  const handleDelete = async (pkg: Package) => {
-    const result = await Swal.fire({
-      title: "Delete Package?",
-      text: `Are you sure you want to delete "${pkg.name}"? This action cannot be undone.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Yes, delete it!"
-    });
-
-    if (!result.isConfirmed) return;
+  const handleDelete = async (pkg: CreditPackage) => {
+    if (!confirm(t("packages.delete_confirm", { name: pkg.name, defaultValue: `Are you sure you want to delete "${pkg.name}"?` }))) {
+      return;
+    }
 
     try {
-      setIsLoading(true);
-      const { deleteCreditPackageAction } = await import("@/app/actions/credits");
       const res = await deleteCreditPackageAction(pkg.id);
-
       if (res.success) {
-        success("Package deleted");
-        setPackages(packages.filter(p => p.id !== pkg.id));
+        success(t("packages.deleted", "Package deleted successfully"));
         loadData();
       } else {
-        error(res.error || "Failed to delete package");
+        error(res.error || t("packages.delete_error", "Failed to delete package"));
       }
     } catch (err) {
-      error("Failed to delete package");
-    } finally {
-      setIsLoading(false);
+      error(t("packages.delete_error", "Failed to delete package"));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const credits = parseInt(formData.creditsAmount);
-    const price = parseFloat(formData.price);
-
-    if (!formData.name.trim()) {
-      error("Package name is required");
-      return;
-    }
-    if (isNaN(credits) || credits <= 0) {
-      error("Valid credits amount required");
-      return;
-    }
-    if (isNaN(price) || price <= 0) {
-      error("Valid price required");
-      return;
-    }
+    setIsLoading(true);
 
     try {
-      setIsLoading(true);
-      const { createCreditPackageAction, updateCreditPackageAction } = await import("@/app/actions/credits");
+      const creditsAmount = parseInt(formData.creditsAmount);
+      const price = parseFloat(formData.price);
 
-      const res = editingPackage
-        ? await updateCreditPackageAction(editingPackage.id, {
-            name: formData.name.trim(),
-            description: formData.description.trim(),
-            creditsAmount: credits,
-            price,
-          })
-        : await createCreditPackageAction({
-            name: formData.name.trim(),
-            description: formData.description.trim(),
-            creditsAmount: credits,
-            price,
-          });
+      if (isNaN(creditsAmount) || creditsAmount <= 0) {
+        error(t("packages.invalid_credits", "Invalid credits amount"));
+        setIsLoading(false);
+        return;
+      }
+
+      if (isNaN(price) || price <= 0) {
+        error(t("packages.invalid_price", "Invalid price"));
+        setIsLoading(false);
+        return;
+      }
+
+      let res;
+      if (editingPackage) {
+        res = await updateCreditPackageAction(editingPackage.id, {
+          name: formData.name,
+          description: formData.description,
+          creditsAmount,
+          price,
+        });
+      } else {
+        res = await createCreditPackageAction({
+          name: formData.name,
+          description: formData.description,
+          creditsAmount,
+          price,
+          displayOrder: packages.length + 1,
+        });
+      }
 
       if (res.success) {
-        success(editingPackage ? "Package updated" : "Package created");
+        success(editingPackage ? t("packages.updated", "Package updated successfully") : t("packages.created", "Package created successfully"));
         setDialogOpen(false);
         loadData();
       } else {
-        error(res.error || "Failed to save package");
+        error(res.error || t("packages.save_error", "Failed to save package"));
       }
     } catch (err) {
-      error("Failed to save package");
+      error(t("packages.save_error", "Failed to save package"));
     } finally {
       setIsLoading(false);
     }
@@ -212,15 +214,15 @@ export default function CreditsAdminClient({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-            Credits Management
+            {t("management.title", "Credits Management")}
           </h1>
           <p className="text-sm text-zinc-500 mt-1">
-            Create and manage credit packages for review orders
+            {t("management.subtitle", "Create and manage credit packages for review orders")}
           </p>
         </div>
-        <Button onClick={loadData} variant="outline" size="sm" disabled={isLoading}>
+        <Button onClick={loadData} variant="outline" size="sm" disabled={isLoading} className="cursor-pointer">
           <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
+          {t("common.refresh", "Refresh")}
         </Button>
       </div>
 
@@ -232,7 +234,7 @@ export default function CreditsAdminClient({
               <Wallet className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-zinc-500">Sold</p>
+              <p className="text-sm text-zinc-500">{t("stats.sold", "Sold")}</p>
               <p className="text-xl font-bold">{overview.totalCreditsSold}</p>
             </div>
           </div>
@@ -243,7 +245,7 @@ export default function CreditsAdminClient({
               <Coins className="h-5 w-5 text-red-600" />
             </div>
             <div>
-              <p className="text-sm text-zinc-500">Consumed</p>
+              <p className="text-sm text-zinc-500">{t("stats.consumed", "Consumed")}</p>
               <p className="text-xl font-bold">{overview.totalCreditsConsumed}</p>
             </div>
           </div>
@@ -254,7 +256,7 @@ export default function CreditsAdminClient({
               <Wallet className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-zinc-500">Active</p>
+              <p className="text-sm text-zinc-500">{t("stats.active", "Active")}</p>
               <p className="text-xl font-bold">{overview.activePackages}</p>
             </div>
           </div>
@@ -265,7 +267,7 @@ export default function CreditsAdminClient({
               <Wallet className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-zinc-500">Transactions</p>
+              <p className="text-sm text-zinc-500">{t("stats.transactions", "Transactions")}</p>
               <p className="text-xl font-bold">{overview.totalTransactions}</p>
             </div>
           </div>
@@ -274,18 +276,18 @@ export default function CreditsAdminClient({
 
       {/* Packages List */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Credit Packages</h2>
-        <Button onClick={handleCreate} size="sm">
+        <h2 className="text-lg font-semibold">{t("packages.title", "Credit Packages")}</h2>
+        <Button onClick={handleCreate} size="sm" className="cursor-pointer">
           <Plus className="h-4 w-4 mr-2" />
-          New Package
+          {t("packages.new_package", "New Package")}
         </Button>
       </div>
 
       {packages.length === 0 ? (
         <Card className="p-12 text-center">
           <Coins className="h-12 w-12 text-zinc-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No packages yet</h3>
-          <p className="text-zinc-500">Create your first credit package to get started</p>
+          <h3 className="text-lg font-semibold mb-2">{t("packages.no_packages", "No packages yet")}</h3>
+          <p className="text-zinc-500">{t("packages.create_first", "Create your first credit package to get started")}</p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -306,7 +308,7 @@ export default function CreditsAdminClient({
                       ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                       : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
                   }`}>
-                    {pkg.isActive ? 'Active' : 'Inactive'}
+                    {pkg.isActive ? t("status.active", "Active") : t("status.inactive", "Inactive")}
                   </span>
                 </div>
 
@@ -314,7 +316,7 @@ export default function CreditsAdminClient({
                   <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
                     {pkg.creditsAmount}
                   </span>
-                  <span className="text-zinc-500">credits</span>
+                  <span className="text-zinc-500">{t("common.credits", "credits")}</span>
                 </div>
 
                 <div className="flex items-baseline gap-1">
@@ -327,15 +329,16 @@ export default function CreditsAdminClient({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 cursor-pointer"
                     onClick={() => handleEdit(pkg)}
                   >
                     <Edit className="h-3.5 w-3.5 mr-1" />
-                    Edit
+                    {t("common.edit", "Edit")}
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
+                    className="cursor-pointer"
                     onClick={() => handleToggle(pkg)}
                   >
                     <Power className="h-3.5 w-3.5" />
@@ -343,7 +346,7 @@ export default function CreditsAdminClient({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-red-600 border-red-200 hover:bg-red-50"
+                    className="text-red-600 border-red-200 hover:bg-red-50 cursor-pointer"
                     onClick={() => handleDelete(pkg)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -359,34 +362,34 @@ export default function CreditsAdminClient({
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingPackage ? 'Edit Package' : 'Create Package'}</DialogTitle>
+            <DialogTitle>{editingPackage ? t("packages.edit_package", "Edit Package") : t("packages.create_package", "Create Package")}</DialogTitle>
             <DialogDescription>
-              {editingPackage ? 'Update the credit package details.' : 'Create a new credit package for users to purchase.'}
+              {editingPackage ? t("packages.edit_desc", "Update the credit package details.") : t("packages.create_desc", "Create a new credit package for users to purchase.")}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Package Name</Label>
+              <Label htmlFor="name">{t("packages.package_name", "Package Name")}</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g. Starter Pack"
+                placeholder={t("packages.name_placeholder", "e.g. Starter Pack")}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description">Description (optional)</Label>
+              <Label htmlFor="description">{t("packages.description", "Description (optional)")}</Label>
               <Input
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Brief description"
+                placeholder={t("packages.description_placeholder", "Brief description")}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="credits">Credits</Label>
+                <Label htmlFor="credits">{t("packages.credits", "Credits")}</Label>
                 <Input
                   id="credits"
                   type="number"
@@ -398,7 +401,7 @@ export default function CreditsAdminClient({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="price">Price (€)</Label>
+                <Label htmlFor="price">{t("packages.price", "Price (€)")}</Label>
                 <Input
                   id="price"
                   type="number"
@@ -412,11 +415,11 @@ export default function CreditsAdminClient({
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isLoading}>
-                Cancel
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isLoading} className="cursor-pointer">
+                {t("common.cancel", "Cancel")}
               </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Saving...' : (editingPackage ? 'Update' : 'Create')}
+              <Button type="submit" disabled={isLoading} className="cursor-pointer">
+                {isLoading ? t("common.saving", "Saving...") : (editingPackage ? t("common.update", "Update") : t("common.create", "Create"))}
               </Button>
             </DialogFooter>
           </form>
@@ -425,11 +428,11 @@ export default function CreditsAdminClient({
 
       {/* Quick Links */}
       <div className="flex items-center gap-4 pt-4 border-t">
-        <Button variant="outline" onClick={() => router.push('/a/services/credits/transactions')}>
-          View Transactions
+        <Button variant="outline" onClick={() => router.push('/a/services/credits/transactions')} className="cursor-pointer">
+          {t("management.view_transactions", "View Transactions")}
         </Button>
-        <Button variant="outline" onClick={() => router.push('/a/services/credits/adjust')}>
-          Adjust User Credits
+        <Button variant="outline" onClick={() => router.push('/a/services/credits/adjust')} className="cursor-pointer">
+          {t("management.adjust_credits", "Adjust User Credits")}
         </Button>
       </div>
     </div>

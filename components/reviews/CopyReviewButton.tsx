@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Check, Copy } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
+import { useTranslation } from "react-i18next";
 
 interface CopyReviewButtonProps {
   content: string;
@@ -18,6 +19,7 @@ export function CopyReviewButton({
   variant = "outline",
   size = "sm"
 }: CopyReviewButtonProps) {
+  const { t } = useTranslation("common");
   const [copied, setCopied] = useState(false);
   const { success: toastSuccess, error: toastError } = useToast();
 
@@ -25,11 +27,11 @@ export function CopyReviewButton({
     try {
       await navigator.clipboard.writeText(content);
       setCopied(true);
-      toastSuccess("Review copied to clipboard!");
+      toastSuccess(t("reviews.copied_success", "Review copied to clipboard!"));
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error("Failed to copy:", err);
-      toastError("Failed to copy. Please select and copy manually.");
+      toastError(t("reviews.copied_failed", "Failed to copy. Please select and copy manually."));
     }
   };
 
@@ -38,17 +40,17 @@ export function CopyReviewButton({
       onClick={handleCopy}
       variant={copied ? "default" : variant}
       size={size}
-      className={`gap-2 ${className}`}
+      className={`gap-2 cursor-pointer ${className}`}
     >
       {copied ? (
         <>
           <Check className="w-4 h-4" />
-          <span>Copied!</span>
+          <span>{t("common.copied", "Copied!")}</span>
         </>
       ) : (
         <>
           <Copy className="w-4 h-4" />
-          <span>Copy Review</span>
+          <span>{t("reviews.copy_review", "Copy Review")}</span>
         </>
       )}
     </Button>

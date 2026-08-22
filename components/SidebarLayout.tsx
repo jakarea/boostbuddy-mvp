@@ -5,7 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Globe } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export interface NavItem {
   href: string;
@@ -37,6 +39,7 @@ export function SidebarLayout({
   onLogout,
   showLanguageSwitcher = true,
 }: SidebarLayoutProps) {
+  const { t } = useTranslation("common");
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const BrandIcon = branding.icon;
@@ -129,7 +132,7 @@ export function SidebarLayout({
               className="w-full h-9 sm:h-10 text-xs sm:text-sm text-red-600 dark:text-red-400 hover:bg-red-500/10 justify-start px-2 font-semibold gap-2"
               onClick={onLogout}
             >
-              <span>Sign Out</span>
+              <span>{t("common.sign_out", "Sign Out")}</span>
             </Button>
           )}
         </div>
@@ -216,7 +219,7 @@ export function SidebarLayout({
                 setSidebarOpen(false);
               }}
             >
-              <span>Sign Out</span>
+              <span>{t("common.sign_out", "Sign Out")}</span>
             </Button>
           )}
         </div>

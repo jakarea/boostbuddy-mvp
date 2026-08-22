@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import { useToast } from "@/context/ToastContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ interface PricingClientProps {
 }
 
 export default function PricingClient({ initialPricing }: PricingClientProps) {
+  const { t } = useTranslation("admin_reviews");
   const { success, error } = useToast();
   const router = useRouter();
 
@@ -36,14 +38,14 @@ export default function PricingClient({ initialPricing }: PricingClientProps) {
       ]);
 
       if (results.every(r => r.success)) {
-        success("Pricing updated successfully!");
+        success(t("pricing.save_success", "Pricing updated successfully!"));
         setHasChanges(false);
       } else {
         const failed = results.find(r => !r.success);
-        error(failed?.error || "Failed to update pricing");
+        error(failed?.error || t("pricing.save_error", "Failed to update pricing"));
       }
     } catch (err) {
-      error("Failed to update pricing");
+      error(t("pricing.save_error", "Failed to update pricing"));
     } finally {
       setSaving(false);
     }
@@ -58,18 +60,19 @@ export default function PricingClient({ initialPricing }: PricingClientProps) {
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Review Order Pricing</h1>
+          <h1 className="text-2xl font-bold">{t("pricing.page_title", "Review Order Pricing")}</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            Manage credit costs for each type of Facebook order
+            {t("pricing.page_subtitle", "Manage credit costs for each type of Facebook order")}
           </p>
         </div>
         <Button
           onClick={resetToDefaults}
           variant="outline"
           size="sm"
+          className="cursor-pointer"
         >
           <RefreshCw className="h-4 w-4 mr-2" />
-          Reset to Defaults
+          {t("pricing.reset_defaults", "Reset to Defaults")}
         </Button>
       </div>
 
@@ -77,12 +80,12 @@ export default function PricingClient({ initialPricing }: PricingClientProps) {
         {/* Reviews */}
         <Card>
           <CardHeader>
-            <CardTitle>Reviews</CardTitle>
-            <CardDescription>Credits per review</CardDescription>
+            <CardTitle>{t("orders.type_reviews", "Reviews")}</CardTitle>
+            <CardDescription>{t("pricing.credits_per_review", "Credits per review")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Credits per Unit</Label>
+              <Label>{t("pricing.credits_per_unit", "Credits per Unit")}</Label>
               <Input
                 type="number"
                 min="1"
@@ -95,7 +98,7 @@ export default function PricingClient({ initialPricing }: PricingClientProps) {
               />
             </div>
             <p className="text-sm text-zinc-500">
-              For standard review orders
+              {t("pricing.for_standard_reviews", "For standard review orders")}
             </p>
           </CardContent>
         </Card>
@@ -103,12 +106,12 @@ export default function PricingClient({ initialPricing }: PricingClientProps) {
         {/* Comments */}
         <Card>
           <CardHeader>
-            <CardTitle>Comments</CardTitle>
-            <CardDescription>Credits per comment</CardDescription>
+            <CardTitle>{t("orders.type_reactions", "Comments / Reactions")}</CardTitle>
+            <CardDescription>{t("pricing.credits_per_comment", "Credits per comment")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Credits per Unit</Label>
+              <Label>{t("pricing.credits_per_unit", "Credits per Unit")}</Label>
               <Input
                 type="number"
                 min="1"
@@ -121,7 +124,7 @@ export default function PricingClient({ initialPricing }: PricingClientProps) {
               />
             </div>
             <p className="text-sm text-zinc-500">
-              For text-only comment orders
+              {t("pricing.for_text_comments", "For text-only comment orders")}
             </p>
           </CardContent>
         </Card>
@@ -129,12 +132,12 @@ export default function PricingClient({ initialPricing }: PricingClientProps) {
         {/* Comments + Photo */}
         <Card>
           <CardHeader>
-            <CardTitle>Comments + Photo</CardTitle>
-            <CardDescription>Credits per comment with photo</CardDescription>
+            <CardTitle>{t("orders.type_photo_reviews", "Photo + Reviews")}</CardTitle>
+            <CardDescription>{t("pricing.credits_per_comment_photo", "Credits per comment with photo")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Credits per Unit</Label>
+              <Label>{t("pricing.credits_per_unit", "Credits per Unit")}</Label>
               <Input
                 type="number"
                 min="1"
@@ -147,7 +150,7 @@ export default function PricingClient({ initialPricing }: PricingClientProps) {
               />
             </div>
             <p className="text-sm text-zinc-500">
-              For comment orders with attached photos
+              {t("pricing.for_photo_comments", "For comment orders with attached photos")}
             </p>
           </CardContent>
         </Card>
@@ -159,15 +162,16 @@ export default function PricingClient({ initialPricing }: PricingClientProps) {
           onClick={() => router.back()}
           variant="outline"
           disabled={saving}
+          className="cursor-pointer"
         >
-          Cancel
+          {t("common.cancel", "Cancel")}
         </Button>
         <Button
           onClick={handleSave}
           disabled={!hasChanges || saving}
-          className="bg-[#168BB0] hover:bg-[#0F7493] text-white"
+          className="bg-[#168BB0] hover:bg-[#0F7493] text-white cursor-pointer"
         >
-          {saving ? "Saving..." : <><Save className="h-4 w-4 mr-2" />Save Changes</>}
+          {saving ? t("pricing.saving", "Saving...") : <><Save className="h-4 w-4 mr-2" />{t("pricing.save_changes", "Save Changes")}</>}
         </Button>
       </div>
     </div>

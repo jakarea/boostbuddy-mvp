@@ -352,7 +352,7 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
             </div>
             <div>
               <p className="text-xs text-zinc-500">{t("orders.totalRevenue", "Total Revenue")}</p>
-              <p className="text-2xl font-bold">{orders.reduce((sum, o) => sum + (o.creditsConsumed || 0), 0)} <span className="text-sm font-normal text-zinc-500">credits</span></p>
+              <p className="text-2xl font-bold">{orders.reduce((sum, o) => sum + (o.creditsConsumed || 0), 0)} <span className="text-sm font-normal text-zinc-500">{t("common.credits", "credits")}</span></p>
             </div>
           </div>
         </Card>
@@ -409,7 +409,7 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
           onChange={(e) => setEmployeeFilter(e.target.value)}
           className="h-10 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-lg px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
         >
-          <option value="all">All Employees</option>
+          <option value="all">{t("orders.all_employees", "All Employees")}</option>
           {employeesList.map(emp => (
             <option key={emp.id} value={emp.id}>{emp.name}</option>
           ))}
@@ -420,10 +420,9 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
           <select
             value={dateRange}
             onChange={(e) => {
-              setDateRange(e.target.value as typeof dateRange);
-              if (e.target.value === "custom") {
-                setShowDatePicker(true);
-              } else {
+              const newRange = e.target.value as typeof dateRange;
+              setDateRange(newRange);
+              if (newRange !== "custom") {
                 setShowDatePicker(false);
                 setCustomStartDate("");
                 setCustomEndDate("");
@@ -431,12 +430,12 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
             }}
             className="h-10 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-lg px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
           >
-            <option value="all">All Time</option>
-            <option value="thisWeek">This Week</option>
-            <option value="lastWeek">Last Week</option>
-            <option value="thisMonth">This Month</option>
-            <option value="lastMonth">Last Month</option>
-            <option value="custom">Custom Range</option>
+            <option value="all">{t("filter_range.all_time", "All Time")}</option>
+            <option value="thisWeek">{t("filter_range.this_week", "This Week")}</option>
+            <option value="lastWeek">{t("filter_range.last_week", "Last Week")}</option>
+            <option value="thisMonth">{t("filter_range.this_month", "This Month")}</option>
+            <option value="lastMonth">{t("filter_range.last_month", "Last Month")}</option>
+            <option value="custom">{t("filter_range.custom", "Custom Range")}</option>
           </select>
         </div>
 
@@ -452,7 +451,7 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
         <Card className="p-4 border-zinc-200 dark:border-zinc-700">
           <div className="flex items-center gap-4">
             <div className="flex-1">
-              <label className="block text-xs font-medium text-zinc-500 mb-1">Start Date</label>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">{t("filter_range.start_date", "Start Date")}</label>
               <input
                 type="date"
                 value={customStartDate}
@@ -464,7 +463,7 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
               <span className="text-zinc-400">→</span>
             </div>
             <div className="flex-1">
-              <label className="block text-xs font-medium text-zinc-500 mb-1">End Date</label>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">{t("filter_range.end_date", "End Date")}</label>
               <input
                 type="date"
                 value={customEndDate}
@@ -483,7 +482,7 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
                 variant="outline"
                 size="sm"
               >
-                Clear
+                {t("common.clear", "Clear")}
               </Button>
               <Button
                 onClick={() => setShowDatePicker(false)}
@@ -491,7 +490,7 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
                 size="sm"
                 className="bg-[#168BB0] hover:bg-[#147aa0]"
               >
-                Apply
+                {t("common.apply", "Apply")}
               </Button>
             </div>
           </div>

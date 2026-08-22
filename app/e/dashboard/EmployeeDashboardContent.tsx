@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/context/ToastContext";
+import { Button } from "@/components/ui/button";
+import { Check, Loader2 } from "lucide-react";
+import { formatDateTime } from "@/lib/dateUtils";
 import { CopyReviewButton } from "@/components/reviews/CopyReviewButton";
 import { completeReviewOrderAction, getMyEmployeeStatsAction } from "@/app/actions/employee";
-import { getEmployeeDashboardDataAction, DashboardData, UrlTask } from "@/app/actions/employee-dashboard";
-import { formatDateTime } from "@/lib/dateUtils";
+import { getEmployeeDashboardDataAction, type DashboardData, type UrlTask } from "@/app/actions/employee-dashboard";
 import { useSWR } from "@/lib/cache/swr";
 import { CACHE_KEYS } from "@/lib/cache/cacheContext";
 import CACHE_TTL from "@/lib/cache/cache-ttl";
-import { Loader2, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface EmployeeStatsData {
   totalCreditsCompleted: number;
@@ -25,37 +25,22 @@ export function EmployeeDashboardContent({
 }: {
   initialData: DashboardData;
 }) {
+  const { t } = useTranslation("employee");
   const { success: toastSuccess, error: toastError } = useToast();
-  const { t } = useTranslation();
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
 
-  // SWR for employee dashboard data - 1 minute cache
   const { data: dashboardData, refresh, isValid } = useSWR({
     key: CACHE_KEYS.EMPLOYEE_DASHBOARD,
     fetcher: async () => {
-      const result = await getEmployeeDashboardDataAction();
-      if (result.success && 'data' in result) {
-        return result.data;
-      }
-      return initialData;
-    },
-    ttl: CACHE_TTL.SHORT,
-    initialData: initialData,
-  });
-
-  // SWR for employee stats
-  const { data: employeeStats } = useSWR({
-    key: CACHE_KEYS.EMPLOYEE_STATS,
-    fetcher: async () => {
       try {
-        const result = await getMyEmployeeStatsAction();
-        if (result.success && result.data) {
+        const result = await getEmployeeDashboardDataAction();
+        if (result.success && 'data' in result && result.data) {
           return result.data;
         }
-        return null;
+        return initialData;
       } catch (error) {
         console.error('[EmployeeDashboard] Failed to fetch stats:', error);
-        return null;
+        return initialData;
       }
     },
     ttl: CACHE_TTL.SHORT,
@@ -63,25 +48,23 @@ export function EmployeeDashboardContent({
 
   const stats = dashboardData?.stats || initialData.stats;
   const availableTasks = dashboardData?.availableTasks || initialData.availableTasks;
-  const currentAssignments = dashboardData?.currentAssignments || initialData.currentAssignments;
+  const employeeStats = dashboardData?.employeeStats || initialData.employeeStats;
 
   const handleCompleteTask = async (taskId: string) => {
     if (!stats.acceptingTasks) {
-      toastError("You must enable task distribution to complete tasks");
+      toastError(t("dashboard.must_enable_distribution", "You must enable task distribution to complete tasks"));
       return;
     }
 
     setCompletingTaskId(taskId);
-
     const result = await completeReviewOrderAction(taskId);
-
     setCompletingTaskId(null);
 
     if (result.success) {
-      toastSuccess("Task completed successfully!");
+      toastSuccess(t("dashboard.task_completed_success", "Task completed successfully!"));
       refresh();
     } else {
-      toastError(result.error || "Failed to complete task");
+      toastError(result.error || t("dashboard.task_completed_failed", "Failed to complete task"));
     }
   };
 
@@ -90,20 +73,20 @@ export function EmployeeDashboardContent({
       case "PENDING":
         return (
           <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 text-xs rounded border border-purple-200 dark:border-purple-800">
-            Available
+            {t("status.available", "Available")}
           </span>
         );
       case "ASSIGNED":
       case "IN_PROGRESS":
         return (
           <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs rounded border border-blue-200 dark:border-blue-800">
-            In Progress
+            {t("status.in_progress", "In Progress")}
           </span>
         );
       case "COMPLETED":
         return (
           <span className="px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 text-xs rounded border border-emerald-200 dark:border-emerald-800">
-            Completed
+            {t("status.completed", "Completed")}
           </span>
         );
       default:
@@ -118,13 +101,13 @@ export function EmployeeDashboardContent({
   const getOrderTypeLabel = (orderType: string) => {
     switch (orderType) {
       case "REVIEW":
-        return "Reviews";
+        return t("orders.type_reviews", "Reviews");
       case "COMMENT":
-        return "Reactions";
+        return t("orders.type_reactions", "Reactions");
       case "COMMENT_WITH_PHOTO":
-        return "Photo + Reviews";
+        return t("orders.type_photo_reviews", "Photo + Reviews");
       default:
-        return orderType.replace(/_/g, " ");
+        return orderType?.replace(/_/g, " ") || orderType;
     }
   };
 
@@ -138,7 +121,7 @@ export function EmployeeDashboardContent({
             {getOrderTypeLabel(task.orderType)} • URL {task.reviewIndex + 1}
           </p>
           <p className="text-xs text-zinc-400 dark:text-zinc-500">
-            Created: {formatDateTime(task.createdAt)}
+            {t("orders.created", "Created")}: {formatDateTime(task.createdAt)}
           </p>
         </div>
         {getStatusBadge(task.status)}
@@ -146,7 +129,7 @@ export function EmployeeDashboardContent({
 
       {/* URL to review */}
       <div className="bg-zinc-50 dark:bg-zinc-900/50 p-2 rounded border border-zinc-200 dark:border-zinc-800">
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">URL to review:</p>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">{t("dashboard.url_to_review", "URL to review:")}</p>
         <a
           href={task.url}
           target="_blank"
@@ -161,7 +144,7 @@ export function EmployeeDashboardContent({
       {task.reviewContent && (
         <div className="bg-zinc-50 dark:bg-zinc-900/50 p-3 rounded border border-zinc-200 dark:border-zinc-800">
           <div className="flex justify-between items-start gap-2 mb-2">
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Review to post:</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("dashboard.review_to_post", "Review to post:")}</p>
             <CopyReviewButton content={task.reviewContent} size="sm" />
           </div>
           <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">{task.reviewContent}</p>
@@ -171,37 +154,37 @@ export function EmployeeDashboardContent({
       {/* Instructions */}
       {task.reviewInstructions && (
         <div className="text-sm text-zinc-600 dark:text-zinc-400">
-          <strong>Instructions:</strong> {task.reviewInstructions}
+          <strong>{t("orders.instructions", "Instructions")}:</strong> {task.reviewInstructions}
         </div>
       )}
 
       {/* Reaction type for comments */}
       {task.reactionType && task.orderType !== "REVIEW" && (
         <div className="text-sm text-zinc-600 dark:text-zinc-400">
-          <strong>Reaction:</strong> {task.reactionType}
+          <strong>{t("dashboard.reaction", "Reaction")}:</strong> {task.reactionType}
         </div>
       )}
 
       {/* Quantity info */}
       <p className="text-xs text-zinc-400 dark:text-zinc-500">
-        Quantity: {task.quantity} {task.quantity === 1 ? 'review' : 'reviews'}
+        {t("orders.qty", "Quantity")}: {task.quantity} {task.quantity === 1 ? t("orders.review_singular", "review") : t("orders.reviews_plural", "reviews")}
       </p>
 
-      {/* Complete Task button - NEW */}
+      {/* Complete Task button */}
       <button
         onClick={() => handleCompleteTask(task.reviewOrderId)}
         disabled={completingTaskId === task.reviewOrderId || !stats.acceptingTasks}
-        className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2"
+        className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2 cursor-pointer"
       >
         {completingTaskId === task.reviewOrderId ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Completing...
+            {t("dashboard.completing", "Completing...")}
           </>
         ) : (
           <>
             <Check className="h-4 w-4" />
-            Mark as Completed
+            {t("dashboard.mark_as_completed", "Mark as Completed")}
           </>
         )}
       </button>
@@ -213,9 +196,11 @@ export function EmployeeDashboardContent({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-4 sm:pb-5">
         <div className="min-w-0">
-          <h1 className="text-lg sm:text-2xl md:text-3xl font-extrabold tracking-tight">Employee Dashboard</h1>
+          <h1 className="text-lg sm:text-2xl md:text-3xl font-extrabold tracking-tight">
+            {t("dashboard.title", "Employee Dashboard")}
+          </h1>
           <p className="text-xs sm:text-sm text-zinc-500 mt-1">
-            Complete review tasks and track your performance
+            {t("dashboard.subtitle", "Complete review tasks and track your performance")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -223,47 +208,47 @@ export function EmployeeDashboardContent({
             onClick={refresh}
             variant="outline"
             size="sm"
-            className="gap-2"
+            className="gap-2 cursor-pointer"
             disabled={!isValid}
           >
             <Loader2 className={`h-4 w-4 ${!isValid ? 'animate-spin' : ''}`} />
-            Refresh
+            {t("common.refresh", "Refresh")}
           </Button>
         </div>
       </div>
 
-      {/* Employee Stats Cards - NEW */}
+      {/* Employee Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 shadow border border-zinc-200 dark:border-zinc-800">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Total Credits</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">{t("dashboard.total_credits", "Total Credits")}</p>
           <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
             {employeeStats?.totalCreditsCompleted || 0}
           </p>
-          <p className="text-xs text-zinc-400 mt-1">credits completed</p>
+          <p className="text-xs text-zinc-400 mt-1">{t("dashboard.credits_completed", "credits completed")}</p>
         </div>
 
         <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 shadow border border-zinc-200 dark:border-zinc-800">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Total Orders</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">{t("dashboard.total_orders", "Total Orders")}</p>
           <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             {employeeStats?.totalOrdersCompleted || 0}
           </p>
-          <p className="text-xs text-zinc-400 mt-1">orders completed</p>
+          <p className="text-xs text-zinc-400 mt-1">{t("dashboard.orders_completed", "orders completed")}</p>
         </div>
 
         <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 shadow border border-zinc-200 dark:border-zinc-800">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Today's Credits</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">{t("dashboard.todays_credits", "Today's Credits")}</p>
           <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
             {employeeStats?.todayCreditsCompleted || 0}
           </p>
-          <p className="text-xs text-zinc-400 mt-1">credits today</p>
+          <p className="text-xs text-zinc-400 mt-1">{t("dashboard.credits_today", "credits today")}</p>
         </div>
 
         <div className="bg-white dark:bg-zinc-900 rounded-lg p-4 shadow border border-zinc-200 dark:border-zinc-800">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Today's Orders</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">{t("dashboard.todays_orders", "Today's Orders")}</p>
           <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
             {employeeStats?.todayOrdersCompleted || 0}
           </p>
-          <p className="text-xs text-zinc-400 mt-1">orders today</p>
+          <p className="text-xs text-zinc-400 mt-1">{t("dashboard.orders_today", "orders today")}</p>
         </div>
       </div>
 
@@ -275,9 +260,9 @@ export function EmployeeDashboardContent({
       }`}>
         <p className="text-sm">
           <strong className={stats?.acceptingTasks ? "text-emerald-800 dark:text-emerald-300" : "text-amber-800 dark:text-amber-300"}>
-            {stats?.acceptingTasks ? "✓ Task Distribution Active" : "⚠ Task Distribution Paused"}
+            {stats?.acceptingTasks ? t("dashboard.distribution_active", "✓ Task Distribution Active") : t("dashboard.distribution_paused", "⚠ Task Distribution Paused")}
           </strong>
-          {!stats?.acceptingTasks && " - You won't see new tasks until you enable distribution"}
+          {!stats?.acceptingTasks && t("dashboard.distribution_paused_desc", " - You won't see new tasks until you enable distribution")}
         </p>
       </div>
 
@@ -285,13 +270,13 @@ export function EmployeeDashboardContent({
       <div className="bg-white dark:bg-zinc-900 rounded-lg shadow border border-zinc-200 dark:border-zinc-800">
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
           <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
-            Available Tasks ({availableTasks.length})
+            {t("dashboard.available_tasks", "Available Tasks")} ({availableTasks.length})
           </h3>
         </div>
 
         {availableTasks.length === 0 ? (
           <div className="p-8 text-center text-zinc-500 dark:text-zinc-400">
-            No tasks available
+            {t("dashboard.no_tasks", "No tasks available")}
           </div>
         ) : (
           <div className="divide-y divide-zinc-200 dark:divide-zinc-800 max-h-[600px] overflow-y-auto">
@@ -302,3 +287,5 @@ export function EmployeeDashboardContent({
     </div>
   );
 }
+
+export default EmployeeDashboardContent;
