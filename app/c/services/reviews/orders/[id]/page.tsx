@@ -331,7 +331,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             )}
             <div className="flex-1 min-w-[120px]">
               <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">
-                {t("orders.status", "Status")}
+                {t("orders.table_status", "Status")}
               </p>
               {/* For CLIENT: display PENDING as "In Progress" */}
               <StatusBadge status={order.status === "PENDING" ? "IN_PROGRESS" : order.status} type="order" />

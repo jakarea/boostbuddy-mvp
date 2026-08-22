@@ -316,7 +316,7 @@ export default function CreditsAdminClient({
                   <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
                     {pkg.creditsAmount}
                   </span>
-                  <span className="text-zinc-500">{t("common.credits", "credits")}</span>
+                  <span className="text-zinc-500">{t("common.credits_label", "credits")}</span>
                 </div>
 
                 <div className="flex items-baseline gap-1">

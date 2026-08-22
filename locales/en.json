@@ -1186,7 +1186,11 @@
       "review_content": "Review Content",
       "comment_text": "Comment Text",
       "photos": "Photos",
-      "instructions": "Instructions"
+      "instructions": "Instructions",
+      "table_status": "Status",
+      "pendingOrders": "Pending Orders",
+      "inProgressOrders": "In Progress",
+      "completedOrders": "Completed"
     },
     "close": "Close",
     "clear": "Clear",
@@ -1280,7 +1284,8 @@
       "end_date": "End Date"
     },
     "copied": "Copied!",
-    "button": "Button"
+    "button": "Button",
+    "credits_label": "credits"
   },
   "reviews": {
     "title": "Reviews Service",

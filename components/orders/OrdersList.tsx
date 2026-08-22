@@ -338,7 +338,7 @@ export default function OrdersList({
                 </div>
                 <div>
                   <p className="text-xs text-zinc-500">{t("orders.totalRevenue", "Total Revenue")}</p>
-                  <p className="text-2xl font-bold">{filteredOrders.reduce((sum, o) => sum + (o.creditsConsumed || 0), 0)} <span className="text-sm font-normal text-zinc-500">{t("common.credits", "credits")}</span></p>
+                  <p className="text-2xl font-bold">{filteredOrders.reduce((sum, o) => sum + (o.creditsConsumed || 0), 0)} <span className="text-sm font-normal text-zinc-500">{t("common.credits_label", "credits")}</span></p>
                 </div>
               </div>
             </Card>
@@ -508,7 +508,7 @@ export default function OrdersList({
             {role !== "CLIENT" && (
               <div className="col-span-2">{t("orders.employee", "Employee")}</div>
             )}
-            <div className="col-span-1">{t("orders.status", "Status")}</div>
+            <div className="col-span-1">{t("orders.table_status", "Status")}</div>
             <div className="col-span-1 text-right">{t("orders.created", "Created")}</div>
           </div>
 
