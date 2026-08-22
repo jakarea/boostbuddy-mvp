@@ -1278,17 +1278,31 @@ export async function getReviewOrderByIdAction(orderId: string) {
       comments: data.comment_text ? data.comment_text.split('|||').map((c: string) => c.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\')) : [],
       photoUrls: data.photo_urls ? JSON.parse(data.photo_urls) : null,
       commentText: data.comment_text,
-      // For COMMENT_WITH_PHOTO orders, build photoReviews from review_urls data (not from data.photo_urls)
+      // For COMMENT_WITH_PHOTO orders, build photoReviews from review_urls data (taking from the first URL entry, since all URLs share the same reviews/photos) or fallback to order fields
       photoReviews: data.order_type === 'COMMENT_WITH_PHOTO' && urls && urls.length > 0
-        ? urls.flatMap((ru: any) => {
-            const reviews = ru.review_content ? JSON.parse(ru.review_content) : [];
-            const photos = ru.photo_urls ? JSON.parse(ru.photo_urls) : [];
-            return reviews.map((review: string, i: number) => ({
-              text: review,
-              photos: photos[i] || []
-            }));
-          })
-        : null
+        ? (() => {
+            const firstUrl = urls[0];
+            const reviews = firstUrl?.review_content ? JSON.parse(firstUrl.review_content) : [];
+            const photos = firstUrl?.photo_urls ? JSON.parse(firstUrl.photo_urls) : [];
+            return reviews.map((review: string, i: number) => {
+              const photoItem = photos[i] || [];
+              const photoArray = Array.isArray(photoItem) ? photoItem : (photoItem ? [photoItem] : []);
+              return {
+                text: review,
+                photos: photoArray
+              };
+            });
+          })()
+        : (data.photo_urls && data.order_type === 'COMMENT_WITH_PHOTO' && data.comment_text
+            ? data.comment_text.split('|||').map((c: string, i: number) => {
+                const parsedPhotos = JSON.parse(data.photo_urls);
+                const photoItem = parsedPhotos[i] || [];
+                return {
+                  text: c.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\'),
+                  photos: Array.isArray(photoItem) ? photoItem : (photoItem ? [photoItem] : [])
+                };
+              })
+            : null)
     };
 
     return { success: true, data: normalizedOrder };

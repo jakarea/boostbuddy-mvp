@@ -624,7 +624,7 @@ export default function EmployeeOrderDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {order.photoReviews!.map((review, index) => {
               const isDone = donePhotos.has(index);
-              const photoUrl = review.photos && review.photos.length > 0 ? review.photos[0] : null;
+              const photoUrl = review.photos ? (Array.isArray(review.photos) ? review.photos[0] : review.photos) : null;
               if (!photoUrl) {
                 console.warn("No photo URL for review:", review);
                 return null;

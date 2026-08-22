@@ -1115,22 +1115,33 @@ export async function getReviewOrderByIdAction(orderId: string) {
       commentCount: order.comment_count || 1,
       completedComments: order.completed_comments ? order.completed_comments.split(',').map((i: string) => parseInt(i)) : [],
       photoUrls: order.photo_urls ? JSON.parse(order.photo_urls) : null,
-      // For COMMENT_WITH_PHOTO orders, build photoReviews from review_urls data (not from order.photo_urls)
+      // For COMMENT_WITH_PHOTO orders, build photoReviews from review_urls data (taking from the first URL entry, since all URLs share the same reviews/photos) or fallback to order fields
       photoReviews: order.order_type === 'COMMENT_WITH_PHOTO' && urls && urls.length > 0
-        ? urls.flatMap((ru: any) => {
-            const reviews = ru.review_content ? JSON.parse(ru.review_content) : [];
-            const photos = ru.photo_urls ? JSON.parse(ru.photo_urls) : [];
-            console.log("📸 [DEBUG] URL photo data:", { url: ru.url, reviews, photos });
+        ? (() => {
+            const firstUrl = urls[0];
+            const reviews = firstUrl?.review_content ? JSON.parse(firstUrl.review_content) : [];
+            const photos = firstUrl?.photo_urls ? JSON.parse(firstUrl.photo_urls) : [];
+            console.log("📸 [DEBUG] URL photo data:", { url: firstUrl?.url, reviews, photos });
             return reviews.map((review: string, i: number) => {
-              const photoArray = photos[i] || [];
+              const photoItem = photos[i] || [];
+              const photoArray = Array.isArray(photoItem) ? photoItem : (photoItem ? [photoItem] : []);
               console.log("📸 [DEBUG] Review photo:", { review, photoArray });
               return {
                 text: review,
                 photos: photoArray
               };
             });
-          })
-        : null,
+          })()
+        : (order.photo_urls && order.order_type === 'COMMENT_WITH_PHOTO' && order.comment_text
+            ? order.comment_text.split('|||').map((c: string, i: number) => {
+                const parsedPhotos = JSON.parse(order.photo_urls);
+                const photoItem = parsedPhotos[i] || [];
+                return {
+                  text: c.replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\'),
+                  photos: Array.isArray(photoItem) ? photoItem : (photoItem ? [photoItem] : [])
+                };
+              })
+            : null),
       reviewUrls: reviewUrlsData,
       quantity: order.quantity,
       createdAt: order.created_at,
