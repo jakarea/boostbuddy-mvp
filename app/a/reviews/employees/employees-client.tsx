@@ -435,13 +435,13 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
                 {/* Stats */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 border border-blue-100 dark:border-blue-900/30">
-                    <div className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">Credits</div>
+                    <div className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">{t("employees.credits", "Credits")}</div>
                     <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
                       {employee.creditsCompleted || employee.credits_completed || 0}
                     </div>
                   </div>
                   <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-3 border border-emerald-100 dark:border-emerald-900/30">
-                    <div className="text-xs text-emerald-700 dark:text-emerald-300 font-medium mb-1">Orders</div>
+                    <div className="text-xs text-emerald-700 dark:text-emerald-300 font-medium mb-1">{t("employees.orders", "Orders")}</div>
                     <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
                       {employee.ordersCompleted || employee.orders_completed || 0}
                     </div>
@@ -453,32 +453,32 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 h-8 text-xs gap-1.5"
+                    className="flex-1 h-8 text-xs gap-1.5 cursor-pointer"
                     onClick={() => router.push(`/a/reviews/employees/${employee.userId}`)}
                   >
                     <TrendingUp className="h-3 w-3" />
-                    View Orders
+                    {t("manage.viewOrders", "View Orders")}
                   </Button>
                   <Button
                     variant={(optimisticAcceptingStates[employee.userId] ?? employee.acceptingOrders ?? employee.accepting_orders ?? true) ? "outline" : "default"}
                     size="sm"
-                    className={`h-8 text-xs px-3 gap-1.5 ${
+                    className={`h-8 text-xs px-3 gap-1.5 cursor-pointer ${
                       (optimisticAcceptingStates[employee.userId] ?? employee.acceptingOrders ?? employee.accepting_orders ?? true)
                         ? 'text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/30'
                         : ''
                     }`}
                     onClick={() => handleToggleAcceptingOrders(employee)}
-                    title={(optimisticAcceptingStates[employee.userId] ?? employee.acceptingOrders ?? employee.accepting_orders ?? true) ? "Stop assigning new orders" : "Start assigning new orders"}
+                    title={(optimisticAcceptingStates[employee.userId] ?? employee.acceptingOrders ?? employee.accepting_orders ?? true) ? t("manage.stopAssigningTitle", "Stop assigning new orders") : t("manage.startAssigningTitle", "Start assigning new orders")}
                   >
                     {(optimisticAcceptingStates[employee.userId] ?? employee.acceptingOrders ?? employee.accepting_orders ?? true) ? (
                       <>
                         <PauseCircle className="h-3 w-3" />
-                        Stop Orders
+                        {t("manage.stopOrders", "Stop Orders")}
                       </>
                     ) : (
                       <>
                         <Play className="h-3 w-3" />
-                        Start Orders
+                        {t("manage.startOrders", "Start Orders")}
                       </>
                     )}
                   </Button>
@@ -493,7 +493,7 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
       {employees.length > 0 && (
         <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
           <div className="text-sm text-zinc-600 dark:text-zinc-400">
-            Page {currentPage} of {totalPages}
+            {t("common.page_of", { current: currentPage, total: totalPages, defaultValue: `Page ${currentPage} of ${totalPages}` })}
           </div>
           <div className="flex items-center gap-2">
             <Button

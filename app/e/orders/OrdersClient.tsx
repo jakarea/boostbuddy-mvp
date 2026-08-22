@@ -131,11 +131,11 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
           onClick={refresh}
           variant="outline"
           size="sm"
-          className="gap-2"
+          className="gap-2 cursor-pointer"
           disabled={!isValid}
         >
           <Loader2 className={`h-4 w-4 ${!isValid ? 'animate-spin' : ''}`} />
-          Refresh
+          {t("common.refresh", "Refresh")}
         </Button>
       </div>
 
@@ -150,7 +150,7 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
           {STATUS_FILTERS.map((status) => (
             <option key={status || "all"} value={status}>
               {status
-                ? t(`employee.status.${status}`, status)
+                ? t(`status.${status.toLowerCase()}`, status)
                 : t("employee.allStatuses", "All Statuses")}
             </option>
           ))}
@@ -162,13 +162,13 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search..."
+            placeholder={t("common.search", "Search...")}
             className="w-full pl-8 pr-8 py-1 text-sm border border-zinc-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-[#168BB0]"
           />
           {searchTerm && (
             <button
               onClick={handleClearSearch}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 cursor-pointer"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -177,7 +177,7 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
 
         {searchTerm && (
           <span className="text-xs text-zinc-500">
-            {orders.length} result{orders.length !== 1 ? 's' : ''}
+            {orders.length} {t("common.results", "results")}
           </span>
         )}
       </div>
@@ -262,10 +262,10 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
             <button
               onClick={goToPrevPage}
               disabled={currentPage === 1}
-              className="flex items-center gap-1 px-2 py-1 border rounded hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
+              className="flex items-center gap-1 px-2 py-1 border rounded hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700 cursor-pointer"
             >
               <ChevronLeft className="h-3 w-3" />
-              Prev
+              {t("common.previous", "Prev")}
             </button>
 
             <div className="flex items-center gap-0.5">
@@ -273,7 +273,7 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
                 <button
                   key={page}
                   onClick={() => goToPage(page)}
-                  className={`min-w-[28px] px-1.5 py-1 border rounded text-xs ${
+                  className={`min-w-[28px] px-1.5 py-1 border rounded text-xs cursor-pointer ${
                     currentPage === page
                       ? 'bg-[#168BB0] text-white border-[#168BB0]'
                       : 'hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:border-zinc-700'
@@ -287,9 +287,9 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
             <button
               onClick={goToNextPage}
               disabled={currentPage === totalPages}
-              className="flex items-center gap-1 px-2 py-1 border rounded hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700"
+              className="flex items-center gap-1 px-2 py-1 border rounded hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed dark:border-zinc-700 cursor-pointer"
             >
-              Next
+              {t("common.next", "Next")}
               <ChevronRight className="h-3 w-3" />
             </button>
           </div>

@@ -240,28 +240,28 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
         return (
           <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">
             <Clock className="h-3 w-3 mr-1" />
-            Pending
+            {t("status.pending", "Pending")}
           </Badge>
         );
       case 'IN_PROGRESS':
         return (
           <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
             <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-            In Progress
+            {t("status.in_progress", "In Progress")}
           </Badge>
         );
       case 'COMPLETED':
         return (
           <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
             <CheckCircle className="h-3 w-3 mr-1" />
-            Completed
+            {t("status.completed", "Completed")}
           </Badge>
         );
       case 'CANCELLED':
         return (
           <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
             <AlertCircle className="h-3 w-3 mr-1" />
-            Cancelled
+            {t("status.cancelled", "Cancelled")}
           </Badge>
         );
       default:
@@ -540,9 +540,9 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
                   {/* Type */}
                   <div className="col-span-2">
                     <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                      {order.orderType === "COMMENT" ? "Reactions" :
-                       order.orderType === "REVIEW" ? "Reviews" :
-                       order.orderType === "COMMENT_WITH_PHOTO" ? "Photo + Reviews" :
+                      {order.orderType === "COMMENT" ? t("orders.type_reactions", "Reactions") :
+                       order.orderType === "REVIEW" ? t("orders.type_reviews", "Reviews") :
+                       order.orderType === "COMMENT_WITH_PHOTO" ? t("orders.type_photo_reviews", "Photo + Reviews") :
                        order.orderType?.replace(/_/g, ' ')}
                     </span>
                   </div>
@@ -560,7 +560,7 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
                         <span className="text-zinc-700 dark:text-zinc-300 truncate">{order.employees.name}</span>
                       </div>
                     ) : order.status === 'PENDING' ? (
-                      <span className="text-xs text-zinc-500 italic">Unassigned</span>
+                      <span className="text-xs text-zinc-500 italic">{t("orders.unassigned", "Unassigned")}</span>
                     ) : (
                       <span className="text-xs text-zinc-400">—</span>
                     )}

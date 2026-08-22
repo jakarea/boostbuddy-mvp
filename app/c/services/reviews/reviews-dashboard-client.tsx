@@ -102,16 +102,16 @@ export default function ReviewsDashboardClient({ initialData }: ReviewsDashboard
         {Object.entries(creditCosts).map(([platform, cost]) => {
           const formatPlatform = (platform: string) => {
             switch (platform) {
-              case "COMMENT": return "Reactions";
-              case "REVIEW": return "Reviews";
-              case "COMMENT_WITH_PHOTO": return "Photo + Reviews";
+              case "COMMENT": return t("orders.type_reactions", "Reactions");
+              case "REVIEW": return t("orders.type_reviews", "Reviews");
+              case "COMMENT_WITH_PHOTO": return t("orders.type_photo_reviews", "Photo + Reviews");
               default: return platform.replace(/_/g, ' ');
             }
           };
           return (
             <div key={platform} className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow">
               <h4 className="font-medium">{formatPlatform(platform)}</h4>
-              <p className="text-sm text-zinc-500">{String(cost) + " " + String(t("credits.credits", "credits"))}</p>
+              <p className="text-sm text-zinc-500">{String(cost) + " " + String(t("common.credits_label", "credits"))}</p>
             </div>
           );
         })}
@@ -126,13 +126,13 @@ export default function ReviewsDashboardClient({ initialData }: ReviewsDashboard
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search recent orders by business name, URL, or type..."
+              placeholder={t("reviews.search_placeholder", "Search recent orders by business name, URL, or type...")}
               className="w-full pl-10 pr-10 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#168BB0]"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -140,7 +140,7 @@ export default function ReviewsDashboardClient({ initialData }: ReviewsDashboard
           </div>
           {searchTerm && (
             <div className="text-sm text-zinc-600 dark:text-zinc-400">
-              Found {filteredRecentOrders.length} result{filteredRecentOrders.length !== 1 ? 's' : ''}
+              {filteredRecentOrders.length} {t("common.results", "results")}
             </div>
           )}
         </div>
@@ -169,9 +169,9 @@ export default function ReviewsDashboardClient({ initialData }: ReviewsDashboard
                   <div>
                     <div className="flex items-center gap-2 text-sm">
                       <span className="px-2 py-0.5 bg-zinc-100 dark:bg-zinc-700 rounded text-xs font-bold">
-                        {order.orderType === "COMMENT" ? "Reactions" :
-                         order.orderType === "REVIEW" ? "Reviews" :
-                         order.orderType === "COMMENT_WITH_PHOTO" ? "Photo + Reviews" :
+                        {order.orderType === "COMMENT" ? t("orders.type_reactions", "Reactions") :
+                         order.orderType === "REVIEW" ? t("orders.type_reviews", "Reviews") :
+                         order.orderType === "COMMENT_WITH_PHOTO" ? t("orders.type_photo_reviews", "Photo + Reviews") :
                          order.orderType?.replace(/_/g, ' ') || 'N/A'}
                       </span>
                       <span className="text-zinc-500">{order.reviewType}</span>

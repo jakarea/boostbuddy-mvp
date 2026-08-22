@@ -145,28 +145,28 @@ export default function OrdersList({
         return (
           <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800">
             <Clock className="h-3 w-3 mr-1" />
-            Pending
+            {t("status.pending", "Pending")}
           </Badge>
         );
       case 'IN_PROGRESS':
         return (
           <Badge className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
             <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-            In Progress
+            {t("status.in_progress", "In Progress")}
           </Badge>
         );
       case 'COMPLETED':
         return (
           <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
             <CheckCircle className="h-3 w-3 mr-1" />
-            Completed
+            {t("status.completed", "Completed")}
           </Badge>
         );
       case 'CANCELLED':
         return (
           <Badge className="bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
             <AlertCircle className="h-3 w-3 mr-1" />
-            Cancelled
+            {t("status.cancelled", "Cancelled")}
           </Badge>
         );
       default:
@@ -187,9 +187,9 @@ export default function OrdersList({
 
   const getOrderTypeLabel = (orderType: string) => {
     switch (orderType) {
-      case 'COMMENT': return 'Reactions';
-      case 'REVIEW': return 'Reviews';
-      case 'COMMENT_WITH_PHOTO': return 'Photo + Reviews';
+      case 'COMMENT': return t("orders.type_reactions", "Reactions");
+      case 'REVIEW': return t("orders.type_reviews", "Reviews");
+      case 'COMMENT_WITH_PHOTO': return t("orders.type_photo_reviews", "Photo + Reviews");
       default: return orderType?.replace(/_/g, ' ') || 'REVIEW';
     }
   };
@@ -628,7 +628,7 @@ export default function OrdersList({
                               <span className="text-zinc-700 dark:text-zinc-300">{order.employees.name}</span>
                             </>
                           ) : (
-                            <span className="text-zinc-500 italic text-xs">Unassigned</span>
+                            <span className="text-zinc-500 italic text-xs">{t("orders.unassigned", "Unassigned")}</span>
                           )}
                         </div>
                       </div>

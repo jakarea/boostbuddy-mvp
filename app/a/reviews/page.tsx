@@ -82,7 +82,7 @@ export default function AdminReviewsPage() {
     },
     {
       title: t("stats.totalRevenue", "Total Revenue"),
-      value: `${stats?.totalRevenue || 0} credits`,
+      value: `${stats?.totalRevenue || 0} ${t("common.credits_label", "credits")}`,
       icon: DollarSign,
       color: "text-emerald-600 dark:text-emerald-400",
       bgColor: "bg-emerald-500/10"
