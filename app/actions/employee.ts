@@ -923,24 +923,20 @@ export async function acceptReviewOrderAction(orderId: string) {
       return { success: false, error: "Unauthorized - Employee only" };
     }
 
-    // Check if employee is eligible for order distribution (status = 'ACTIVE')
+    // Check if employee is eligible for order distribution (status = 'ACTIVE' and accepting_orders = true)
     const supabaseAdmin = await createAdminClient();
     const { data: employeeData } = await supabaseAdmin
       .from("users")
-      .select("status")
+      .select("status, accepting_orders")
       .eq("id", auth.user.id)
       .single();
 
-    if (!employeeData || employeeData.status !== 'ACTIVE') {
-      return { success: false, error: "You are not eligible to accept orders at this time" };
+    if (!employeeData || employeeData.status !== 'ACTIVE' || employeeData.accepting_orders !== true) {
+      return { success: false, error: "You must have an active account and be accepting orders to accept orders" };
     }
 
-    const supabase = await createClient();
-    // supabaseAdmin already declared above for status check
-    // Use admin client for update to bypass RLS
-
     // Check if order is still available (PENDING and unassigned)
-    const { data: order, error: fetchError } = await supabase
+    const { data: order, error: fetchError } = await supabaseAdmin
       .from("review_orders")
       .select("id, status, assigned_employee_id")
       .eq("id", orderId)
@@ -967,12 +963,27 @@ export async function acceptReviewOrderAction(orderId: string) {
       .select()
       .single();
 
-    if (updateError) {
-      console.error("Update error:", updateError);
-      throw updateError;
+    // Also update any child review_urls
+    try {
+      await supabaseAdmin
+        .from("review_urls")
+        .update({
+          assigned_employee_id: auth.user.id,
+          assigned_at: new Date().toISOString()
+        })
+        .eq("review_order_id", orderId);
+    } catch (urlErr) {
+      console.warn("⚠️ [EMPLOYEE] Failed to update child review_urls on accept:", urlErr);
     }
 
     console.log("Updated order:", updatedData);
+
+    revalidatePath("/e/orders");
+    revalidatePath(`/e/orders/${orderId}`);
+    revalidatePath("/e/dashboard");
+    revalidatePath("/a/orders");
+    revalidatePath(`/a/orders/${orderId}`);
+    revalidatePath("/a/reviews/employees");
 
     return { success: true, data: { orderId } };
   } catch (error: any) {
@@ -997,10 +1008,10 @@ export async function completeReviewOrderAction(orderId: string) {
 
     const supabaseAdmin = await createAdminClient();
 
-    // Get order details including credits consumed
+    // Get order details including client, business name, and credits
     const { data: order, error: fetchError } = await supabaseAdmin
       .from("review_orders")
-      .select("id, status, credits_consumed, completed_by_employee_id")
+      .select("id, status, credits_consumed, completed_by_employee_id, user_id, business_name, order_type")
       .eq("id", orderId)
       .single();
 
@@ -1021,14 +1032,16 @@ export async function completeReviewOrderAction(orderId: string) {
 
     console.log("✅ [EMPLOYEE] Marking order as completed by:", auth.user.id);
 
+    const now = new Date().toISOString();
+
     // Mark order as completed
     const { error: updateError, data: updatedData } = await supabaseAdmin
       .from("review_orders")
       .update({
         status: "COMPLETED",
-        completed_at: new Date().toISOString(),
+        completed_at: now,
         completed_by_employee_id: auth.user.id,
-        assigned_employee_id: auth.user.id // Also set for backward compatibility
+        assigned_employee_id: auth.user.id
       })
       .eq("id", orderId)
       .select("id, status, completed_at")
@@ -1039,10 +1052,24 @@ export async function completeReviewOrderAction(orderId: string) {
       throw updateError;
     }
 
+    // Mark any associated review_urls as completed as well
+    try {
+      await supabaseAdmin
+        .from("review_urls")
+        .update({
+          status: "COMPLETED",
+          completed_at: now,
+          assigned_employee_id: auth.user.id
+        })
+        .eq("review_order_id", orderId)
+        .neq("status", "COMPLETED");
+    } catch (urlUpdateErr) {
+      console.warn("⚠️ [EMPLOYEE] Failed to update child review_urls:", urlUpdateErr);
+    }
+
     console.log("✅ [EMPLOYEE] Order completed:", updatedData.id);
 
     // Update employee stats
-    // First fetch current stats
     const { data: currentStats } = await supabaseAdmin
       .from("employee_stats")
       .select("orders_completed, credits_completed")
@@ -1054,7 +1081,7 @@ export async function completeReviewOrderAction(orderId: string) {
       .update({
         orders_completed: (currentStats?.orders_completed || 0) + 1,
         credits_completed: (currentStats?.credits_completed || 0) + (order.credits_consumed || 0),
-        last_active_at: new Date().toISOString()
+        last_active_at: now
       })
       .eq("user_id", auth.user.id);
 
@@ -1062,9 +1089,77 @@ export async function completeReviewOrderAction(orderId: string) {
       console.error("⚠️ [EMPLOYEE] Failed to update stats:", statsError);
     }
 
-    // Revalidate cache
+    // Send notifications (non-blocking)
+    (async () => {
+      try {
+        const { sendNotificationAction } = await import("./notifications");
+
+        // 1. Notify Client
+        if (order.user_id) {
+          const { data: clientUser } = await supabaseAdmin
+            .from("users")
+            .select("email")
+            .eq("id", order.user_id)
+            .single();
+
+          if (clientUser?.email) {
+            await sendNotificationAction(
+              clientUser.email,
+              "🎉 Your Order Has Been Completed",
+              `Your review order for "${order.business_name || 'Facebook'}" has been completed by our team.`,
+              "TELEGRAM",
+              "REVIEWS_ORDER_COMPLETED",
+              "HIGH",
+              orderId
+            );
+          }
+        }
+
+        // 2. Notify Admins
+        const { data: adminUsers } = await supabaseAdmin
+          .from("users")
+          .select("email")
+          .eq("role", "ADMIN")
+          .eq("status", "ACTIVE");
+
+        if (adminUsers && adminUsers.length > 0) {
+          for (const admin of adminUsers) {
+            await sendNotificationAction(
+              admin.email,
+              "✅ Review Order Completed",
+              `Order #${orderId.slice(0, 8)} (${order.business_name || 'Review Order'}) was completed by employee ${auth.user.name || auth.user.email}.`,
+              "TELEGRAM",
+              "EMPLOYEE_TASK_COMPLETED",
+              "MEDIUM",
+              orderId
+            );
+          }
+        }
+
+        // 3. Notify Employee
+        await sendNotificationAction(
+          auth.user.email,
+          "🎉 Order Completed Successfully",
+          `You have completed order #${orderId.slice(0, 8)} for ${order.business_name || 'Review Order'}.`,
+          "TELEGRAM",
+          "EMPLOYEE_TASK_COMPLETED",
+          "LOW",
+          orderId
+        );
+      } catch (notifError) {
+        console.warn("⚠️ [EMPLOYEE] Failed to send completion notifications:", notifError);
+      }
+    })();
+
+    // Revalidate caches
+    revalidatePath("/e/orders");
+    revalidatePath(`/e/orders/${orderId}`);
     revalidatePath("/e/dashboard");
-    revalidatePath("/admin/employees");
+    revalidatePath("/a/orders");
+    revalidatePath(`/a/orders/${orderId}`);
+    revalidatePath("/a/reviews/employees");
+    revalidatePath("/c/services/reviews/orders");
+    revalidatePath(`/c/services/reviews/orders/${orderId}`);
 
     return { success: true, data: { orderId } };
   } catch (error: any) {
@@ -1081,8 +1176,8 @@ export async function getReviewOrderByIdAction(orderId: string) {
     const auth = await requireAuth();
     if (!auth.success) return auth;
 
-    const supabase = await createClient();
-    const { data, error } = await supabase
+    const adminClient = createAdminClient();
+    const { data, error } = await adminClient
       .from("review_orders")
       .select(`
         id, user_id, business_name, facebook_url, order_type, review_type,
@@ -1098,15 +1193,40 @@ export async function getReviewOrderByIdAction(orderId: string) {
     if (error) throw error;
     if (!data) return { success: false, error: "Order not found" };
 
-    // Verify this order is assigned to this employee (security check)
-    // Employees can only view orders assigned to them
-    if (auth.user.role === 'EMPLOYEE' && data.assigned_employee_id !== auth.user.id) {
-      return { success: false, error: "Unauthorized - You can only view your assigned orders" };
+    // Access control check
+    if (auth.user.role === 'CLIENT') {
+      if (data.user_id !== auth.user.id) {
+        return { success: false, error: "Unauthorized - You can only view your own orders" };
+      }
+    } else if (auth.user.role === 'EMPLOYEE') {
+      const isAssignedToMe = data.assigned_employee_id === auth.user.id;
+      const isPendingOrUnassigned = !data.assigned_employee_id || data.status === 'PENDING';
+
+      if (!isAssignedToMe) {
+        if (isPendingOrUnassigned) {
+          // Any active employee who has accepting_orders = true can view pending/unassigned orders
+          const { data: employeeUser } = await adminClient
+            .from("users")
+            .select("status, accepting_orders")
+            .eq("id", auth.user.id)
+            .single();
+
+          const isActive = employeeUser?.status === "ACTIVE";
+          const isAcceptingOrders = employeeUser?.accepting_orders === true;
+
+          if (!isActive || !isAcceptingOrders) {
+            return {
+              success: false,
+              error: "Unauthorized - You must have an active account and be accepting orders to view available orders"
+            };
+          }
+        } else {
+          return { success: false, error: "Unauthorized - This order is assigned to another employee" };
+        }
+      }
     }
 
     // Fetch review_urls using admin client (bypasses RLS)
-    // Safe because we've already verified this order is assigned to this employee
-    const adminClient = createAdminClient();
     const { data: urls } = await adminClient
       .from("review_urls")
       .select("id, url, quantity, reaction_type, review_content, photo_urls, review_index, status, assigned_employee_id, assigned_at, completed_at, proof_of_completion")

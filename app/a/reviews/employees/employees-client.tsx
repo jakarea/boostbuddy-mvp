@@ -24,7 +24,6 @@ import {
   inviteEmployeeAction,
   toggleEmployeeAcceptingOrdersAction,
   toggleEmployeeTaskDistributionAction,
-  setEmployeeActiveStatusAction,
 } from "@/app/actions/admin-reviews";
 import {
   UserCheck,
@@ -63,6 +62,7 @@ interface EmployeePerformance {
   employeeEmail: string;
   isAvailable: boolean;
   is_available: boolean;
+  status?: string;
   isActive: boolean;
   is_active: boolean;
   acceptingOrders: boolean;
@@ -108,10 +108,11 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
           employeeEmail: emp.employee_email || emp.employeeEmail || emp.users?.email || emp.email || '',
           isAvailable: emp.is_available || emp.isAvailable || false,
           is_available: emp.is_available || emp.isAvailable || false,
-          isActive: emp.users?.is_active ?? emp.is_active ?? emp.isActive ?? true,
-          is_active: emp.users?.is_active ?? emp.is_active ?? emp.isActive ?? true,
-          acceptingOrders: emp.users?.accepting_orders ?? emp.accepting_orders ?? emp.acceptingOrders ?? true,
-          accepting_orders: emp.users?.accepting_orders ?? emp.accepting_orders ?? emp.acceptingOrders ?? true,
+          status: emp.users?.status || 'ACTIVE',
+          isActive: emp.users?.status ? emp.users.status === 'ACTIVE' : (emp.users?.is_active ?? emp.is_active ?? true),
+          is_active: emp.users?.status ? emp.users.status === 'ACTIVE' : (emp.users?.is_active ?? emp.is_active ?? true),
+          acceptingOrders: emp.users?.accepting_orders ?? emp.accepting_orders ?? true,
+          accepting_orders: emp.users?.accepting_orders ?? emp.accepting_orders ?? true,
           acceptingTasks: emp.accepting_tasks ?? emp.acceptingTasks ?? true,
           accepting_tasks: emp.accepting_tasks ?? emp.acceptingTasks ?? true,
           ordersCompleted: emp.orders_completed || emp.ordersCompleted || 0,
@@ -140,8 +141,8 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  // Optimistic state for employee isActive - tracks local changes before server confirms
-  const [optimisticActiveStates, setOptimisticActiveStates] = useState<Record<string, boolean>>({});
+  // Optimistic state for employee acceptingOrders - tracks local changes before server confirms
+  const [optimisticAcceptingStates, setOptimisticAcceptingStates] = useState<Record<string, boolean>>({});
 
   // Use SWR data
   const employees = swrData?.employees || [];
@@ -234,18 +235,56 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
     });
   };
 
-  const handleToggleAcceptingOrders = (userId: string, nextChecked: boolean) => {
-    toggleEmployeeAcceptingOrdersAction(userId)
-      .then(result => {
-        if (result.success) {
-          refresh();
-        } else {
-          showError(result.error || "Failed to update");
-        }
-      })
-      .catch(() => {
-        showError("Failed to update");
+  const handleToggleAcceptingOrders = async (employee: EmployeePerformance) => {
+    const currentAccepting = optimisticAcceptingStates[employee.userId] ?? employee.acceptingOrders ?? employee.accepting_orders ?? true;
+    const nextAccepting = !currentAccepting;
+    const confirmed = await confirm({
+      title: nextAccepting
+        ? t("manage.activateConfirm.title", "Start Order Distribution?")
+        : t("manage.deactivateConfirm.title", "Stop Order Distribution?"),
+      message: nextAccepting
+        ? t("manage.activateConfirm.message", "New orders will be assigned to this employee.")
+        : t("manage.deactivateConfirm.message", "This employee will stop receiving new orders. Current orders will continue."),
+      confirmText: nextAccepting
+        ? t("manage.activateConfirm.confirm", "Start")
+        : t("manage.deactivateConfirm.confirm", "Stop"),
+      confirmVariant: nextAccepting ? "default" : "destructive",
+    });
+
+    if (!confirmed) return;
+
+    // Optimistic update - update UI instantly
+    setOptimisticAcceptingStates(prev => ({ ...prev, [employee.userId]: nextAccepting }));
+
+    // Call backend API silently in background
+    toggleEmployeeAcceptingOrdersAction(employee.userId, nextAccepting).then((result) => {
+      if (result.success) {
+        refresh(); // Refresh SWR cache to get confirmed state
+        success(nextAccepting ? "Order distribution started" : "Order distribution stopped");
+        // Clear optimistic state on success (SWR refresh will have the real value)
+        setOptimisticAcceptingStates(prev => {
+          const newState = { ...prev };
+          delete newState[employee.userId];
+          return newState;
+        });
+      } else {
+        // Revert UI on error
+        setOptimisticAcceptingStates(prev => {
+          const newState = { ...prev };
+          delete newState[employee.userId];
+          return newState;
+        });
+        showError(result.error || "Failed to update");
+      }
+    }).catch(() => {
+      // Revert UI on exception
+      setOptimisticAcceptingStates(prev => {
+        const newState = { ...prev };
+        delete newState[employee.userId];
+        return newState;
       });
+      showError("Failed to update");
+    });
   };
 
   const handleToggleTaskDistribution = (userId: string, nextChecked: boolean) => {
@@ -260,58 +299,6 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
       .catch(() => {
         showError("Failed to update");
       });
-  };
-
-  const handleToggleActive = async (employee: EmployeePerformance) => {
-    const currentActive = optimisticActiveStates[employee.userId] ?? employee.isActive ?? employee.is_active;
-    const nextActive = !currentActive;
-    const confirmed = await confirm({
-      title: nextActive
-        ? t("manage.activateConfirm.title", "Start Order Distribution?")
-        : t("manage.deactivateConfirm.title", "Stop Order Distribution?"),
-      message: nextActive
-        ? t("manage.activateConfirm.message", "New orders will be assigned to this employee.")
-        : t("manage.deactivateConfirm.message", "This employee will stop receiving new orders. Current orders will continue."),
-      confirmText: nextActive
-        ? t("manage.activateConfirm.confirm", "Start")
-        : t("manage.deactivateConfirm.confirm", "Stop"),
-      confirmVariant: nextActive ? "default" : "destructive",
-    });
-
-    if (!confirmed) return;
-
-    // Optimistic update - update UI instantly
-    setOptimisticActiveStates(prev => ({ ...prev, [employee.userId]: nextActive }));
-
-    // Call backend API silently in background
-    setEmployeeActiveStatusAction(employee.userId, nextActive).then((result) => {
-      if (result.success) {
-        refresh(); // Refresh SWR cache to get confirmed state
-        success(nextActive ? "Order distribution started" : "Order distribution stopped");
-        // Clear optimistic state on success (SWR refresh will have the real value)
-        setOptimisticActiveStates(prev => {
-          const newState = { ...prev };
-          delete newState[employee.userId];
-          return newState;
-        });
-      } else {
-        // Revert UI on error
-        setOptimisticActiveStates(prev => {
-          const newState = { ...prev };
-          delete newState[employee.userId];
-          return newState;
-        });
-        showError(result.error || "Failed to update");
-      }
-    }).catch(() => {
-      // Revert UI on exception
-      setOptimisticActiveStates(prev => {
-        const newState = { ...prev };
-        delete newState[employee.userId];
-        return newState;
-      });
-      showError("Failed to update");
-    });
   };
 
   const isActiveRecently = (lastActiveAt: string | undefined) => {
@@ -473,17 +460,17 @@ export default function EmployeesClient({ initialEmployees, totalCount }: Employ
                     View Orders
                   </Button>
                   <Button
-                    variant={(optimisticActiveStates[employee.userId] ?? employee.isActive ?? employee.is_active) ? "outline" : "default"}
+                    variant={(optimisticAcceptingStates[employee.userId] ?? employee.acceptingOrders ?? employee.accepting_orders ?? true) ? "outline" : "default"}
                     size="sm"
                     className={`h-8 text-xs px-3 gap-1.5 ${
-                      (optimisticActiveStates[employee.userId] ?? employee.isActive ?? employee.is_active)
+                      (optimisticAcceptingStates[employee.userId] ?? employee.acceptingOrders ?? employee.accepting_orders ?? true)
                         ? 'text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/30'
                         : ''
                     }`}
-                    onClick={() => handleToggleActive(employee)}
-                    title={(optimisticActiveStates[employee.userId] ?? employee.isActive ?? employee.is_active) ? "Stop assigning new orders" : "Start assigning new orders"}
+                    onClick={() => handleToggleAcceptingOrders(employee)}
+                    title={(optimisticAcceptingStates[employee.userId] ?? employee.acceptingOrders ?? employee.accepting_orders ?? true) ? "Stop assigning new orders" : "Start assigning new orders"}
                   >
-                    {(optimisticActiveStates[employee.userId] ?? employee.isActive ?? employee.is_active) ? (
+                    {(optimisticAcceptingStates[employee.userId] ?? employee.acceptingOrders ?? employee.accepting_orders ?? true) ? (
                       <>
                         <PauseCircle className="h-3 w-3" />
                         Stop Orders

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/context/ToastContext";
 import { updateUserRoleAction, updateClientStatusAction, updateClientNotesAction, verifyClientEmailAction } from "@/app/actions/clients";
+import { toggleEmployeeAcceptingOrdersAction } from "@/app/actions/admin-reviews";
 import { EmployeeUser } from "./types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ export default function EmployeeDetailsModal({
   const [localAccountStatus, setLocalAccountStatus] = useState(employee.status);
   // Track the last confirmed status from server (for revert on error)
   const [confirmedAccountStatus, setConfirmedAccountStatus] = useState(employee.status);
+  const [localAcceptingOrders, setLocalAcceptingOrders] = useState(employee.accepting_orders ?? true);
 
   // Sync states when employee changes
   useEffect(() => {
@@ -49,7 +51,8 @@ export default function EmployeeDetailsModal({
     setUserRole(employee.role as "ADMIN" | "CLIENT" | "EMPLOYEE");
     setLocalAccountStatus(employee.status);
     setConfirmedAccountStatus(employee.status);
-  }, [employee.email_verified, employee.role, employee.status]);
+    setLocalAcceptingOrders(employee.accepting_orders ?? true);
+  }, [employee.email_verified, employee.role, employee.status, employee.accepting_orders]);
 
   // Load admin notes
   useEffect(() => {
@@ -90,6 +93,25 @@ export default function EmployeeDetailsModal({
         setLocalAccountStatus(previousStatus);
         error(result.error || "Failed to update status");
       }
+    });
+  };
+
+  // Toggle accepting orders
+  const handleToggleAcceptingOrders = (checked: boolean) => {
+    const previous = localAcceptingOrders;
+    setLocalAcceptingOrders(checked);
+
+    toggleEmployeeAcceptingOrdersAction(employee.id, checked).then((result) => {
+      if (result.success) {
+        onRefresh?.();
+        success(checked ? "Employee now accepting orders" : "Employee stopped accepting orders");
+      } else {
+        setLocalAcceptingOrders(previous);
+        error(result.error || "Failed to update accepting orders");
+      }
+    }).catch(() => {
+      setLocalAcceptingOrders(previous);
+      error("Failed to update accepting orders");
     });
   };
 
@@ -241,6 +263,26 @@ export default function EmployeeDetailsModal({
                   onCheckedChange={handleToggleStatus}
                 />
               </div>
+
+              {/* Accepting Orders - Controls order distribution */}
+              {userRole === "EMPLOYEE" && (
+                <div className="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-zinc-800 pb-3">
+                  <div className="space-y-0.5">
+                    <Label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                      {t("lbl_accepting_orders", { defaultValue: "Accepting Orders" })}
+                    </Label>
+                    <div className="text-[10px] text-zinc-500">
+                      {localAcceptingOrders
+                        ? t("desc_accepting_orders_on", { defaultValue: "Receiving new orders from load balancer" })
+                        : t("desc_accepting_orders_off", { defaultValue: "Order distribution paused" })}
+                    </div>
+                  </div>
+                  <Switch
+                    checked={localAcceptingOrders}
+                    onCheckedChange={handleToggleAcceptingOrders}
+                  />
+                </div>
+              )}
 
               {/* Role Selection */}
               <div className="py-2">

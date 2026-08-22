@@ -585,7 +585,7 @@ export async function getCreditsHistoryAction(userId?: string, limit: number = 2
 }
 
 // Alias for wallet page
-export const getcredit_transactionssAction = getCreditsHistoryAction;
+export const getCreditTransactionsAction = getCreditsHistoryAction;
 
 /**
  * Get wallet summary (balance + recent transactions) - optimized single call
@@ -647,7 +647,7 @@ export async function getWalletSummaryAction(limit: number = 10) {
 /**
  * Get all credit transactions (admin only)
  */
-export async function getAllcredit_transactionssAction(filters?: {
+export async function getAllCreditTransactionsAction(filters?: {
   userSearch?: string;
   type?: string;
   dateFrom?: string;

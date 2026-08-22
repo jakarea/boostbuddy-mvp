@@ -12,7 +12,7 @@ export async function getEmployeesData() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("users")
-      .select("id, email, name, role, status, email_verified, admin_notes, created_at")
+      .select("id, email, name, role, status, accepting_orders, email_verified, admin_notes, created_at")
       .in("role", ["ADMIN", "EMPLOYEE"])
       .order("created_at", { ascending: false });
 
@@ -35,7 +35,7 @@ export async function getEmployeeUsersData() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("users")
-      .select("id, email, name, role, status, email_verified, admin_notes, created_at")
+      .select("id, email, name, role, status, accepting_orders, email_verified, admin_notes, created_at")
       .in("role", ["ADMIN", "EMPLOYEE"])
       .order("created_at", { ascending: false });
 

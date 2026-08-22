@@ -482,7 +482,7 @@ export async function getEmployeePerformanceAction(filters?: { page?: number; pa
     // Build the main query with pagination
     let query = supabase
       .from("employee_stats")
-      .select("*, users:user_id(name, email, is_active, accepting_orders)")
+      .select("*, users:user_id(name, email, status, is_active, accepting_orders)")
       .order("orders_completed", { ascending: false })
       .order("last_active_at", { ascending: false })
       .range(startIndex, startIndex + pageSize - 1);
@@ -851,25 +851,30 @@ export async function inviteEmployeeAction(
  * Toggle an employee's "accepting orders" flag — the days-off switch.
  * Pauses new order assignment without deactivating the account.
  */
-export async function toggleEmployeeAcceptingOrdersAction(userId: string) {
+export async function toggleEmployeeAcceptingOrdersAction(userId: string, acceptingOrders?: boolean) {
   try {
     const auth = await requireAuth({ role: 'ADMIN' });
     if (!auth.success) return auth;
 
     const supabase = await createAdminClient();
 
-    const { data: current } = await (supabase
-      .from("users") as any)
-      .select("accepting_orders")
-      .eq("id", userId)
-      .eq("role", "EMPLOYEE")
-      .single();
+    let newStatus: boolean;
+    if (typeof acceptingOrders === "boolean") {
+      newStatus = acceptingOrders;
+    } else {
+      const { data: current } = await (supabase
+        .from("users") as any)
+        .select("accepting_orders")
+        .eq("id", userId)
+        .eq("role", "EMPLOYEE")
+        .single();
 
-    if (!current) {
-      return { success: false, error: "Employee not found" };
+      if (!current) {
+        return { success: false, error: "Employee not found" };
+      }
+
+      newStatus = !current.accepting_orders;
     }
-
-    const newStatus = !current.accepting_orders;
 
     const { error: updateError } = await (supabase
       .from("users") as any)
@@ -899,7 +904,10 @@ export async function setEmployeeActiveStatusAction(userId: string, isActive: bo
 
     const { error: updateError, count } = await (supabase
       .from("users") as any)
-      .update({ is_active: isActive })
+      .update({
+        status: isActive ? "ACTIVE" : "DEACTIVATED",
+        is_active: isActive
+      })
       .eq("id", userId)
       .eq("role", "EMPLOYEE");
 

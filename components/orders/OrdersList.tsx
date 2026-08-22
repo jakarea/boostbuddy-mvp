@@ -23,7 +23,8 @@ import {
   Coins,
   UserCheck,
   Eye,
-  Filter
+  Filter,
+  Plus
 } from "lucide-react";
 import { formatDateWithMonthName } from "@/lib/dateUtils";
 import Link from "next/link";

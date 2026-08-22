@@ -4,10 +4,9 @@ import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { EmployeeUser } from "./types";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, UserPlus, ChevronLeft, ChevronRight, Shield, UserCog, CheckCircle, XCircle, Clock, X, Loader2, Calendar, Coins, Package } from "lucide-react";
+import { Search, UserPlus, ChevronLeft, ChevronRight, Shield, UserCog, CheckCircle, XCircle, Clock, X, Loader2, Calendar } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 interface EmployeesListProps {
@@ -318,19 +317,7 @@ const EmployeesList = memo(function EmployeesList({
                   {t("th_role", { defaultValue: "Role" })}
                 </th>
                 <th className="text-left p-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                  {t("th_status", { defaultValue: "Status" })}
-                </th>
-                <th className="text-center p-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                  <div className="flex items-center justify-center gap-1">
-                    <Package className="h-3 w-3" />
-                    Orders
-                  </div>
-                </th>
-                <th className="text-center p-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                  <div className="flex items-center justify-center gap-1">
-                    <Coins className="h-3 w-3" />
-                    Credits
-                  </div>
+                  {t("th_login", { defaultValue: "Login" })}
                 </th>
                 <th className="text-right p-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">
                   {t("th_actions", { defaultValue: "Actions" })}
@@ -340,7 +327,7 @@ const EmployeesList = memo(function EmployeesList({
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
               {paginatedEmployees.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-zinc-500 text-sm">
+                  <td colSpan={5} className="p-8 text-center text-zinc-500 text-sm">
                     {searchTerm || roleFilter !== "ALL" || statusFilter !== "ALL"
                       ? t("no_results", { defaultValue: "No employees found matching your criteria" })
                       : t("no_employees", { defaultValue: "No employees found" })}
@@ -378,16 +365,6 @@ const EmployeesList = memo(function EmployeesList({
                       </Badge>
                     </td>
                     <td className="p-4">{getStatusBadge(employee.status)}</td>
-                    <td className="p-4 text-center">
-                      <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                        {employeeStats[employee.id]?.ordersCompleted || 0}
-                      </span>
-                    </td>
-                    <td className="p-4 text-center">
-                      <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                        {employeeStats[employee.id]?.creditsCompleted || 0}
-                      </span>
-                    </td>
                     <td className="p-4 text-right">
                       <Button
                         size="sm"

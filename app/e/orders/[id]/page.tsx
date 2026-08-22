@@ -26,7 +26,8 @@ import {
 import { formatDateShort } from "@/lib/dateUtils";
 import {
   getReviewOrderByIdAction,
-  completeReviewOrderAction
+  completeReviewOrderAction,
+  acceptReviewOrderAction
 } from "@/app/actions/employee";
 
 interface ReviewOrder {
@@ -62,6 +63,8 @@ interface ReviewOrder {
     quantity: number;
     reactionType?: string;
     reviewIndex: number;
+    reviewContent?: string;
+    photoUrls?: string;
     status: string;
     assignedEmployeeId?: string;
     assignedAt?: string;
@@ -80,6 +83,7 @@ export default function EmployeeOrderDetailPage() {
 
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
+  const [accepting, setAccepting] = useState(false);
   const [order, setOrder] = useState<ReviewOrder | null>(null);
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
 
@@ -100,7 +104,9 @@ export default function EmployeeOrderDetailPage() {
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
 
-  const isPending = order?.status === "PENDING" && !order?.completedByEmployeeId;
+  const isUnassignedOrPending = (!order?.assignedEmployeeId || order?.status === "PENDING") && order?.status !== "COMPLETED" && order?.status !== "CANCELLED";
+  const isAssignedToMe = order?.assignedEmployeeId === user?.id && order?.status === "IN_PROGRESS";
+  const canComplete = order?.status !== "COMPLETED" && order?.status !== "CANCELLED" && !order?.completedByEmployeeId;
 
   // Save done states to localStorage whenever they change
   useEffect(() => {
@@ -140,8 +146,29 @@ export default function EmployeeOrderDetailPage() {
     loadOrder();
   }, [user, orderId, toastError, router]);
 
+  const handleAcceptOrder = async () => {
+    setAccepting(true);
+    try {
+      const result = await acceptReviewOrderAction(orderId);
+      if (result.success) {
+        toastSuccess("Order accepted and assigned to you!");
+        const reloadResult = await getReviewOrderByIdAction(orderId);
+        if (reloadResult.success && reloadResult.data) {
+          setOrder(reloadResult.data as ReviewOrder);
+        }
+      } else {
+        toastError(result.error || "Failed to accept order");
+      }
+    } catch (err) {
+      console.error("Failed to accept order:", err);
+      toastError("Failed to accept order");
+    } finally {
+      setAccepting(false);
+    }
+  };
+
   const handleComplete = async () => {
-    if (!isPending) {
+    if (!canComplete) {
       toastError("This order cannot be completed");
       return;
     }
@@ -347,82 +374,119 @@ export default function EmployeeOrderDetailPage() {
 
         {/* Header */}
         <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => router.push("/e/orders")}
-          className="gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Button>
-      </div>
-
-      {/* Order Info Header */}
-      <Card className="p-5 bg-gradient-to-r from-zinc-50 to-blue-50 dark:from-zinc-900 dark:to-blue-900/20">
-        <div className="flex flex-wrap items-center gap-6">
-          <div className="flex-1 min-w-[200px]">
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Order ID</p>
-            <button
-              onClick={() => copyToClipboard(order.id, "Order ID")}
-              className="font-mono text-sm font-medium text-zinc-900 dark:text-zinc-100 break-all hover:text-[#168BB0] dark:hover:text-[#45B0D2] transition-colors flex items-center gap-1"
-              title="Click to copy"
-            >
-              {order.id}
-              <Copy className="h-3 w-3 opacity-50" />
-            </button>
-          </div>
-          <div className="flex-1 min-w-[120px]">
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Type</p>
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-              {order.orderType === "COMMENT" ? "Reactions" :
-               order.orderType === "REVIEW" ? "Reviews" :
-               order.orderType === "COMMENT_WITH_PHOTO" ? "Photo + Reviews" :
-               order.orderType?.replace(/_/g, " ")}
-            </p>
-          </div>
-          <div className="flex-1 min-w-[100px]">
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Credits</p>
-            <p className="text-sm font-bold text-[#168BB0]">{order.creditsConsumed}</p>
-          </div>
-          <div className="flex-1 min-w-[120px]">
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Created</p>
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{formatDateShort(order.createdAt)}</p>
-          </div>
-          <div className="flex-1 min-w-[150px]">
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Status</p>
-            <div className="flex items-center gap-2">
-              {getStatusBadge(order.status)}
-            </div>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push("/e/orders")}
+            className="gap-2 cursor-pointer"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
         </div>
-      </Card>
 
-      {/* Action Banner */}
-      {isPending && (
-        <Card className="p-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-          <div className="flex items-center gap-3">
-            <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-                {allItemsDone ? "All items marked done! Ready to complete." : "Mark items as done, then complete the order."}
+        {/* Order Info Header */}
+        <Card className="p-5 bg-gradient-to-r from-zinc-50 to-blue-50 dark:from-zinc-900 dark:to-blue-900/20">
+          <div className="flex flex-wrap items-center gap-6">
+            <div className="flex-1 min-w-[200px]">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Order ID</p>
+              <button
+                onClick={() => copyToClipboard(order.id, "Order ID")}
+                className="font-mono text-sm font-medium text-zinc-900 dark:text-zinc-100 break-all hover:text-[#168BB0] dark:hover:text-[#45B0D2] transition-colors flex items-center gap-1"
+                title="Click to copy"
+              >
+                {order.id}
+                <Copy className="h-3 w-3 opacity-50" />
+              </button>
+            </div>
+            <div className="flex-1 min-w-[120px]">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Type</p>
+              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                {order.orderType === "COMMENT" ? "Reactions" :
+                 order.orderType === "REVIEW" ? "Reviews" :
+                 order.orderType === "COMMENT_WITH_PHOTO" ? "Photo + Reviews" :
+                 order.orderType?.replace(/_/g, " ")}
               </p>
             </div>
-            <Button
-              onClick={handleComplete}
-              disabled={completing}
-              size="sm"
-              className="gap-2 bg-green-600 hover:bg-green-700"
-            >
-              {completing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Complete Order"
-              )}
-            </Button>
+            <div className="flex-1 min-w-[100px]">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Credits</p>
+              <p className="text-sm font-bold text-[#168BB0]">{order.creditsConsumed}</p>
+            </div>
+            <div className="flex-1 min-w-[120px]">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Created</p>
+              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{formatDateShort(order.createdAt)}</p>
+            </div>
+            <div className="flex-1 min-w-[150px]">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Status</p>
+              <div className="flex items-center gap-2">
+                {getStatusBadge(order.status)}
+              </div>
+            </div>
           </div>
         </Card>
-      )}
+
+        {/* Action Banner for Unassigned / Pending Order */}
+        {isUnassignedOrPending && (
+          <Card className="p-4 bg-sky-50 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800/50">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <UserCheck className="h-5 w-5 text-[#168BB0] dark:text-[#45B0D2] shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-sky-900 dark:text-sky-100">
+                    This order is unassigned / pending
+                  </p>
+                  <p className="text-xs text-sky-700 dark:text-sky-300">
+                    Accept this order to start working on it.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={handleAcceptOrder}
+                disabled={accepting}
+                size="sm"
+                className="gap-2 bg-[#168BB0] hover:bg-[#0F7493] text-white font-medium cursor-pointer w-full sm:w-auto shrink-0 shadow-sm"
+              >
+                {accepting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <UserCheck className="h-4 w-4" />
+                    Accept
+                  </>
+                )}
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Action Banner for Assigned Order */}
+        {isAssignedToMe && (
+          <Card className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">
+                  {allItemsDone ? "All items marked done! Ready to complete." : "Track items progress, then complete the order."}
+                </p>
+              </div>
+              <Button
+                onClick={handleComplete}
+                disabled={completing}
+                size="sm"
+                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium cursor-pointer w-full sm:w-auto shrink-0 shadow-sm"
+              >
+                {completing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4" />
+                    Complete Order
+                  </>
+                )}
+              </Button>
+            </div>
+          </Card>
+        )}
 
       {/* URLs Section */}
       {hasUrls && (
