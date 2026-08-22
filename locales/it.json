@@ -39,7 +39,15 @@
     "telegram_placeholder": "es. 123456789",
     "cancel": "Annulla",
     "edit": "Modifica",
-    "close": "Capito"
+    "close": "Capito",
+    "search_placeholder": "Cerca per destinatario, oggetto o ID...",
+    "telegram_help": "Hai bisogno di aiuto per configurare le notifiche Telegram?",
+    "telegram_status": "Stato",
+    "telegram_group_title": "Canali di Notifica Telegram",
+    "telegram_group_desc": "Configura i gruppi Telegram per gli eventi di sistema",
+    "save": "Salva",
+    "saving": "Salvataggio...",
+    "refresh": "Aggiorna"
   },
   "auth": {
     "quote": "Un account viene sospeso. Gli altri continuano a spendere. Account dell’agenzia compartimentati: nessun budget condiviso, nessun effetto a catena.",
@@ -171,8 +179,15 @@
       "notifications": "Notifiche",
       "settings": "Impostazioni",
       "documentation": "Documentazione",
-      "soon_badge": "Presto"
-    }
+      "soon_badge": "Presto",
+      "boxes": "Box",
+      "my_boxes": "I Miei Box",
+      "buy_boxes": "Acquista Box"
+    },
+    "session_refresh_required": "Aggiornamento Sessione Richiesto",
+    "session_expired_message": "La sessione è scaduta. Effettua nuovamente l'accesso per continuare.",
+    "return_to_login": "Torna al Login",
+    "soon_badge": "In arrivo"
   },
   "top_header": {
     "alerts": "Avvisi",
@@ -291,7 +306,34 @@
     "alert_requested_title": "Richiesto!",
     "alert_requested_text": "Riceverai una notifica non appena ti verrà assegnato un nuovo profilo.",
     "alert_launch_title": "Avvia Profilo",
-    "alert_launch_text": "Apri l'app IXBrowser e importa manualmente questo ID profilo."
+    "alert_launch_text": "Apri l'app IXBrowser e importa manualmente questo ID profilo.",
+    "buy_new_box": "Acquista Nuovo Box",
+    "btn_renew_box": "Rinnova Box",
+    "active_packages_title": "Pacchetti Attivi",
+    "lbl_account_approval": "Approvazione Account",
+    "lbl_account_status": "Stato Account",
+    "lbl_amount_due": "Importo Dovuto:",
+    "lbl_box_name": "Nome Box:",
+    "lbl_calculating": "Calcolo in corso...",
+    "lbl_change_role": "Cambia Ruolo",
+    "lbl_current_expiration": "Scadenza Attuale:",
+    "lbl_default_package": "Pacchetto Predefinito",
+    "lbl_email": "Email",
+    "lbl_email_verification": "Verifica Email",
+    "lbl_invoice": "Fattura",
+    "lbl_package_price": "Prezzo Pacchetto:",
+    "lbl_proration_note": "Nota di ripartizione",
+    "lbl_role": "Ruolo",
+    "lbl_select_package": "Seleziona Pacchetto",
+    "lbl_unused_credit": "Credito non Utilizzato",
+    "lbl_verification_security": "Verifica e Sicurezza",
+    "desc_active": "L'account è attivo e in regola",
+    "desc_inactive": "L'account è inattivo",
+    "desc_pending_approval": "L'account è in attesa di approvazione dell'amministratore",
+    "desc_verified": "Verificato",
+    "desc_unverified": "Non verificato",
+    "desc_email_verified": "L'email è verificata",
+    "desc_email_unverified": "L'email non è verificata"
   },
   "client_pending": {
     "title": "In Attesa di Attivazione",
@@ -361,7 +403,9 @@
     "modal_footer_thanks": "Grazie per averci scelto! BoostBuddy - Gestione Manuale Profili Browser.",
     "lbl_renewal": "Rinnovo Abbonamento Profilo",
     "lbl_service_plan": "Piano di Servizio",
-    "lbl_sub_renewal": "Rinnovo Abbonamento"
+    "lbl_sub_renewal": "Rinnovo Abbonamento",
+    "search_placeholder": "Cerca fatture...",
+    "btn_print": "Stampa"
   },
   "client_payments": {
     "title": "Pagamenti & Servizi",
@@ -379,9 +423,14 @@
     "col_session": "Sessione Stripe",
     "col_amount": "Importo",
     "col_status": "Stato",
-    "col_date": "Data transazione",
+    "col_date": "Data",
     "lbl_renewal": "Rinnovo Abbonamento Profilo",
-    "lbl_custom": "Servizio Personalizzato"
+    "lbl_custom": "Servizio Personalizzato",
+    "col_invoice": "Fattura",
+    "col_order_id": "ID Ordine",
+    "filter_status": "Filtra per stato",
+    "search_placeholder": "Cerca pagamenti...",
+    "no_payments": "Nessun pagamento trovato"
   },
   "checkout": {
     "invalid_title": "Sessione di Pagamento Non Valida",
@@ -396,7 +445,19 @@
     "stripe_processing_badge": "I pagamenti sono elaborati in modo sicuro da Stripe",
     "renewal_item_name": "Rinnovo: {{profileName}}",
     "renewal_item_desc": "Estensione abbonamento di 30 giorni",
-    "alert_failed": "Impossibile avviare il pagamento"
+    "alert_failed": "Impossibile avviare il pagamento",
+    "btn_proceed_checkout": "Procedi al Pagamento",
+    "no_boxes_title": "Nessun Box Disponibile",
+    "no_boxes_desc": "Al momento non ci sono box disponibili per l'acquisto.",
+    "err_failed_create": "Creazione dell'ordine non riuscita",
+    "filter_label": "Filtra",
+    "session_id": "ID Sessione",
+    "session_refresh_required": "Aggiornamento Sessione Richiesto",
+    "session_expired_message": "La sessione è scaduta. Effettua nuovamente l'accesso per continuare.",
+    "soon_title": "In Arrivo",
+    "soon_body": "Questa funzionalità sarà disponibile a breve.",
+    "status_pending": "In Attesa",
+    "status_verified": "Verificato"
   },
   "success": {
     "meta_title": "Pagamento Completato - BoostBuddy",
@@ -438,7 +499,9 @@
     "alert_reject_title": "Rifiutare la Registrazione?",
     "alert_reject_text": "Questo disattiverà l'account. Potrai eliminarlo in seguito dalla pagina Clienti.",
     "alert_reject_confirm": "Sì, rifiuta!",
-    "alert_rejected_title": "Rifiutato"
+    "alert_rejected_title": "Rifiutato",
+    "are_you_sure": "Sei sicuro?",
+    "yes": "Sì"
   },
   "admin_clients": {
     "title": "Registro Clienti",
@@ -500,7 +563,21 @@
     "btn_approve_and_verify_email": "Approva Account e Segna Email Come Verificata",
     "alert_approved_success": "Registrazione del cliente approvata con successo!",
     "alert_approve_verify_success": "Account approvato ed email segnata come verificata con successo!",
-    "alert_approved_failed": "Impossibile approvare la registrazione."
+    "alert_approved_failed": "Impossibile approvare la registrazione.",
+    "alert_email_verified_success": "Email contrassegnata come verificata con successo!",
+    "alert_email_verified_failed": "Impossibile verificare l'email.",
+    "select_type": "Seleziona tipo",
+    "individual": "Privato (Persona fisica)",
+    "company": "Azienda / Persona giuridica",
+    "lbl_verification_security": "Verifica Account e Azioni di Stato",
+    "lbl_email_verification": "Verifica Email",
+    "desc_email_verified": "L'indirizzo email dell'utente è confermato",
+    "desc_email_unverified": "Fai clic sullo switch per verificare l'email dell'utente",
+    "status_verified": "Verificato",
+    "lbl_account_approval": "Approvazione Account",
+    "desc_pending_approval": "Approva la registrazione per consentire l'accesso al portale",
+    "err_failed_create": "Creazione dell'account non riuscita.",
+    "filter_label": "Filtra per stato"
   },
   "admin_employees": {
     "title": "Registro Dipendenti",
@@ -563,7 +640,27 @@
     "col_actions": "Azioni",
     "no_employees": "Nessun dipendente trovato",
     "joined": "Iscritto Il",
-    "action": "Azione"
+    "action": "Azione",
+    "lbl_name": "Nome",
+    "lbl_email": "Email",
+    "lbl_role": "Ruolo",
+    "lbl_status": "Stato",
+    "lbl_email_verification": "Verifica Email",
+    "status_verified": "Verificato",
+    "lbl_account_status": "Accesso Account",
+    "lbl_accepting_orders": "Accetta Ordini",
+    "desc_accepting_orders_on": "Ricezione di nuovi ordini dal bilanciatore di carico",
+    "desc_accepting_orders_off": "Distribuzione ordini in pausa",
+    "lbl_change_role": "Cambia Ruolo",
+    "notes_placeholder": "Aggiungi note interne...",
+    "search_placeholder": "Cerca per nome o email...",
+    "th_name": "Nome",
+    "th_email": "Email",
+    "th_role": "Ruolo",
+    "th_login": "Accesso",
+    "th_actions": "Azioni",
+    "th_status": "Stato",
+    "no_results": "Nessun dipendente trovato con i criteri selezionati"
   },
   "admin_invoices": {
     "upload_title": "Carica Fattura Cliente",
@@ -577,7 +674,7 @@
     "search_client_placeholder": "Cerca per nome o email cliente...",
     "err_no_client_found": "Nessun cliente trovato.",
     "lbl_map_order": "Associa a un Ordine Pagato",
-    "err_no_transactions": "Nessuna transazione registrata per questo cliente.",
+    "err_no_transactions": "Nessuna transazione registrata per questo cliente",
     "placeholder_select_order": "Seleziona Ordine...",
     "search_order_placeholder": "Cerca per ID ordine o importo...",
     "err_no_order_found": "Nessun ordine trovato.",
@@ -628,7 +725,7 @@
     "col_period_mobile": "Periodo",
     "action": "Azione",
     "are_you_sure": "Sei sicuro?",
-    "err_no_transactions": "Nessuna transazione registrata per questo cliente"
+    "yes": "Sì"
   },
   "admin_orders": {
     "title": "Registri dei Pagamenti",
@@ -750,7 +847,10 @@
     "alert_delete_title": "Eliminare il Profilo?",
     "alert_delete_text": "Non potrai annullare questa operazione!",
     "alert_delete_confirm": "Sì, eliminalo!",
-    "alert_delete_disabled_title": "Impossibile eliminare un profilo assegnato. Rilascialo prima."
+    "alert_delete_disabled_title": "Impossibile eliminare un profilo assegnato. Rilascialo prima.",
+    "filter_label": "Filtra per stato",
+    "are_you_sure": "Sei sicuro?",
+    "yes": "Sì"
   },
   "admin_services": {
     "title": "Impostazioni dei Servizi",
@@ -782,7 +882,7 @@
     "lbl_duration": "Durata (Giorni)",
     "lbl_instructions": "Istruzioni per il Cliente (Mostrate nella Dashboard)",
     "days": "Giorni",
-    "placeholder_name": "Starter Proxy Profile",
+    "placeholder_name": "Profilo Proxy Iniziale",
     "placeholder_desc": "Breve descrizione che evidenzia le specifiche del proxy e la durata...",
     "placeholder_instructions": "Fornisci istruzioni copia-incolla affinché l'utente possa importare questo profilo in IXBrowser...",
     "card_settings_title": "Impostazioni & Stato",
@@ -800,7 +900,8 @@
     "alert_delete_text": "I clienti non potranno più selezionarlo.",
     "alert_delete_confirm": "Sì, eliminalo!",
     "alert_deleted_title": "Eliminato!",
-    "alert_deleted_text": "Il piano di servizio è stato rimosso."
+    "alert_deleted_text": "Il piano di servizio è stato rimosso.",
+    "duration_days_suffix": "giorni"
   },
   "common": {
     "is_loading": "in caricamento...",
@@ -822,18 +923,104 @@
     "no_results": "Nessun risultato trovato",
     "page": "Pagina",
     "yes": "Sì",
-    "are_you_sure": "Sei sicuro?"
+    "are_you_sure": "Sei sicuro?",
+    "employee": {
+      "loading_failed": "Caricamento delle informazioni sui prezzi non riuscito",
+      "orderHistory": "Cronologia Ordini",
+      "allStatuses": "Tutti gli Stati",
+      "noOrdersFound": "Nessun ordine trovato",
+      "noOrdersYet": "Nessun ordine ancora",
+      "platform": "Piattaforma",
+      "created": "Creato",
+      "completed": "Completato",
+      "proof": "URL Recensione",
+      "submitReview": "Invia Recensione",
+      "accountPending": "Account in Attesa",
+      "accountPendingMessage": "Il tuo account è attualmente inattivo. Contatta l'assistenza."
+    },
+    "reviews": {
+      "order_created": "Ordine creato con successo",
+      "order_failed": "Impossibile creare l'ordine",
+      "order_error": "Si è verificato un errore",
+      "title": "Servizio Recensioni",
+      "createOrder": "Nuovo Ordine",
+      "myOrders": "I Miei Ordini",
+      "availableCredits": "Crediti Disponibili",
+      "recentOrders": "Ordini Recenti",
+      "noOrders": "Nessun ordine presente",
+      "viewAllOrders": "Visualizza Tutti gli Ordini"
+    },
+    "loadFailed": "Caricamento dei dati della dashboard non riuscito",
+    "common": {
+      "refresh": "Aggiorna",
+      "results": "risultati",
+      "total": "totale",
+      "previous": "Precedente",
+      "next": "Successivo"
+    },
+    "credits": {
+      "credits": "crediti",
+      "purchaseSuccess": "Crediti acquistati con successo!",
+      "purchaseCredits": "Acquista Crediti",
+      "noPackagesAvailable": "Nessun pacchetto disponibile",
+      "noPackagesMessage": "Al momento non ci sono pacchetti di crediti disponibili per l'acquisto.",
+      "refresh": "Aggiorna"
+    },
+    "wallet": {
+      "backToDashboard": "Torna alla Dashboard",
+      "title": "Il Mio Portafoglio",
+      "subtitle": "Gestisci i tuoi crediti e visualizza la cronologia delle transazioni",
+      "currentBalance": "Saldo Attuale",
+      "status": "Stato",
+      "active": "Attivo",
+      "empty": "Vuoto",
+      "topUp": "Ricarica Crediti",
+      "summary": "Riepilogo",
+      "totalEarned": "Totale Guadagnato",
+      "totalSpent": "Totale Speso",
+      "totalTransactions": "Transazioni",
+      "transactionHistory": "Cronologia Transazioni",
+      "noTransactions": "Nessuna transazione ancora",
+      "noTransactionsDesc": "Inizia acquistando crediti",
+      "purchaseCredits": "Acquista Crediti",
+      "balanceAfter": "Saldo",
+      "refresh_failed": "Impossibile aggiornare i dati del portafoglio"
+    },
+    "orders": {
+      "myOrders": "I Miei Ordini",
+      "myReviewOrders": "I Miei Ordini di Recensioni",
+      "subtitle": "Visualizza e gestisci gli ordini di recensioni assegnati e disponibili",
+      "subtitleClient": "Visualizza e gestisci i tuoi ordini di recensioni",
+      "total": "Totale",
+      "pending": "In Attesa",
+      "inProgress": "In Corso",
+      "completed": "Completato",
+      "totalRevenue": "Entrate Totali",
+      "available": "Disponibile",
+      "searchPlaceholder": "Cerca per ID ordine...",
+      "allStatuses": "Tutti gli Stati",
+      "status": "Stato",
+      "noOrders": "Nessun Ordine Trovato",
+      "noEmployeeOrders": "Non hai ordini di recensioni assegnati in questo momento.",
+      "noClientOrders": "Non hai ancora creato alcun ordine di recensioni.",
+      "orderId": "ID Ordine",
+      "type": "Tipo",
+      "qty": "Qtà",
+      "credits": "Crediti",
+      "employee": "Dipendente",
+      "created": "Creato"
+    }
   },
   "reviews": {
     "title": "Servizio Recensioni",
-    "createOrder": "Crea Nuovo Ordine",
+    "createOrder": "Nuovo Ordine",
     "availableCredits": "Crediti Disponibili",
     "credits": "crediti",
     "recentOrders": "Ordini Recenti",
-    "noOrders": "Nessun ordine ancora",
-    "viewAllOrders": "Vedi Tutti gli Ordini",
+    "noOrders": "Nessun ordine presente",
+    "viewAllOrders": "Visualizza Tutti gli Ordini",
     "newOrder": "+ Nuovo Ordine",
-    "myOrders": "I Miei Ordini di Recensione",
+    "myOrders": "I Miei Ordini",
     "allStatuses": "Tutti gli Stati",
     "noOrdersFound": "Nessun ordine trovato",
     "createFirst": "Crea il tuo primo ordine →",
@@ -866,7 +1053,10 @@
       "IN_PROGRESS": "In Corso",
       "COMPLETED": "Completato",
       "CANCELLED": "Cancellato"
-    }
+    },
+    "order_created": "Ordine creato con successo",
+    "order_failed": "Impossibile creare l'ordine",
+    "order_error": "Si è verificato un errore"
   },
   "credits": {
     "title": "Crediti",
@@ -889,9 +1079,9 @@
     "purchaseCredits": "Acquista Crediti",
     "purchaseDescription": "Ricarica il tuo saldo con pacchetti crediti",
     "loadingPackages": "Caricamento pacchetti...",
-    "noPackagesAvailable": "Nessun Pacchetto Disponibile",
-    "noPackagesMessage": "Non ci sono attualmente pacchetti di crediti disponibili per l'acquisto.",
-    "purchaseSuccess": "Crediti acquistati con successo! Il tuo saldo è stato aggiornato.",
+    "noPackagesAvailable": "Nessun pacchetto disponibile",
+    "noPackagesMessage": "Al momento non ci sono pacchetti di crediti disponibili per l'acquisto.",
+    "purchaseSuccess": "Crediti acquistati con successo!",
     "type": {
       "PURCHASE": "Acquisto",
       "SPEND": "Spesa",
@@ -925,10 +1115,12 @@
     "no_transactions_yet": "Nessuna transazione ancora",
     "at_time": " alle {{time}}",
     "balance_label": "Saldo: {{balance}}",
-    "view_all_transactions": "Visualizza Tutte le Transazioni"
+    "view_all_transactions": "Visualizza Tutte le Transazioni",
+    "credits": "crediti",
+    "refresh": "Aggiorna"
   },
   "wallet": {
-    "title": "Portafoglio",
+    "title": "Il Mio Portafoglio",
     "subtitle": "Gestisci i tuoi crediti e visualizza la cronologia delle transazioni",
     "refresh": "Aggiorna",
     "quick_actions": "Azioni Rapide",
@@ -961,7 +1153,7 @@
     "load_failed": "Impossibile caricare le transazioni",
     "currentBalance": "Saldo Attuale",
     "totalEarned": "Totale Guadagnato",
-    "topUp": "Ricarica",
+    "topUp": "Ricarica Crediti",
     "totalSpent": "Totale Speso",
     "totalTransactions": "Transazioni",
     "empty": "Vuoto",
@@ -973,7 +1165,8 @@
     "active": "Attivo",
     "balanceAfter": "Saldo",
     "purchaseCredits": "Acquista Crediti",
-    "noTransactionsDesc": "Inizia acquistando crediti"
+    "noTransactionsDesc": "Inizia acquistando crediti",
+    "refresh_failed": "Impossibile aggiornare i dati del portafoglio"
   },
   "credits_admin": {
     "back_to_credits": "Torna ai Crediti",
@@ -1051,7 +1244,13 @@
     "csv_balance_after": "Saldo Dopo",
     "csv_description": "Descrizione",
     "csv_date": "Data",
-    "error_failed_load": "Impossibile caricare le transazioni"
+    "error_failed_load": "Impossibile caricare le transazioni",
+    "adjust_user_credits": "Regola Crediti Utente",
+    "adjust_user_credits_desc": "Aggiungi o rimuovi manualmente crediti dagli account utente",
+    "balance_preview": "Anteprima Saldo",
+    "current": "Attuale",
+    "adjustment": "Regolazione",
+    "new_balance": "Nuovo Saldo"
   },
   "employee": {
     "title": "Dashboard Dipendente",
@@ -1161,8 +1360,8 @@
       }
     },
     "employees": {
-      "title": "Performance Dipendenti",
-      "subtitle": "Monitora la performance dei dipendenti, disponibilità e tassi di completamento",
+      "title": "Gestione Recensioni Dipendenti",
+      "subtitle": "Monitora assegnazioni, prestazioni e completamenti dei dipendenti",
       "refresh": "Aggiorna",
       "sortBy": "Ordina per",
       "sort": {
@@ -1186,7 +1385,16 @@
         "available": "Attualmente Disponibili",
         "totalCompleted": "Totale Completati",
         "avgRate": "Tasso Medio Completamento"
-      }
+      },
+      "search_placeholder": "Cerca dipendenti...",
+      "col_employee": "Dipendente",
+      "col_assigned": "Ordini Assegnati",
+      "col_completed": "Completati",
+      "col_pending": "In Attesa",
+      "col_actions": "Azioni",
+      "view_orders": "Visualizza Ordini",
+      "empty_title": "Nessun dipendente trovato",
+      "empty_subtitle": "Nessun record di dipendente disponibile."
     },
     "verification": {
       "title": "Coda Verifica",
@@ -1225,7 +1433,7 @@
     },
     "packages": {
       "title": "Pacchetti Crediti",
-      "subtitle": "Gestisci i pacchetti di crediti che gli utenti possono acquistare",
+      "subtitle": "Gestisci i pacchetti disponibili per l'acquisto da parte dei clienti",
       "create_btn": "Crea Pacchetto",
       "edit_btn": "Modifica",
       "delete_btn": "Elimina",
@@ -1263,7 +1471,20 @@
         "message": "Sei sicuro di voler eliminare \"{{name}}\"? Questa azione non può essere annullata.",
         "confirm": "Elimina Pacchetto",
         "success": "Pacchetto eliminato con successo"
-      }
+      },
+      "create": "Crea Pacchetto",
+      "empty_title": "Nessun Pacchetto Trovato",
+      "empty_subtitle": "Inizia creando il tuo primo pacchetto di crediti.",
+      "create_first": "Crea il Primo Pacchetto",
+      "active": "Attivo",
+      "inactive": "Inattivo",
+      "credits": "crediti",
+      "price": "Prezzo",
+      "per_credit": "Per Credito",
+      "created": "Creato",
+      "edit": "Modifica",
+      "disable": "Disabilita",
+      "enable": "Abilita"
     },
     "package_form": {
       "create_title": "Crea Pacchetto Crediti",
@@ -1420,7 +1641,42 @@
     "view_full_history": "Vedi Storico Completo",
     "adjust_user_credits": "Modifica Crediti Utente",
     "adjust_user_credits_desc": "Aggiungi o rimuovi manualmente crediti da qualsiasi account utente",
-    "go_to_adjustment_tool": "Vai allo Strumento di Modifica"
+    "go_to_adjustment_tool": "Vai allo Strumento di Modifica",
+    "orders": {
+      "title": "Ordini Recensioni Clienti",
+      "subtitle": "Gestisci tutti gli ordini di recensioni dei clienti con URL e contenuti",
+      "search_placeholder": "Cerca per ID ordine, cliente, attività...",
+      "filter_status": "Filtra per stato",
+      "filter_type": "Filtra per tipo",
+      "all_statuses": "Tutti gli Stati",
+      "all_types": "Tutti i Tipi",
+      "export": "Esporta",
+      "table_order_id": "ID Ordine",
+      "table_client": "Cliente",
+      "table_type": "Tipo",
+      "table_quantity": "Quantità",
+      "table_credits": "Crediti",
+      "table_employee": "Dipendente Assegnato",
+      "table_status": "Stato",
+      "table_created": "Creato",
+      "table_actions": "Azioni",
+      "view_details": "Visualizza Dettagli",
+      "empty_title": "Nessun Ordine Trovato",
+      "empty_subtitle": "Nessun ordine corrisponde ai filtri selezionati."
+    },
+    "pricing": {
+      "title": "Gestione Prezzi",
+      "subtitle": "Configura i costi in crediti per recensioni e pacchetti",
+      "save_success": "Prezzi salvati con successo",
+      "save_error": "Impossibile salvare i prezzi",
+      "service_type": "Tipo di Servizio",
+      "cost_per_review": "Costo (Crediti)",
+      "active": "Attivo",
+      "actions": "Azioni",
+      "save_changes": "Salva Modifiche",
+      "saving": "Salvataggio..."
+    },
+    "delete": "Elimina"
   },
   "employee_layout": {
     "loading": "Caricamento...",
@@ -1437,7 +1693,8 @@
       "completed_reviews": "Recensioni Completate",
       "account": "Account",
       "notifications": "Notifiche"
-    }
+    },
+    "subtitle": "Portale Dipendenti"
   },
   "employee_notifications": {
     "title": "Notifiche",
@@ -1451,6 +1708,101 @@
       "channel": "Canale",
       "status": "Stato",
       "date": "Data"
+    },
+    "search_placeholder": "Cerca notifiche..."
+  },
+  "client_boxes": {
+    "title": "I Miei Box",
+    "subtitle": "Gestisci i tuoi profili browser nei box",
+    "buy_new_box": "Acquista Nuovo Box",
+    "instructions_title": "Come Usare i Tuoi Box",
+    "instructions_desc": "Ogni box contiene un profilo browser con credenziali. Usa i codici di riferimento IXBrowser per accedere ai tuoi profili.",
+    "no_boxes_title": "Nessun Box Disponibile",
+    "no_boxes_desc": "Non hai ancora acquistato alcun box di profili browser.",
+    "go_to_store": "Vai al Negozio",
+    "banner_change_requested": "Modifica Richiesta",
+    "banner_expiring_one": "In scadenza tra 1 giorno",
+    "banner_expiring": "In scadenza tra {{count}} giorni",
+    "banner_expired": "Box Scaduto",
+    "assigned_on": "Assegnato il {{date}}",
+    "card_expired": "Scaduto",
+    "card_credentials": "Credenziali Box",
+    "card_ixbrowser": "Riferimento IXBrowser",
+    "card_profile_id": "ID Profilo",
+    "card_not_set": "Non impostato",
+    "card_group": "Gruppo",
+    "card_expires": "Scade",
+    "card_days_left_one": "1 giorno rimasto",
+    "card_days_left": "{{count}} giorni rimasti",
+    "card_2fa": "2FA",
+    "btn_copy": "Copia",
+    "are_you_sure": "Sei sicuro?",
+    "alert_req_change_text": "Questa operazione richiederà la modifica del profilo.",
+    "yes": "Sì",
+    "alert_requested_text": "Modifica richiesta con successo",
+    "exp_warning_title": "Box in Scadenza",
+    "exp_warning_desc": "{{count}} box in scadenza a breve",
+    "alert_launch_text": "Avvia IXBrowser e inserisci l'ID profilo per accedere a questo box.",
+    "btn_launch_how": "Come Avviare",
+    "btn_launch": "Avvia",
+    "btn_support": "Supporto",
+    "btn_renew_box": "Rinnova Box",
+    "btn_renew": "Rinnova",
+    "btn_change_requested": "Modifica Richiesta",
+    "btn_request_change": "Richiedi Modifica",
+    "modal_renew_title": "Rinnova / Aggiorna Box",
+    "modal_renew_desc": "Seleziona un pacchetto per estendere o aggiornare l'abbonamento del box.",
+    "lbl_box_name": "Nome Box:",
+    "lbl_current_expiration": "Scadenza Attuale:",
+    "lbl_select_package": "Scegli Pacchetto di Rinnovo",
+    "lbl_calculating": "Calcolo del credito di prorata in corso...",
+    "lbl_package_price": "Prezzo Pacchetto:",
+    "lbl_unused_credit": "Credito non Utilizzato (Applicato):",
+    "lbl_amount_due": "Importo Dovuto:",
+    "lbl_proration_note": "Effettuando l'upgrade, il ciclo di abbonamento riparte oggi e il nuovo periodo di validità decorre immediatamente.",
+    "btn_cancel": "Annulla",
+    "btn_proceed_checkout": "Procedi al Pagamento"
+  },
+  "clocker": {
+    "back": "Torna ai Servizi",
+    "title": "Clocker",
+    "subtitle": "Servizio di monitoraggio automatico del tempo per profili browser.",
+    "soon_title": "Disponibile a breve",
+    "soon_body": "Clocker è in fase di completamento e sarà rilasciato a breve. Torna più tardi per aggiornamenti."
+  },
+  "prompt": {
+    "back": "Torna ai Servizi",
+    "title": "Prompt",
+    "subtitle": "Consegna di prompt assistita da intelligenza artificiale per profili browser.",
+    "soon_title": "Disponibile a breve",
+    "soon_body": "Prompt è in fase di completamento e sarà rilasciato a breve. Torna più tardi per aggiornamenti."
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "subtitle": "Gestisci il profilo del tuo account, la sicurezza e le preferenze.",
+    "profile": {
+      "title": "Profilo",
+      "name": "Nome",
+      "email": "Email",
+      "role": "Ruolo",
+      "status": "Stato",
+      "active": "Attivo",
+      "pending": "In Attesa"
+    },
+    "security": {
+      "title": "Sicurezza",
+      "password": "Password",
+      "password_desc": "Reimposta la password tramite verifica email.",
+      "reset": "Reimposta"
+    },
+    "preferences": {
+      "title": "Preferenze",
+      "theme": "Tema",
+      "dark": "Scuro",
+      "light": "Chiaro",
+      "toggle": "Attiva/Disattiva",
+      "language": "Lingua",
+      "language_desc": "Passa da una lingua disponibile all'altra."
     }
   }
 }

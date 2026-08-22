@@ -39,7 +39,15 @@
     "telegram_placeholder": "e.g. 123456789",
     "cancel": "Cancel",
     "edit": "Edit",
-    "close": "Got it"
+    "close": "Got it",
+    "search_placeholder": "Search by recipient, subject, or ID...",
+    "telegram_help": "Need help configuring Telegram notifications?",
+    "telegram_status": "Status",
+    "telegram_group_title": "Telegram Notification Channels",
+    "telegram_group_desc": "Configure Telegram chat groups for system events",
+    "save": "Save",
+    "saving": "Saving...",
+    "refresh": "Refresh"
   },
   "auth": {
     "quote": "One account goes down. The rest keep spending. Compartmentalized agency accounts — no shared pool, no cascade.",
@@ -171,8 +179,15 @@
       "notifications": "Notifications",
       "settings": "Settings",
       "documentation": "Documentation",
-      "soon_badge": "Soon"
-    }
+      "soon_badge": "Soon",
+      "boxes": "Boxes",
+      "my_boxes": "My Boxes",
+      "buy_boxes": "Buy Boxes"
+    },
+    "session_refresh_required": "Session Refresh Required",
+    "session_expired_message": "Your session has expired. Please sign in again to continue.",
+    "return_to_login": "Return to Login",
+    "soon_badge": "Coming soon"
   },
   "top_header": {
     "alerts": "Alerts",
@@ -285,28 +300,28 @@
     "btn_renew": "Renew",
     "lbl_account_approval": "Account Approval",
     "lbl_account_status": "Account Status",
-    "lbl_amount_due": "Amount Due",
-    "lbl_box_name": "Box Name",
+    "lbl_amount_due": "Amount Due:",
+    "lbl_box_name": "Box Name:",
     "lbl_calculating": "Calculating...",
     "lbl_change_role": "Change Role",
-    "lbl_current_expiration": "Current Expiration",
+    "lbl_current_expiration": "Current Expiration:",
     "lbl_default_package": "Default Package",
     "lbl_email": "Email",
     "lbl_email_verification": "Email Verification",
     "lbl_invoice": "Invoice",
-    "lbl_package_price": "Package Price",
+    "lbl_package_price": "Package Price:",
     "lbl_proration_note": "Proration note",
     "lbl_role": "Role",
     "lbl_select_package": "Select Package",
     "lbl_unused_credit": "Unused Credit",
     "lbl_verification_security": "Verification & Security",
-    "desc_active": "Active - Account is active",
-    "desc_inactive": "Inactive - Account is inactive",
-    "desc_pending_approval": "Pending - Waiting for approval",
-    "desc_verified": "Verified - Email is verified",
-    "desc_unverified": "Unverified - Email is not verified",
-    "desc_email_verified": "Email Verified",
-    "desc_email_unverified": "Email Not Verified",
+    "desc_active": "Account is active and in good standing",
+    "desc_inactive": "Account is inactive",
+    "desc_pending_approval": "Account is pending administrator approval",
+    "desc_verified": "Verified",
+    "desc_unverified": "Unverified",
+    "desc_email_verified": "Email is verified",
+    "desc_email_unverified": "Email is not verified",
     "btn_request_change": "Request Change",
     "btn_change_requested": "Change Requested",
     "alert_2fa_copied": "2FA Code copied to clipboard",
@@ -388,7 +403,9 @@
     "modal_footer_thanks": "Thank you for your business! BoostBuddy - Manual Browser Profiles Portal.",
     "lbl_renewal": "Profile Subscription Renewal",
     "lbl_service_plan": "Service Plan",
-    "lbl_sub_renewal": "Subscription Renewal"
+    "lbl_sub_renewal": "Subscription Renewal",
+    "search_placeholder": "Search invoices...",
+    "btn_print": "Print"
   },
   "client_payments": {
     "title": "Payments & Services",
@@ -409,7 +426,11 @@
     "col_date": "Date",
     "col_invoice": "Invoice",
     "lbl_renewal": "Profile Subscription Renewal",
-    "lbl_custom": "Custom Service"
+    "lbl_custom": "Custom Service",
+    "col_order_id": "Order ID",
+    "filter_status": "Filter by status",
+    "search_placeholder": "Search payments...",
+    "no_payments": "No payments found"
   },
   "checkout": {
     "invalid_title": "Invalid Checkout Session",
@@ -426,15 +447,15 @@
     "renewal_item_name": "Renewal: {{profileName}}",
     "renewal_item_desc": "30-day subscription extension",
     "alert_failed": "Failed to initiate checkout",
-    "no_boxes_title": "No Boxes Yet",
-    "no_boxes_desc": "You don't have any active boxes. Purchase a service to get started.",
+    "no_boxes_title": "No Boxes Available",
+    "no_boxes_desc": "No boxes are currently available for purchase.",
     "err_failed_create": "Failed to create order",
-    "filter_label": "Filter:",
+    "filter_label": "Filter",
     "session_id": "Session ID",
-    "session_refresh_required": "Session refresh required. Please refresh the page.",
-    "session_expired_message": "Your session has expired. Please refresh the page.",
+    "session_refresh_required": "Session Refresh Required",
+    "session_expired_message": "Your session has expired. Please sign in again to continue.",
     "soon_title": "Coming Soon",
-    "soon_body": "This feature is under development and will be available soon.",
+    "soon_body": "This feature will be available soon.",
     "status_pending": "Pending",
     "status_verified": "Verified"
   },
@@ -478,7 +499,9 @@
     "alert_reject_title": "Reject Registration?",
     "alert_reject_text": "This will deactivate the account. You can delete it later from the Clients page.",
     "alert_reject_confirm": "Yes, reject it!",
-    "alert_rejected_title": "Rejected"
+    "alert_rejected_title": "Rejected",
+    "are_you_sure": "Are you sure?",
+    "yes": "Yes"
   },
   "admin_clients": {
     "title": "Client Registry",
@@ -540,7 +563,21 @@
     "btn_approve_and_verify_email": "Approve Account & Mark Email Verified",
     "alert_approved_success": "Client registration approved successfully!",
     "alert_approve_verify_success": "Account approved and email marked as verified successfully!",
-    "alert_approved_failed": "Failed to approve registration."
+    "alert_approved_failed": "Failed to approve registration.",
+    "alert_email_verified_success": "Email marked as verified successfully!",
+    "alert_email_verified_failed": "Failed to verify email.",
+    "select_type": "Select type",
+    "individual": "Individual (Person)",
+    "company": "Company / Business",
+    "lbl_verification_security": "Account Verification & Status Actions",
+    "lbl_email_verification": "Email Verification",
+    "desc_email_verified": "User email address is confirmed",
+    "desc_email_unverified": "Click switch to verify user email",
+    "status_verified": "Verified",
+    "lbl_account_approval": "Account Approval",
+    "desc_pending_approval": "Approve user registration to grant portal access",
+    "err_failed_create": "Failed to create account.",
+    "filter_label": "Filter by status"
   },
   "admin_employees": {
     "title": "Employee Registry",
@@ -608,7 +645,22 @@
     "th_email": "Email",
     "th_name": "Name",
     "th_role": "Role",
-    "th_status": "Status"
+    "th_status": "Status",
+    "lbl_name": "Name",
+    "lbl_email": "Email",
+    "lbl_role": "Role",
+    "lbl_status": "Status",
+    "lbl_email_verification": "Email Verification",
+    "status_verified": "Verified",
+    "lbl_account_status": "Login Access",
+    "lbl_accepting_orders": "Accepting Orders",
+    "desc_accepting_orders_on": "Receiving new orders from load balancer",
+    "desc_accepting_orders_off": "Order distribution paused",
+    "lbl_change_role": "Change Role",
+    "notes_placeholder": "Add internal notes...",
+    "search_placeholder": "Search by name or email...",
+    "th_login": "Login",
+    "no_results": "No employees found matching your criteria"
   },
   "admin_invoices": {
     "upload_title": "Upload Client Invoice",
@@ -622,7 +674,7 @@
     "search_client_placeholder": "Search client name or email...",
     "err_no_client_found": "No client found.",
     "lbl_map_order": "Map to Paid Order",
-    "err_no_transactions": "No transactions recorded for this client.",
+    "err_no_transactions": "No transactions recorded for this client",
     "placeholder_select_order": "Select Order...",
     "search_order_placeholder": "Search order ID or amount...",
     "err_no_order_found": "No order found.",
@@ -673,7 +725,7 @@
     "col_period_mobile": "Period",
     "action": "Action",
     "are_you_sure": "Are you sure?",
-    "err_no_transactions": "No transactions recorded for this client"
+    "yes": "Yes"
   },
   "admin_orders": {
     "title": "Payment Records",
@@ -795,7 +847,10 @@
     "alert_delete_title": "Delete Profile?",
     "alert_delete_text": "You won't be able to revert this!",
     "alert_delete_confirm": "Yes, delete it!",
-    "alert_delete_disabled_title": "Cannot delete assigned profile. Release it first."
+    "alert_delete_disabled_title": "Cannot delete assigned profile. Release it first.",
+    "filter_label": "Filter by status",
+    "are_you_sure": "Are you sure?",
+    "yes": "Yes"
   },
   "admin_services": {
     "title": "Service Settings",
@@ -827,7 +882,7 @@
     "lbl_duration": "Duration (Days)",
     "lbl_instructions": "Client Instructions (Shown on Dashboard)",
     "days": "Days",
-    "duration_days_suffix": "Days",
+    "duration_days_suffix": "days",
     "placeholder_name": "Starter Proxy Profile",
     "placeholder_desc": "Short description highlighting proxy specs and duration...",
     "placeholder_instructions": "Provide copy-paste instructions for the user to import this profile into IXBrowser...",
@@ -868,18 +923,104 @@
     "no_results": "No results found",
     "page": "Page",
     "yes": "Yes",
-    "are_you_sure": "Are you sure?"
+    "are_you_sure": "Are you sure?",
+    "employee": {
+      "loading_failed": "Failed to load pricing information",
+      "orderHistory": "Order History",
+      "allStatuses": "All Statuses",
+      "noOrdersFound": "No orders found",
+      "noOrdersYet": "No orders yet",
+      "platform": "Platform",
+      "created": "Created",
+      "completed": "Completed",
+      "proof": "Review URL",
+      "submitReview": "Submit Review",
+      "accountPending": "Account Pending",
+      "accountPendingMessage": "Your account is currently inactive. Please contact support."
+    },
+    "reviews": {
+      "order_created": "Order created successfully",
+      "order_failed": "Failed to create order",
+      "order_error": "An error occurred",
+      "title": "Reviews Service",
+      "createOrder": "New Order",
+      "myOrders": "My Orders",
+      "availableCredits": "Available Credits",
+      "recentOrders": "Recent Orders",
+      "noOrders": "No orders yet",
+      "viewAllOrders": "View All Orders"
+    },
+    "loadFailed": "Failed to load dashboard data",
+    "common": {
+      "refresh": "Refresh",
+      "results": "results",
+      "total": "total",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "credits": {
+      "credits": "credits",
+      "purchaseSuccess": "Credits purchased successfully!",
+      "purchaseCredits": "Purchase Credits",
+      "noPackagesAvailable": "No Packages Available",
+      "noPackagesMessage": "There are currently no credit packages available for purchase.",
+      "refresh": "Refresh"
+    },
+    "wallet": {
+      "backToDashboard": "Back to Dashboard",
+      "title": "My Wallet",
+      "subtitle": "Manage your credits and view transaction history",
+      "currentBalance": "Current Balance",
+      "status": "Status",
+      "active": "Active",
+      "empty": "Empty",
+      "topUp": "Top Up Credits",
+      "summary": "Summary",
+      "totalEarned": "Total Earned",
+      "totalSpent": "Total Spent",
+      "totalTransactions": "Transactions",
+      "transactionHistory": "Transaction History",
+      "noTransactions": "No transactions yet",
+      "noTransactionsDesc": "Start by purchasing credits",
+      "purchaseCredits": "Purchase Credits",
+      "balanceAfter": "Balance",
+      "refresh_failed": "Failed to refresh wallet data"
+    },
+    "orders": {
+      "myOrders": "My Orders",
+      "myReviewOrders": "My Review Orders",
+      "subtitle": "View and manage your assigned and available review orders",
+      "subtitleClient": "View and manage your review orders",
+      "total": "Total",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "totalRevenue": "Total Revenue",
+      "available": "Available",
+      "searchPlaceholder": "Search by order ID...",
+      "allStatuses": "All Statuses",
+      "status": "Status",
+      "noOrders": "No Orders Found",
+      "noEmployeeOrders": "You have no assigned review orders at this time.",
+      "noClientOrders": "You haven't created any review orders yet.",
+      "orderId": "Order ID",
+      "type": "Type",
+      "qty": "Qty",
+      "credits": "Credits",
+      "employee": "Employee",
+      "created": "Created"
+    }
   },
   "reviews": {
     "title": "Reviews Service",
-    "createOrder": "Create New Order",
+    "createOrder": "New Order",
     "availableCredits": "Available Credits",
     "credits": "credits",
     "recentOrders": "Recent Orders",
     "noOrders": "No orders yet",
     "viewAllOrders": "View All Orders",
     "newOrder": "+ New Order",
-    "myOrders": "My Review Orders",
+    "myOrders": "My Orders",
     "allStatuses": "All Statuses",
     "noOrdersFound": "No orders found",
     "createFirst": "Create your first order →",
@@ -912,7 +1053,10 @@
       "IN_PROGRESS": "In Progress",
       "COMPLETED": "Completed",
       "CANCELLED": "Cancelled"
-    }
+    },
+    "order_created": "Order created successfully",
+    "order_failed": "Failed to create order",
+    "order_error": "An error occurred"
   },
   "credits": {
     "title": "Credits",
@@ -937,7 +1081,7 @@
     "loadingPackages": "Loading packages...",
     "noPackagesAvailable": "No Packages Available",
     "noPackagesMessage": "There are currently no credit packages available for purchase.",
-    "purchaseSuccess": "Credits purchased successfully! Your balance has been updated.",
+    "purchaseSuccess": "Credits purchased successfully!",
     "failed_to_refresh_balance": "Failed to refresh balance",
     "no_credits": "No Credits",
     "low_balance": "Low Balance",
@@ -971,10 +1115,12 @@
       "PURCHASE": "Purchase",
       "SPEND": "Spend",
       "ADMIN_ADJUST": "Admin Adjustment"
-    }
+    },
+    "credits": "credits",
+    "refresh": "Refresh"
   },
   "wallet": {
-    "title": "Wallet",
+    "title": "My Wallet",
     "subtitle": "Manage your credits and view transaction history",
     "refresh": "Refresh",
     "quick_actions": "Quick Actions",
@@ -1019,7 +1165,8 @@
     "noTransactions": "No transactions yet",
     "noTransactionsDesc": "Start by purchasing credits",
     "purchaseCredits": "Purchase Credits",
-    "balanceAfter": "Balance"
+    "balanceAfter": "Balance",
+    "refresh_failed": "Failed to refresh wallet data"
   },
   "employee": {
     "title": "Employee Dashboard",
@@ -1129,8 +1276,8 @@
       }
     },
     "employees": {
-      "title": "Employee Performance",
-      "subtitle": "Monitor employee performance, availability, and completion rates",
+      "title": "Employee Review Management",
+      "subtitle": "Monitor employee assignments, performance, and completions",
       "refresh": "Refresh",
       "sortBy": "Sort by",
       "sort": {
@@ -1154,7 +1301,16 @@
         "available": "Currently Available",
         "totalCompleted": "Total Completed",
         "avgRate": "Avg. Completion Rate"
-      }
+      },
+      "search_placeholder": "Search employees...",
+      "col_employee": "Employee",
+      "col_assigned": "Assigned Orders",
+      "col_completed": "Completed",
+      "col_pending": "Pending",
+      "col_actions": "Actions",
+      "view_orders": "View Orders",
+      "empty_title": "No Employees Found",
+      "empty_subtitle": "No employee review records available."
     },
     "verification": {
       "title": "Verification Queue",
@@ -1261,7 +1417,7 @@
     },
     "packages": {
       "title": "Credit Packages",
-      "subtitle": "Manage credit packages that users can purchase",
+      "subtitle": "Manage packages available for clients to purchase",
       "create_btn": "Create Package",
       "edit_btn": "Edit",
       "delete_btn": "Delete",
@@ -1299,7 +1455,20 @@
         "message": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
         "confirm": "Delete Package",
         "success": "Package deleted successfully"
-      }
+      },
+      "create": "Create Package",
+      "empty_title": "No Packages Found",
+      "empty_subtitle": "Get started by creating your first credit package.",
+      "create_first": "Create First Package",
+      "active": "Active",
+      "inactive": "Inactive",
+      "credits": "credits",
+      "price": "Price",
+      "per_credit": "Per Credit",
+      "created": "Created",
+      "edit": "Edit",
+      "disable": "Disable",
+      "enable": "Enable"
     },
     "package_form": {
       "create_title": "Create Credit Package",
@@ -1388,7 +1557,42 @@
     },
     "common": {
       "cancel": "Cancel"
-    }
+    },
+    "orders": {
+      "title": "Client Review Orders",
+      "subtitle": "Manage all client review orders with URLs and content",
+      "search_placeholder": "Search by order ID, client, business...",
+      "filter_status": "Filter by status",
+      "filter_type": "Filter by type",
+      "all_statuses": "All Statuses",
+      "all_types": "All Types",
+      "export": "Export",
+      "table_order_id": "Order ID",
+      "table_client": "Client",
+      "table_type": "Type",
+      "table_quantity": "Quantity",
+      "table_credits": "Credits",
+      "table_employee": "Assigned Employee",
+      "table_status": "Status",
+      "table_created": "Created",
+      "table_actions": "Actions",
+      "view_details": "View Details",
+      "empty_title": "No Orders Found",
+      "empty_subtitle": "No review orders match your current filters."
+    },
+    "pricing": {
+      "title": "Pricing Management",
+      "subtitle": "Configure review package and per-action credit costs",
+      "save_success": "Pricing saved successfully",
+      "save_error": "Failed to save pricing",
+      "service_type": "Service Type",
+      "cost_per_review": "Cost (Credits)",
+      "active": "Active",
+      "actions": "Actions",
+      "save_changes": "Save Changes",
+      "saving": "Saving..."
+    },
+    "delete": "Delete"
   },
   "employee_layout": {
     "loading": "Loading...",
@@ -1405,7 +1609,8 @@
       "completed_reviews": "Completed Reviews",
       "account": "Account",
       "notifications": "Notifications"
-    }
+    },
+    "subtitle": "Employee Portal"
   },
   "employee_notifications": {
     "title": "Notifications",
@@ -1419,7 +1624,8 @@
       "channel": "Channel",
       "status": "Status",
       "date": "Date"
-    }
+    },
+    "search_placeholder": "Search notifications..."
   },
   "credits_admin": {
     "back_to_credits": "Back to Credits",
@@ -1471,7 +1677,6 @@
     "recent_adjustments_hint": "View recent ADMIN_ADJUST transactions in full history",
     "transactions_title": "Credits Transactions",
     "transactions_subtitle": "View all credit transactions across the platform",
-    "back_to_credits": "Back to Credits",
     "refresh": "Refresh",
     "export": "Export",
     "filters": "Filters",
@@ -1498,6 +1703,106 @@
     "csv_balance_after": "Balance After",
     "csv_description": "Description",
     "csv_date": "Date",
-    "error_failed_load": "Failed to load transactions"
+    "error_failed_load": "Failed to load transactions",
+    "adjust_user_credits": "Adjust User Credits",
+    "adjust_user_credits_desc": "Manually add or remove credits from user accounts",
+    "balance_preview": "Balance Preview",
+    "current": "Current",
+    "adjustment": "Adjustment",
+    "new_balance": "New Balance"
+  },
+  "client_boxes": {
+    "title": "My Boxes",
+    "subtitle": "Manage your browser profile boxes",
+    "buy_new_box": "Buy New Box",
+    "instructions_title": "How to Use Your Boxes",
+    "instructions_desc": "Each box contains a browser profile with credentials. Use the IXBrowser reference codes to access your profiles.",
+    "no_boxes_title": "No Boxes Yet",
+    "no_boxes_desc": "You haven't purchased any browser profile boxes yet.",
+    "go_to_store": "Go to Store",
+    "banner_change_requested": "Change Requested",
+    "banner_expiring_one": "Expiring in 1 day",
+    "banner_expiring": "Expiring in {{count}} days",
+    "banner_expired": "Box Expired",
+    "assigned_on": "Assigned on {{date}}",
+    "card_expired": "Expired",
+    "card_credentials": "Box Credentials",
+    "card_ixbrowser": "IXBrowser Reference",
+    "card_profile_id": "Profile ID",
+    "card_not_set": "Not set",
+    "card_group": "Group",
+    "card_expires": "Expires",
+    "card_days_left_one": "1 day left",
+    "card_days_left": "{{count}} days left",
+    "card_2fa": "2FA",
+    "btn_copy": "Copy",
+    "are_you_sure": "Are you sure?",
+    "alert_req_change_text": "This will request a profile change.",
+    "yes": "Yes",
+    "alert_requested_text": "Change requested successfully",
+    "exp_warning_title": "Boxes Expiring Soon",
+    "exp_warning_desc": "{{count}} boxes expiring soon",
+    "alert_launch_text": "Launch IXBrowser and enter the profile ID to access this box.",
+    "btn_launch_how": "How to Launch",
+    "btn_launch": "Launch",
+    "btn_support": "Support",
+    "btn_renew_box": "Renew Box",
+    "btn_renew": "Renew",
+    "btn_change_requested": "Change Requested",
+    "btn_request_change": "Request Change",
+    "modal_renew_title": "Renew / Upgrade Box",
+    "modal_renew_desc": "Select a package to extend or upgrade your box subscription.",
+    "lbl_box_name": "Box Name:",
+    "lbl_current_expiration": "Current Expiration:",
+    "lbl_select_package": "Choose Renewal Package",
+    "lbl_calculating": "Calculating proration credit...",
+    "lbl_package_price": "Package Price:",
+    "lbl_unused_credit": "Unused Credit (Applied):",
+    "lbl_amount_due": "Amount Due:",
+    "lbl_proration_note": "By upgrading, your subscription cycle starts today and the new validity period begins immediately.",
+    "btn_cancel": "Cancel",
+    "btn_proceed_checkout": "Proceed to Checkout"
+  },
+  "clocker": {
+    "back": "Back to Services",
+    "title": "Clocker",
+    "subtitle": "Automated time-tracking service for browser profiles.",
+    "soon_title": "Available soon",
+    "soon_body": "Clocker is being finalized and will be released shortly. Check back later for updates."
+  },
+  "prompt": {
+    "back": "Back to Services",
+    "title": "Prompt",
+    "subtitle": "AI-assisted prompt delivery for browser profiles.",
+    "soon_title": "Available soon",
+    "soon_body": "Prompt is being finalized and will be released shortly. Check back later for updates."
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account profile, security, and preferences.",
+    "profile": {
+      "title": "Profile",
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "active": "Active",
+      "pending": "Pending"
+    },
+    "security": {
+      "title": "Security",
+      "password": "Password",
+      "password_desc": "Reset your password via email verification.",
+      "reset": "Reset"
+    },
+    "preferences": {
+      "title": "Preferences",
+      "theme": "Theme",
+      "dark": "Dark",
+      "light": "Light",
+      "toggle": "Toggle",
+      "language": "Language",
+      "language_desc": "Switch between available languages."
+    }
   }
 }
