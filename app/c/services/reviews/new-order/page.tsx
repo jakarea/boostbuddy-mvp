@@ -301,7 +301,7 @@ export default function NewReviewOrderPage() {
 
       const orderData = {
         orderType,
-        gender: gender || undefined,  // Include gender if selected
+        gender: (gender && gender !== "ANY") ? gender : undefined,  // Include gender only if MALE or FEMALE (ANY becomes null)
         urls: urls.map((urlData, index) => ({
           url: urlData.url,
           quantity: orderType === "COMMENT"

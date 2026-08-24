@@ -24,7 +24,7 @@ export type MultiUrlReviewOrderData = {
   orderType: "REVIEW" | "COMMENT" | "COMMENT_WITH_PHOTO";
   urls: ReviewUrlData[];
   businessName?: string;
-  gender?: "MALE" | "FEMALE";  // Optional gender field
+  gender?: "MALE" | "FEMALE";  // Optional: MALE, FEMALE, or undefined (same as not selecting)
 };
 
 // ============================================
