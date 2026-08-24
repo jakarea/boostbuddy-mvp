@@ -141,6 +141,7 @@ export async function getAllReviewOrdersAction(filters?: ReviewOrderFilter) {
         reviewInstructions: order.review_instructions,
         proofOfCompletion: order.proof_of_completion,
         creditsConsumed: order.credits_consumed,
+        gender: order.gender,  // Gender field (MALE/FEMALE)
         assignedEmployeeId: order.assigned_employee_id,
         assignedAt: order.assigned_at,
         completedAt: order.completed_at,

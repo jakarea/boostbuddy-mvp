@@ -1181,7 +1181,7 @@ export async function getReviewOrderByIdAction(orderId: string) {
       .from("review_orders")
       .select(`
         id, user_id, business_name, facebook_url, order_type, review_type,
-        review_content, review_instructions, quantity, credits_consumed, status,
+        review_content, review_instructions, quantity, credits_consumed, gender, status,
         assigned_employee_id, assigned_at, completed_at, proof_of_completion,
         reaction_type, created_at, updated_at, comment_text, photo_urls, total_urls,
         users:user_id(name, email),
@@ -1264,6 +1264,7 @@ export async function getReviewOrderByIdAction(orderId: string) {
       reviewInstructions: data.review_instructions,
       quantity: data.quantity,
       creditsConsumed: data.credits_consumed,
+      gender: data.gender,  // Gender field (MALE/FEMALE)
       status: data.status,
       assignedEmployeeId: data.assigned_employee_id,
       assignedAt: data.assigned_at,

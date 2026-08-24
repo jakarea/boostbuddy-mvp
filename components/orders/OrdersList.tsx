@@ -50,6 +50,7 @@ export interface ReviewOrder {
   quantity: number;
   creditsConsumed: number;
   status: string;
+  gender?: string;  // "MALE" or "FEMALE"
   assignedEmployeeId?: string;
   assignedAt?: string;
   completedAt?: string;
@@ -498,9 +499,10 @@ export default function OrdersList({
       ) : (
         <Card className="overflow-hidden border-zinc-200 dark:border-zinc-700">
           {/* Table Header */}
-          <div className="bg-zinc-50 dark:bg-zinc-900 px-4 py-3 border-b border-zinc-200 dark:border-zinc-700 grid grid-cols-10 gap-3 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hidden md:grid">
+          <div className="bg-zinc-50 dark:bg-zinc-900 px-4 py-3 border-b border-zinc-200 dark:border-zinc-700 grid grid-cols-11 gap-3 text-xs font-semibold text-zinc-600 dark:text-zinc-400 hidden md:grid">
             <div className="col-span-3">{t("orders.orderId", "Order ID")}</div>
             <div className="col-span-2">{t("orders.type", "Type")}</div>
+            <div className="col-span-1">{t("gender.label", "Gender")}</div>
             <div className="col-span-1 text-center">{t("orders.qty", "Qty")}</div>
             {role === "CLIENT" && (
               <div className="col-span-1 text-center">{t("orders.credits", "Credits")}</div>
@@ -521,7 +523,7 @@ export default function OrdersList({
                 className="block hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
               >
                 {/* Desktop Layout */}
-                <div className="hidden md:grid px-4 py-3 grid-cols-10 gap-3 items-center">
+                <div className="hidden md:grid px-4 py-3 grid-cols-11 gap-3 items-center">
                   {/* Order ID with Icon */}
                   <div className="col-span-3 min-w-0">
                     <div className="flex items-center gap-2">
@@ -536,6 +538,13 @@ export default function OrdersList({
                   <div className="col-span-2">
                     <span className="text-sm text-zinc-600 dark:text-zinc-400">
                       {getOrderTypeLabel(order.orderType || 'REVIEW')}
+                    </span>
+                  </div>
+
+                  {/* Gender */}
+                  <div className="col-span-1">
+                    <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                      {order.gender ? (order.gender === 'MALE' ? t('gender.male', 'Male') : t('gender.female', 'Female')) : '—'}
                     </span>
                   </div>
 
@@ -600,6 +609,13 @@ export default function OrdersList({
                       <span className="text-zinc-500">{t("orders.type", "Type")}:</span>
                       <span className="text-zinc-700 dark:text-zinc-300 font-medium">
                         {getOrderTypeLabel(order.orderType || 'REVIEW')}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-500">{t("gender.label", "Gender")}:</span>
+                      <span className="text-zinc-700 dark:text-zinc-300 font-medium">
+                        {order.gender ? (order.gender === 'MALE' ? t('gender.male', 'Male') : t('gender.female', 'Female')) : t('gender.not_specified', 'Not specified')}
                       </span>
                     </div>
 

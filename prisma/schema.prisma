@@ -189,6 +189,7 @@ model ReviewOrder {
 
   // Order Details
   orderType             String   @map("order_type")     // "REVIEW", "COMMENT", "COMMENT_WITH_PHOTO"
+  gender                String?  @map("gender")         // "MALE" or "FEMALE", optional
   quantity              Int      // Number of reviews/comments
 
   // Review Details

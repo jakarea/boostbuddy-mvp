@@ -2311,5 +2311,12 @@
       "language": "Language",
       "language_desc": "Switch between available languages."
     }
+  },
+  "gender": {
+    "label": "Gender",
+    "optional": "(Optional)",
+    "male": "Male",
+    "female": "Female",
+    "not_specified": "Not specified"
   }
 }

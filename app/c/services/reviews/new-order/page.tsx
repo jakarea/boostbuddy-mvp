@@ -64,6 +64,8 @@ export default function NewReviewOrderPage() {
     { reviews: [""], photos: [[]] }
   ]);
 
+  const [gender, setGender] = useState<"MALE" | "FEMALE" | "">("");
+
   const [fieldErrors, setFieldErrors] = useState<{
     urls?: Record<number, boolean>;
     reviews?: Record<number, boolean>;
@@ -299,6 +301,7 @@ export default function NewReviewOrderPage() {
 
       const orderData = {
         orderType,
+        gender: gender || undefined,  // Include gender if selected
         urls: urls.map((urlData, index) => ({
           url: urlData.url,
           quantity: orderType === "COMMENT"
@@ -375,6 +378,37 @@ export default function NewReviewOrderPage() {
                   </div>
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Gender Section - Optional */}
+          <div className="p-4 border-b border-gray-200 dark:border-zinc-700">
+            <label className="block text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-3">
+              {t("gender.label", "Gender")} <span className="text-zinc-500">{t("gender.optional", "(Optional)")}</span>
+            </label>
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="gender"
+                  value="MALE"
+                  checked={gender === "MALE"}
+                  onChange={(e) => setGender(e.target.value as "MALE" | "FEMALE" | "")}
+                  className="w-4 h-4 text-[#007bff]"
+                />
+                <span className="text-sm">{t("gender.male", "Male")}</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="gender"
+                  value="FEMALE"
+                  checked={gender === "FEMALE"}
+                  onChange={(e) => setGender(e.target.value as "MALE" | "FEMALE" | "")}
+                  className="w-4 h-4 text-[#007bff]"
+                />
+                <span className="text-sm">{t("gender.female", "Female")}</span>
+              </label>
             </div>
           </div>
 

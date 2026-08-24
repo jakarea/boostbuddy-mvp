@@ -24,6 +24,7 @@ export type MultiUrlReviewOrderData = {
   orderType: "REVIEW" | "COMMENT" | "COMMENT_WITH_PHOTO";
   urls: ReviewUrlData[];
   businessName?: string;
+  gender?: "MALE" | "FEMALE";  // Optional gender field
 };
 
 // ============================================
@@ -281,6 +282,7 @@ export async function createMultiUrlReviewOrderAction(orderData: MultiUrlReviewO
         business_name: businessName,
         review_type: "FACEBOOK",
         order_type: orderData.orderType,
+        gender: orderData.gender || null,  // Optional gender field
         quantity: normalizedTotalQuantity,
         total_urls: orderData.urls.length,
         reaction_type: sharedReactionType,
