@@ -62,7 +62,7 @@ interface ReviewOrder {
 }
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { user } = useApp();
+  const { user } = useAuth();
   const { error: toastError } = useToast();
   const { t } = useTranslation("common");
   const router = useRouter();

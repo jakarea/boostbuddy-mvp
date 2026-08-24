@@ -67,7 +67,7 @@ interface ReviewOrder {
 
 export default function EmployeeOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { t } = useTranslation("employee");
-  const { user } = useApp();
+  const { user } = useAuth();
   const { error: toastError, success: toastSuccess } = useToast();
   const router = useRouter();
   const { id: orderId } = use(params);
