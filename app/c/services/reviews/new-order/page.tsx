@@ -64,7 +64,7 @@ export default function NewReviewOrderPage() {
     { reviews: [""], photos: [[]] }
   ]);
 
-  const [gender, setGender] = useState<"MALE" | "FEMALE" | "">("");
+  const [gender, setGender] = useState<"MALE" | "FEMALE" | "ANY" | "">("");
 
   const [fieldErrors, setFieldErrors] = useState<{
     urls?: Record<number, boolean>;
@@ -393,7 +393,7 @@ export default function NewReviewOrderPage() {
                   name="gender"
                   value="MALE"
                   checked={gender === "MALE"}
-                  onChange={(e) => setGender(e.target.value as "MALE" | "FEMALE" | "")}
+                  onChange={(e) => setGender(e.target.value as "MALE" | "FEMALE" | "ANY" | "")}
                   className="w-4 h-4 text-[#007bff]"
                 />
                 <span className="text-sm">{t("gender.male", "Male")}</span>
@@ -404,10 +404,21 @@ export default function NewReviewOrderPage() {
                   name="gender"
                   value="FEMALE"
                   checked={gender === "FEMALE"}
-                  onChange={(e) => setGender(e.target.value as "MALE" | "FEMALE" | "")}
+                  onChange={(e) => setGender(e.target.value as "MALE" | "FEMALE" | "ANY" | "")}
                   className="w-4 h-4 text-[#007bff]"
                 />
                 <span className="text-sm">{t("gender.female", "Female")}</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="gender"
+                  value="ANY"
+                  checked={gender === "ANY"}
+                  onChange={(e) => setGender(e.target.value as "MALE" | "FEMALE" | "ANY" | "")}
+                  className="w-4 h-4 text-[#007bff]"
+                />
+                <span className="text-sm">{t("gender.any", "Any")}</span>
               </label>
             </div>
           </div>

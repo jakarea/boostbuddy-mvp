@@ -544,7 +544,11 @@ export default function OrdersList({
                   {/* Gender */}
                   <div className="col-span-1">
                     <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                      {order.gender ? (order.gender === 'MALE' ? t('gender.male', 'Male') : t('gender.female', 'Female')) : '—'}
+                      {order.gender ? (
+                        order.gender === 'MALE' ? t('gender.male', 'Male') :
+                        order.gender === 'FEMALE' ? t('gender.female', 'Female') :
+                        t('gender.any', 'Any')
+                      ) : '—'}
                     </span>
                   </div>
 
@@ -615,7 +619,11 @@ export default function OrdersList({
                     <div className="flex items-center justify-between">
                       <span className="text-zinc-500">{t("gender.label", "Gender")}:</span>
                       <span className="text-zinc-700 dark:text-zinc-300 font-medium">
-                        {order.gender ? (order.gender === 'MALE' ? t('gender.male', 'Male') : t('gender.female', 'Female')) : t('gender.not_specified', 'Not specified')}
+                        {order.gender ? (
+                          order.gender === 'MALE' ? t('gender.male', 'Male') :
+                          order.gender === 'FEMALE' ? t('gender.female', 'Female') :
+                          t('gender.any', 'Any')
+                        ) : t('gender.not_specified', 'Not specified')}
                       </span>
                     </div>
 
