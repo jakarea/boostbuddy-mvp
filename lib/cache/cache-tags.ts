@@ -60,10 +60,10 @@ export class CacheRevalidator {
    * @param tag - Cache tag to revalidate
    * @param profile - Cache life profile (default: 'max' for immediate invalidation)
    */
-  static revalidate(tag: CacheTag, profile: 'no-store' | 'short' | 'long' | 'max' = 'max'): void {
+  static revalidate(tag: CacheTag, profile?: 'no-store' | 'short' | 'long' | 'max'): void {
     if (typeof revalidateTag === 'function') {
-      revalidateTag(tag, profile);
-      console.log(`[CACHE] Revalidated tag: ${tag} with profile: ${profile}`);
+      revalidateTag(tag);
+      console.log(`[CACHE] Revalidated tag: ${tag}${profile ? ` with profile: ${profile}` : ''}`);
     }
   }
 

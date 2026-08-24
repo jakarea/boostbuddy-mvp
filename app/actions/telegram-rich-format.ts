@@ -263,7 +263,7 @@ Please log in and change your password immediately.`
 You can now log in to your account.`;
 
   return {
-    emoji: EMOJIES.ACCOUNT_READY,
+    emoji: EMOJIS.ACCOUNT_READY,
     subject: "Account Ready - Welcome to BoostBuddy!",
     body: body,
     buttons: [
@@ -281,7 +281,7 @@ You can now log in to your account.`;
  */
 export function buildAccountApprovedMessage(): RichTelegramMessage {
   return {
-    emoji: EMOJIES.ACCOUNT_APPROVED,
+    emoji: EMOJIS.ACCOUNT_APPROVED,
     subject: "Account Approved!",
     body: `Your BoostBuddy account registration has been approved by the administrator.
 

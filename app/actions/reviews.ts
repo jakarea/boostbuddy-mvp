@@ -647,7 +647,7 @@ export async function getReviewOrderDetailAction(orderId: string) {
     // Fetch the order first (using regular client to verify ownership)
     const { data, error } = await supabase
       .from("review_orders")
-      .select("id, user_id, status, facebook_url, business_name, order_type, review_type, reaction_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at")
+      .select("id, user_id, status, facebook_url, business_name, order_type, review_type, reaction_type, review_content, review_instructions, proof_of_completion, credits_consumed, quantity, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at")
       .eq("id", orderId)
       .eq("user_id", auth.user.id)
       .single();
@@ -672,6 +672,7 @@ export async function getReviewOrderDetailAction(orderId: string) {
     // Normalize database column names from snake_case to camelCase
     const normalizedData = {
       ...data,
+      userId: data.user_id,
       facebookUrl: data.facebook_url,
       businessName: data.business_name,
       orderType: data.order_type,

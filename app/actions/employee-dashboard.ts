@@ -31,6 +31,12 @@ export interface DashboardData {
   };
   availableTasks: UrlTask[];
   currentAssignments: UrlTask[];
+  employeeStats?: {
+    totalCreditsCompleted: number;
+    totalOrdersCompleted: number;
+    todayCreditsCompleted: number;
+    todayOrdersCompleted: number;
+  };
 }
 
 /**
@@ -55,7 +61,7 @@ export async function getEmployeeDashboardDataAction(): Promise<{ success: true;
     console.log("👤 [DASHBOARD-BATCH] Fetching data for employee:", employeeId);
 
     // OPTIMIZED QUERIES for URL tasks
-    const [statsResult, availableResult, assignmentsResult] = await Promise.all([
+    const [statsResult, availableResult, assignmentsResult, employeeStatsResult] = await Promise.all([
       // Employee stats - include accepting_tasks for task distribution control
       supabase
         .from("employee_stats")
@@ -115,6 +121,13 @@ export async function getEmployeeDashboardDataAction(): Promise<{ success: true;
         .eq("status", "ASSIGNED")
         .order("assigned_at", { ascending: false })
         .limit(20),
+
+      // Employee stats for dashboard
+      supabase
+        .from("employee_stats")
+        .select("credits_completed, orders_completed")
+        .eq("user_id", employeeId)
+        .maybeSingle(),
     ]);
 
     const elapsed = Date.now() - startTime;
@@ -157,7 +170,13 @@ export async function getEmployeeDashboardDataAction(): Promise<{ success: true;
     const plainData: DashboardData = {
       stats: camelStats,
       availableTasks: (availableResult.data || []).map(toUrlTask),
-      currentAssignments: (assignmentsResult.data || []).map(toUrlTask)
+      currentAssignments: (assignmentsResult.data || []).map(toUrlTask),
+      employeeStats: {
+        totalCreditsCompleted: employeeStatsResult.data?.credits_completed || 0,
+        totalOrdersCompleted: employeeStatsResult.data?.orders_completed || 0,
+        todayCreditsCompleted: 0, // Could be calculated if needed
+        todayOrdersCompleted: 0 // Could be calculated if needed
+      }
     };
 
     console.log("✅ [DASHBOARD-BATCH] Returning plain data");
