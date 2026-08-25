@@ -116,18 +116,16 @@ export default function EmployeeCompletedOrdersClient({
     });
     router.push(`?${params.toString()}`);
 
-    const result = await getEmployeeCompletedOrdersAction(
-      employeeId,
-      Number(params.get("page") || currentPage),
-      Number(params.get("pageSize") || itemsPerPage),
-      params.get("dateRange") || dateRange,
-      params.get("customStartDate") || customStartDate,
-      params.get("customEndDate") || customEndDate
-    );
+    const result = await getEmployeeCompletedOrdersAction(employeeId, {
+      page: Number(params.get("page") || currentPage),
+      pageSize: Number(params.get("pageSize") || itemsPerPage),
+      dateFrom: params.get("customStartDate") || customStartDate,
+      dateTo: params.get("customEndDate") || customEndDate
+    });
 
     if (result.success && result.data) {
-      setOrders(result.data.orders);
-      setTotalCount(result.data.totalCount);
+      setOrders(result.data);
+      setTotalCount(result.pagination?.totalCount || 0);
     }
   };
 
