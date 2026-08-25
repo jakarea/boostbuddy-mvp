@@ -100,11 +100,12 @@ export function formatRichTelegramMessage(
   if (message.buttons && message.buttons.length > 0) {
     reply_markup = {
       inline_keyboard: message.buttons.map(row =>
-        row.map(button => ({
-          text: button.text,
-          url: button.url,
-          callback_data: button.callback_data
-        }).filter(v => v !== undefined))
+        row.map(button => {
+          const btn: any = { text: button.text };
+          if (button.url) btn.url = button.url;
+          if (button.callback_data !== undefined) btn.callback_data = button.callback_data;
+          return btn;
+        })
       )
     };
   }

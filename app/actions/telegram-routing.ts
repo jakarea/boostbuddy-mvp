@@ -796,7 +796,7 @@ export {
   buildAccountApprovedMessage,
   buildOrderPickedUpMessage,
   buildSimpleNotification,
-  buildSystemNotification,
-  RichTelegramMessage,
-  TelegramButton
+  buildSystemNotification
 } from './telegram-rich-format';
+
+export type { RichTelegramMessage, TelegramButton } from './telegram-rich-format';
