@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BoostBuddy MVP - Developer Guide</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f9f9f9;
+    }
+
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      color: #222;
+      border-bottom: 3px solid #007bff;
+      padding-bottom: 15px;
+    }
+
+    .meta {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 30px;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      margin-top: 40px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    h3 {
+      font-size: 1.2rem;
+      margin-top: 25px;
+      margin-bottom: 15px;
+      color: #444;
+    }
+
+    h4 {
+      font-size: 1rem;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      color: #555;
+    }
+
+    p { margin-bottom: 15px; }
+
+    ul, ol { margin-left: 25px; margin-bottom: 20px; }
+
+    li { margin-bottom: 8px; }
+
+    code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 0.9em;
+    }
+
+    pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      margin: 15px 0;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      color: inherit;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px 15px;
+      text-align: left;
+    }
+
+    th {
+      background: #f5f5f5;
+      font-weight: 600;
+    }
+
+    blockquote {
+      border-left: 4px solid #007bff;
+      padding-left: 20px;
+      margin: 20px 0;
+      color: #666;
+      font-style: italic;
+    }
+
+    a {
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .toc {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 5px;
+      margin-bottom: 30px;
+    }
+
+    .toc h3 {
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+
+    .toc ul {
+      list-style: none;
+      margin-left: 0;
+    }
+
+    .toc a {
+      display: block;
+      padding: 5px 0;
+      color: #555;
+    }
+
+    .toc a:hover {
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-size: 0.85em;
+      font-weight: 500;
+    }
+
+    .badge-success { background: #d4edda; color: #155724; }
+    .badge-warning { background: #fff3cd; color: #856404; }
+    .badge-info { background: #d1ecf1; color: #0c5460; }
+
+    .status {
+      padding: 10px 15px;
+      margin: 15px 0;
+      border-radius: 5px;
+    }
+    .status-completed { background: #d4edda; color: #155724; }
+    .status-pending { background: #fff3cd; color: #856404; }
+
+    @media (max-width: 768px) {
+      body { padding: 10px; }
+      .container { padding: 20px; }
+      h1 { font-size: 1.5rem; }
+      h2 { font-size: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>BoostBuddy MVP - Developer Guide</h1>
+    <p class="meta">
+      <strong>Last Updated:</strong> August 25, 2026 &nbsp;|&nbsp;
+      <strong>Version:</strong> 1.0.0 &nbsp;|&nbsp;
+      <strong>Status:</strong> <span class="badge badge-success">Production Live</span>
+    </p>
+
+    <div class="toc">
+      <h3>Table of Contents</h3>
+      <ul>
+        <li><a href="#1-project-overview">1. Project Overview</a></li>
+        <li><a href="#2-tech-stack">2. Tech Stack</a></li>
+        <li><a href="#3-architecture">3. Architecture</a></li>
+        <li><a href="#4-development-setup">4. Development Setup</a></li>
+        <li><a href="#5-code-structure">5. Code Structure</a></li>
+        <li><a href="#6-key-patterns--conventions">6. Key Patterns & Conventions</a></li>
+        <li><a href="#7-common-development-tasks">7. Common Development Tasks</a></li>
+        <li><a href="#8-database--schema">8. Database & Schema</a></li>
+        <li><a href="#9-authentication--authorization">9. Authentication & Authorization</a></li>
+        <li><a href="#10-known-issues--todos">10. Known Issues & TODOs</a></li>
+        <li><a href="#11-deployment">11. Deployment</a></li>
+        <li><a href="#12-troubleshooting">12. Troubleshooting</a></li>
+      </ul>
+    </div>
+
+    <h2 id="1-project-overview">1. Project Overview</h2>
+    <p>BoostBuddy MVP is a <strong>client account management platform</strong> that serves as both an admin panel and client portal for managing:</p>
+    <ul>
+      <li><strong>Browser profiles/accounts</strong> (via IXBrowser integration)</li>
+      <li><strong>Services & Billing</strong> (Stripe payments, invoices)</li>
+      <li><strong>Review Orders</strong> (Facebook reviews/reactions management)</li>
+      <li><strong>Notifications</strong> (Telegram integration)</li>
+      <li><strong>Employee Management</strong> (order assignment and completion tracking)</li>
+    </ul>
+
+    <h3>Key Features</h3>
+    <ul>
+      <li><strong>Three Access Levels</strong>: Admin, Employee, Client</li>
+      <li><strong>Multi-language Support</strong>: English, Italian (i18next)</li>
+      <li><strong>Dark/Light Theme</strong>: User-selectable via next-themes</li>
+      <li><strong>Real-time Updates</strong>: WebSocket support for notifications</li>
+      <li><strong>Stripe Integration</strong>: EUR currency checkout sessions</li>
+      <li><strong>Telegram Bot</strong>: Automated notifications and order alerts</li>
+    </ul>
+
+    <h2 id="2-tech-stack">2. Tech Stack</h2>
+
+    <h3>Frontend</h3>
+    <ul>
+      <li><strong>Framework</strong>: Next.js 16 (App Router)</li>
+      <li><strong>Language</strong>: TypeScript</li>
+      <li><strong>Styling</strong>: Tailwind CSS 4</li>
+      <li><strong>UI Components</strong>: Base UI + Custom shadcn-like components in <code>/components/ui</code></li>
+      <li><strong>Icons</strong>: Lucide React</li>
+      <li><strong>State Management</strong>: React Context (AuthContext, ToastContext)</li>
+      <li><strong>Forms</strong>: Client-side with validation</li>
+      <li><strong>i18n</strong>: react-i18next with browser language detection</li>
+    </ul>
+
+    <h3>Backend</h3>
+    <ul>
+      <li><strong>Runtime</strong>: Node.js (via Next.js Server Actions)</li>
+      <li><strong>API Pattern</strong>: Server Actions (not API routes) for all backend operations</li>
+      <li><strong>Database</strong>: Supabase PostgreSQL</li>
+      <li><strong>ORM</strong>: Prisma for schema management and type-safe queries</li>
+      <li><strong>Auth</strong>: Supabase Auth + custom user profile layer</li>
+    </ul>
+
+    <h3>Payment & Integration</h3>
+    <ul>
+      <li><strong>Payments</strong>: Stripe (EUR currency, checkout sessions)</li>
+      <li><strong>External</strong>: IXBrowser (manual - no API integration yet)</li>
+      <li><strong>Notifications</strong>: Telegram Bot API</li>
+    </ul>
+
+    <h2 id="3-architecture">3. Architecture</h2>
+
+    <h3>Directory Structure</h3>
+    <pre><code>boostbuddy-mvp/
+├── app/                    # Next.js App Router (16)
+│   ├── layout.tsx          # Root layout with providers
+│   ├── page.tsx            # Home/Landing page
+│   ├── actions/            # Server Actions (not routes!)
+│   ├── admin/              # Admin panel routes (/a/*)
+│   ├── dashboard/          # Client routes (/c/*)
+│   ├── employee/           # Employee routes (/e/*)
+│   ├── auth/               # Auth callbacks
+│   ├── api/                # API routes (webhooks, etc.)
+│   ├── checkout/           # Stripe checkout page
+│   └── notifications/      # Notification settings
+├── components/             # React components
+│   ├── providers/          # Context providers
+│   ├── ui/                 # Base UI components
+│   ├── admin/              # Admin-specific components
+│   └── [other].tsx         # Shared components
+├── context/                # React Context definitions
+├── lib/                    # Utility libraries
+│   ├── auth/               # Authentication utilities
+│   ├── supabase/           # Supabase clients
+│   ├── stripe/             # Stripe client
+│   ├── cache/              # Caching utilities
+│   └── [other].ts          # Other utilities
+├── prisma/                 # Database schema & migrations
+│   ├── schema.prisma       # Data model definition
+│   └── migrations/         # Database migrations
+├── locales/                # Translation files (JSON)
+│   ├── en.json             # English translations
+│   └── it.json             # Italian translations
+└── public/                 # Static assets</code></pre>
+
+    <h3>Route Structure by Role</h3>
+    <table>
+      <tr>
+        <th>Role</th>
+        <th>Path Pattern</th>
+        <th>Purpose</th>
+      </tr>
+      <tr>
+        <td>Admin</td>
+        <td><code>/a/*</code></td>
+        <td>Admin panel - manages all entities</td>
+      </tr>
+      <tr>
+        <td>Client</td>
+        <td><code>/c/*</code></td>
+        <td>Client portal - orders, profiles, billing</td>
+      </tr>
+      <tr>
+        <td>Employee</td>
+        <td><code>/e/*</code></td>
+        <td>Employee dashboard - task completion</td>
+      </tr>
+    </table>
+
+    <h2 id="4-development-setup">4. Development Setup</h2>
+
+    <h3>Prerequisites</h3>
+    <ul>
+      <li>Node.js 18+</li>
+      <li>npm or yarn</li>
+      <li>Supabase account (for database and auth)</li>
+      <li>Stripe account (for payments, test mode for development)</li>
+    </ul>
+
+    <h3>Installation</h3>
+    <pre><code># Install dependencies
+npm install
+
+# Setup environment variables
+cp .env.example .env.local
+# Edit .env.local with your credentials</code></pre>
+
+    <h3>Required Environment Variables</h3>
+    <pre><code># Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+DATABASE_URL=your_postgres_connection_string
+
+# Stripe
+STRIPE_SECRET_KEY=sk_test_...     # For server-side
+NEXT_PUBLIC_STRIPE_KEY=pk_test_... # For client-side
+STRIPE_WEBHOOK_SECRET=whsec_...    # For webhook verification
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3400</code></pre>
+
+    <h3>Database Setup</h3>
+    <pre><code># Generate Prisma client
+npx prisma generate
+
+# Push schema to database (development)
+npx prisma db push
+
+# Or create a migration (production)
+npx prisma migrate dev --name description</code></pre>
+
+    <h3>Running the App</h3>
+    <pre><code># Development server
+npm run dev
+
+# Production build
+npm run build
+
+# Start production server
+npm start
+
+# Lint code
+npm run lint</code></pre>
+    <p><strong>Dev Server</strong>: http://localhost:3400</p>
+
+    <h2 id="5-code-structure">5. Code Structure</h2>
+
+    <h3>Server Actions Organization</h3>
+    <table>
+      <tr>
+        <th>Action File</th>
+        <th>Purpose</th>
+        <th>Role Required</th>
+      </tr>
+      <tr>
+        <td><code>orders.ts</code></td>
+        <td>Core order management</td>
+        <td>CLIENT/ADMIN</td>
+      </tr>
+      <tr>
+        <td><code>profiles.ts</code></td>
+        <td>Browser profile CRUD</td>
+        <td>ADMIN</td>
+      </tr>
+      <tr>
+        <td><code>services.ts</code></td>
+        <td>Service package management</td>
+        <td>ADMIN</td>
+      </tr>
+      <tr>
+        <td><code>clients.ts</code></td>
+        <td>Client user management</td>
+        <td>ADMIN</td>
+      </tr>
+      <tr>
+        <td><code>invoices.ts</code></td>
+        <td>Invoice operations</td>
+        <td>ADMIN/CLIENT</td>
+      </tr>
+      <tr>
+        <td><code>billing.ts</code></td>
+        <td>Billing info management</td>
+        <td>CLIENT</td>
+      </tr>
+      <tr>
+        <td><code>notifications.ts</code></td>
+        <td>Notification preferences</td>
+        <td>ALL</td>
+      </tr>
+      <tr>
+        <td><code>telegram.ts</code></td>
+        <td>Telegram integration</td>
+        <td>SERVER</td>
+      </tr>
+      <tr>
+        <td><code>reviews.ts</code></td>
+        <td>Review order CRUD</td>
+        <td>CLIENT</td>
+      </tr>
+      <tr>
+        <td><code>reviews-multiurl.ts</code></td>
+        <td>Multi-URL order creation</td>
+        <td>CLIENT</td>
+      </tr>
+      <tr>
+        <td><code>employee-dashboard.ts</code></td>
+        <td>Employee stats</td>
+        <td>EMPLOYEE</td>
+      </tr>
+      <tr>
+        <td><code>employee.ts</code></td>
+        <td>Employee order operations</td>
+        <td>EMPLOYEE</td>
+      </tr>
+      <tr>
+        <td><code>admin-reviews.ts</code></td>
+        <td>Admin review management</td>
+        <td>ADMIN</td>
+      </tr>
+      <tr>
+        <td><code>stripe.ts</code></td>
+        <td>Stripe session creation</td>
+        <td>CLIENT</td>
+      </tr>
+      <tr>
+        <td><code>credits.ts</code></td>
+        <td>Credit package management</td>
+        <td>ADMIN</td>
+      </tr>
+    </table>
+
+    <h2 id="6-key-patterns--conventions">6. Key Patterns & Conventions</h2>
+
+    <h3>Server Actions Pattern</h3>
+    <pre><code>"use server";
+
+import { requireAuth } from "@/lib/auth/server-auth";
+import { createClient } from "@/lib/supabase/server";
+
+export async function someAction(params: any) {
+  // 1. Check authentication
+  const auth = await requireAuth({ role: 'ADMIN' });
+  if (!auth.success) return auth;
+
+  // 2. Execute business logic
+  const supabase = await createClient();
+  // ... perform operations
+
+  // 3. Return structured response
+  return { success: true, data: result };
+}</code></pre>
+
+    <p><strong>Response Format</strong>:</p>
+    <pre><code>// Success
+{ success: true, data: any }
+
+// Failure
+{ success: false, error: string }</code></pre>
+
+    <h3>Database Naming Conventions</h3>
+    <ul>
+      <li><strong>Tables</strong>: <code>snake_case</code> (e.g., <code>review_orders</code>, <code>credit_packages</code>)</li>
+      <li><strong>Columns</strong>: <code>snake_case</code> (e.g., <code>user_id</code>, <code>created_at</code>)</li>
+      <li><strong>JavaScript/TypeScript</strong>: <code>camelCase</code> (e.g., <code>userId</code>, <code>createdAt</code>)</li>
+    </ul>
+
+    <h3>Status Values</h3>
+    <p>All status enums use <code>UPPER_SNAKE_CASE</code>:</p>
+    <table>
+      <tr>
+        <th>Context</th>
+        <th>Statuses</th>
+      </tr>
+      <tr>
+        <td>Orders</td>
+        <td><code>PENDING</code>, <code>IN_PROGRESS</code>, <code>COMPLETED</code>, <code>CANCELLED</code></td>
+      </tr>
+      <tr>
+        <td>Users</td>
+        <td><code>PENDING</code>, <code>ACTIVE</code>, <code>DEACTIVATED</code></td>
+      </tr>
+      <tr>
+        <td>Profiles</td>
+        <td><code>AVAILABLE</code>, <code>ASSIGNED</code>, <code>ACTIVE</code>, <code>EXPIRED</code>, <code>BANNED</code></td>
+      </tr>
+    </table>
+
+    <h2 id="7-common-development-tasks">7. Common Development Tasks</h2>
+
+    <h3>Adding a New Server Action</h3>
+    <ol>
+      <li>Create file in <code>/app/actions/{feature}.ts</code></li>
+      <li>Add <code>"use server"</code> directive</li>
+      <li>Import required utilities</li>
+      <li>Implement with proper auth check</li>
+      <li>Return <code>{ success, data? }</code> or <code>{ success, error }</code></li>
+    </ol>
+
+    <h3>Adding a New Page</h3>
+    <ol>
+      <li>Create directory under appropriate role path (<code>/a/</code>, <code>/c/</code>, <code>/e/</code>)</li>
+      <li>Add <code>page.tsx</code> (server component) or <code>{name}-client.tsx</code> (client component)</li>
+      <li>Export metadata for page title</li>
+      <li>Use proper auth checks</li>
+    </ol>
+
+    <h3>Adding Database Fields</h3>
+    <ol>
+      <li>Update <code>prisma/schema.prisma</code></li>
+      <li>Create migration: <code>npx prisma migrate dev --name add_field</code></li>
+      <li>Update related TypeScript interfaces</li>
+      <li>Update SELECT queries to include new field</li>
+      <li>Normalize field name if needed (snake_case → camelCase)</li>
+    </ol>
+
+    <h2 id="8-database--schema">8. Database & Schema</h2>
+
+    <h3>Core Models</h3>
+    <h4>User (with Supabase Auth)</h4>
+    <pre><code>model User {
+  id              String   @id @default(uuid())
+  email           String   @unique
+  name            String?
+  role            String   @default("CLIENT")  // ADMIN, CLIENT, EMPLOYEE
+  status          String   @default("PENDING")  // PENDING, ACTIVE, DEACTIVATED
+  creditsBalance  Int      @default(0) @map("credits_balance")
+  // ... relations and timestamps
+}</code></pre>
+
+    <h4>ProfileAccount (Browser Profiles)</h4>
+    <pre><code>model ProfileAccount {
+  id                String   @id @default(uuid())
+  clientId          String   @map("client_id")
+  client            User     @relation(fields: [clientId], references: [id])
+  profileName       String   @map("profile_name")
+  accountEmail      String   @map("account_email")
+  // ... IXBrowser credentials, expiration, status
+}</code></pre>
+
+    <h4>ReviewOrder (Facebook Reviews)</h4>
+    <pre><code>model ReviewOrder {
+  id                    String   @id @default(uuid())
+  userId                String   @map("user_id")
+  businessName          String   @map("business_name")
+  orderType             String   @map("order_type")  // REVIEW, COMMENT, COMMENT_WITH_PHOTO
+  gender                String?  @map("gender")       // MALE, FEMALE, or null
+  quantity              Int
+  creditsConsumed       Int      @map("credits_consumed")
+  status                String   // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+  // ... employee assignments, URLs, timestamps
+}</code></pre>
+
+    <h2 id="9-authentication--authorization">9. Authentication & Authorization</h2>
+
+    <h3>Role-Based Access Control</h3>
+    <p><strong>Three Roles</strong>:</p>
+    <ul>
+      <li><strong>ADMIN</strong>: Full access to all features</li>
+      <li><strong>CLIENT</strong>: Can place orders, view assigned profiles, manage billing</li>
+      <li><strong>EMPLOYEE</strong>: Can complete assigned review orders</li>
+    </ul>
+
+    <h3>Auth Checks in Server Actions</h3>
+    <pre><code>// Any authenticated user
+const auth = await requireAuth();
+
+// Specific role required
+const auth = await requireAuth({ role: 'ADMIN' });
+
+// Multiple roles allowed
+const auth = await requireAuth({ role: ['ADMIN', 'EMPLOYEE'] });</code></pre>
+
+    <h2 id="10-known-issues--todos">10. Known Issues & TODOs</h2>
+
+    <div class="status status-pending">
+      <strong>TypeScript Errors (11 remaining - August 2026)</strong>
+      <p>Telegram Components (not fixed due to production risk):</p>
+      <ul>
+        <li><code>components/admin/TelegramBotConfig.tsx</code> - Type definition mismatches</li>
+        <li><code>components/TelegramGroupManager.tsx</code> - Property access issues</li>
+      </ul>
+      <p><em>Fix when: During maintenance window with full Telegram testing</em></p>
+    </div>
+
+    <h3>Pending Implementation</h3>
+    <p><strong>File</strong>: <code>app/api/cron/retry-failed-notifications/route.ts:257</code></p>
+    <pre><code>// TODO: Implement actual retry logic with Telegram API</code></pre>
+
+    <h2 id="11-deployment">11. Deployment</h2>
+
+    <h3>Build Process</h3>
+    <pre><code># 1. Build for production
+npm run build
+
+# 2. Start production server
+npm start
+
+# Or use PM2 (recommended)
+pm2 start npm --name "boostbuddy" -- start</code></pre>
+
+    <h3>Environment Checklist</h3>
+    <p>Before deploying to production:</p>
+    <ul>
+      <li>☐ Set production <code>DATABASE_URL</code></li>
+      <li>☐ Set production Supabase credentials</li>
+      <li>☐ Set production Stripe keys (live mode)</li>
+      <li>☐ Set <code>NEXT_PUBLIC_APP_URL</code> to production domain</li>
+      <li>☐ Run database migrations: <code>npx prisma migrate deploy</code></li>
+      <li>☐ Test Stripe webhook endpoint</li>
+      <li>☐ Verify Telegram bot connection</li>
+      <li>☐ Test all user roles (Admin, Client, Employee)</li>
+    </ul>
+
+    <h2 id="12-troubleshooting">12. Troubleshooting</h2>
+
+    <h3>Common Issues</h3>
+
+    <p><strong>Issue</strong>: "useApp is not defined" error<br>
+    <strong>Solution</strong>: This was fixed by changing <code>useApp()</code> to <code>useAuth()</code> in:
+    <ul>
+      <li><code>/app/e/orders/[id]/page.tsx</code></li>
+      <li><code>/app/c/services/reviews/orders/[id]/page.tsx</code></li>
+    </ul>
+
+    <p><strong>Issue</strong>: TypeScript compilation errors<br>
+    <strong>Solution</strong>: Run <code>npx tsc --noEmit</code> to see all errors. Check:
+    <ul>
+      <li>Missing imports</li>
+      <li>Type mismatches</li>
+      <li>Property access errors</li>
+    </ul>
+
+    <p><strong>Issue</strong>: Database connection fails<br>
+    <strong>Solution</strong>: Verify:
+    <ul>
+      <li><code>DATABASE_URL</code> is correct</li>
+      <li>Supabase project is active</li>
+      <li>Network allows connection</li>
+    </ul>
+
+    <h3>Getting Help</h3>
+    <ul>
+      <li>Check existing issues: <code>./prisma/migrations/</code></li>
+      <li>Review Server Actions: <code>./app/actions/*.ts</code></li>
+      <li>Check Auth patterns: <code>./lib/auth/</code></li>
+      <li>Review similar working code for patterns</li>
+    </ul>
+
+    <hr style="margin-top: 40px; border: none; border-top: 1px solid #ddd;">
+
+    <h3>Additional Resources</h3>
+    <p><strong>Key Files to Understand</strong></p>
+    <ul>
+      <li><strong>Auth Flow</strong>: <code>context/AuthContext.tsx</code>, <code>lib/auth/server-auth.ts</code></li>
+      <li><strong>Server Actions Pattern</strong>: Any file in <code>/app/actions/</code></li>
+      <li><strong>Database Schema</strong>: <code>prisma/schema.prisma</code></li>
+      <li><strong>UI Patterns</strong>: <code>components/orders/OrdersList.tsx</code></li>
+    </ul>
+
+    <h3>Version History</h3>
+    <table>
+      <tr>
+        <th>Version</th>
+        <th>Date</th>
+        <th>Changes</th>
+      </tr>
+      <tr>
+        <td>1.0.0</td>
+        <td>Aug 25, 2026</td>
+        <td>Initial developer guide</td>
+      </tr>
+      <tr>
+        <td>0.9.5</td>
+        <td>Aug 25, 2026</td>
+        <td>Added Gender field to Review Orders</td>
+      </tr>
+      <tr>
+        <td>0.9.0</td>
+        <td>Aug 2026</td>
+        <td>Fixed useApp/useAuth bug, reduced TS errors</td>
+      </tr>
+    </table>
+
+    <p style="margin-top: 30px; color: #666; font-size: 0.9em;">
+      <strong>End of Developer Guide</strong><br>
+      For questions or clarifications, refer to the code comments or existing working patterns in the codebase.
+    </p>
+  </div>
+</body>
+</html>
