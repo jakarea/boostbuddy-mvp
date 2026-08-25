@@ -43,7 +43,7 @@ export async function getCreditPackagesAdminAction() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("credit_packages")
-      .select("id, name, description, price, credits_amount, is_active, created_at")
+      .select("id, name, description, price, credits_amount, is_active, created_at, updated_at")
       .order("credits_amount", { ascending: true });
 
     if (error) throw error;
@@ -56,7 +56,8 @@ export async function getCreditPackagesAdminAction() {
       price: typeof pkg.price === 'string' ? parseFloat(pkg.price) : pkg.price,
       creditsAmount: typeof pkg.credits_amount === 'string' ? parseInt(pkg.credits_amount) : pkg.credits_amount,
       isActive: pkg.is_active,
-      createdAt: pkg.created_at || new Date().toISOString()
+      createdAt: pkg.created_at || new Date().toISOString(),
+      updatedAt: pkg.updated_at || undefined
     })) || [];
 
     return { success: true, data: packages };

@@ -42,9 +42,9 @@ interface CreditPackage {
   price: number;
   stripePriceId?: string;
   isActive: boolean;
-  displayOrder: number;
+  displayOrder?: number;  // Optional: not in database yet
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;    // Optional: for backward compatibility
 }
 
 interface Overview {
@@ -190,7 +190,6 @@ export default function CreditsAdminClient({
           description: formData.description,
           creditsAmount,
           price,
-          displayOrder: packages.length + 1,
         });
       }
 
