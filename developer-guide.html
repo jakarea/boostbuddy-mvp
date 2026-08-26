@@ -3,715 +3,1238 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BoostBuddy MVP - Developer Guide</title>
+  <title>BoostBuddy V2 - Developer Reference Guide</title>
+  <!-- Google Fonts: Outfit for headings, Inter for body, JetBrains Mono for code -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    /* Reset & Base Variables */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-base: #09090b;
+      --bg-card: #18181b;
+      --bg-card-hover: #202023;
+      --border-color: #27272a;
+      --text-main: #f4f4f5;
+      --text-muted: #a1a1aa;
+      
+      /* Brand gradients cyan to teal */
+      --cyan: #06b6d4;
+      --teal: #14b8a6;
+      --accent: linear-gradient(135deg, var(--cyan) 0%, var(--teal) 100%);
+      
+      --code-bg: #0c0c0e;
+      --sidebar-width: 280px;
+    }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-main);
       line-height: 1.6;
-      color: #333;
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 20px;
-      background: #f9f9f9;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
     }
 
-    .container {
-      background: white;
-      padding: 40px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    h1, h2, h3, h4 {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      color: #fff;
     }
 
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 10px;
-      color: #222;
-      border-bottom: 3px solid #007bff;
-      padding-bottom: 15px;
+    /* Layout */
+    .app-layout {
+      display: flex;
+      min-h: 100vh;
     }
 
-    .meta {
-      color: #666;
+    /* Sticky Sidebar Navigation */
+    .sidebar {
+      width: var(--sidebar-width);
+      background-color: rgba(24, 24, 27, 0.8);
+      backdrop-filter: blur(12px);
+      border-right: 1px solid var(--border-color);
+      padding: 2rem 1.5rem;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 100;
+      overflow-y: auto;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .brand-logo {
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      color: #000;
+      font-size: 1.1rem;
+    }
+
+    .brand-name {
+      font-size: 1.15rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-weight: 800;
+      background: var(--accent);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-list {
+      list-style: none;
+    }
+
+    .nav-item {
+      margin-bottom: 0.5rem;
+    }
+
+    .nav-link {
+      display: block;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 0.6rem 0.8rem;
+      border-radius: 6px;
       font-size: 0.9rem;
-      margin-bottom: 30px;
+      font-weight: 500;
+      transition: all 0.2s ease;
     }
 
-    h2 {
-      font-size: 1.5rem;
-      margin-top: 40px;
-      margin-bottom: 20px;
-      color: #333;
+    .nav-link:hover {
+      color: #fff;
+      background-color: var(--border-color);
+      transform: translateX(4px);
     }
 
-    h3 {
-      font-size: 1.2rem;
-      margin-top: 25px;
-      margin-bottom: 15px;
-      color: #444;
+    .nav-link.active {
+      color: #fff;
+      background: linear-gradient(90deg, rgba(6, 182, 212, 0.15) 0%, rgba(20, 184, 166, 0.05) 100%);
+      border-left: 3px solid var(--cyan);
+      font-weight: 600;
     }
 
-    h4 {
+    /* Main Content Container */
+    .main-content {
+      flex: 1;
+      margin-left: var(--sidebar-width);
+      padding: 3rem 4rem;
+      max-width: 1300px;
+    }
+
+    /* Hero Header */
+    .hero {
+      margin-bottom: 3.5rem;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      left: 100px;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-title {
+      font-size: 3rem;
+      line-height: 1.1;
+      margin-bottom: 0.8rem;
+      letter-spacing: -0.02em;
+    }
+
+    .hero-gradient {
+      background: var(--accent);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      align-items: center;
+      margin-top: 1.5rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-live {
+      background-color: rgba(20, 184, 166, 0.15);
+      color: #2dd4bf;
+      border: 1px solid rgba(20, 184, 166, 0.2);
+    }
+    
+    .badge-pending {
+      background-color: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .badge-info {
+      background-color: rgba(6, 182, 212, 0.15);
+      color: #22d3ee;
+      border: 1px solid rgba(6, 182, 212, 0.2);
+    }
+
+    /* Content Cards */
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2.2rem;
+      margin-bottom: 2.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(6, 182, 212, 0.3);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-title {
+      font-size: 1.6rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.8rem;
+    }
+
+    .card-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-color);
+    }
+
+    p {
+      color: var(--text-muted);
+      margin-bottom: 1.2rem;
+      font-size: 0.95rem;
+    }
+
+    /* Grid layout inside cards */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    /* Functional overview card blocks */
+    .module-item {
+      background-color: rgba(9, 9, 11, 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.2rem;
+      transition: all 0.2s ease;
+    }
+
+    .module-item:hover {
+      background-color: var(--bg-card-hover);
+      border-color: rgba(20, 184, 166, 0.25);
+    }
+
+    .module-item h4 {
       font-size: 1rem;
-      margin-top: 20px;
-      margin-bottom: 10px;
-      color: #555;
+      margin-bottom: 0.5rem;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
-    p { margin-bottom: 15px; }
-
-    ul, ol { margin-left: 25px; margin-bottom: 20px; }
-
-    li { margin-bottom: 8px; }
-
-    code {
-      background: #f4f4f4;
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-family: 'Monaco', 'Courier New', monospace;
-      font-size: 0.9em;
+    .module-item h4::before {
+      content: '■';
+      color: var(--cyan);
+      font-size: 0.8rem;
     }
 
-    pre {
-      background: #1e1e1e;
-      color: #d4d4d4;
-      padding: 15px;
-      border-radius: 5px;
+    /* Tables */
+    .table-container {
+      width: 100%;
       overflow-x: auto;
-      margin: 15px 0;
-    }
-
-    pre code {
-      background: none;
-      padding: 0;
-      color: inherit;
+      margin: 1.5rem 0;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 20px 0;
-    }
-
-    th, td {
-      border: 1px solid #ddd;
-      padding: 10px 15px;
       text-align: left;
+      font-size: 0.9rem;
     }
 
     th {
-      background: #f5f5f5;
+      background-color: rgba(9, 9, 11, 0.7);
+      color: #fff;
       font-weight: 600;
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid var(--border-color);
     }
 
-    blockquote {
-      border-left: 4px solid #007bff;
-      padding-left: 20px;
-      margin: 20px 0;
-      color: #666;
-      font-style: italic;
+    td {
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-muted);
+      vertical-align: top;
     }
 
-    a {
-      color: #007bff;
-      text-decoration: none;
+    tr:last-child td {
+      border-bottom: none;
     }
 
-    a:hover {
-      text-decoration: underline;
+    tr:hover td {
+      background-color: rgba(24, 24, 27, 0.4);
+      color: #fff;
     }
 
-    .toc {
-      background: #f8f9fa;
-      padding: 20px;
-      border-radius: 5px;
-      margin-bottom: 30px;
+    /* Interactive tabs component for permissions */
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.5rem;
     }
 
-    .toc h3 {
-      margin-top: 0;
-      margin-bottom: 15px;
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.5rem 1.2rem;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s ease;
     }
 
-    .toc ul {
-      list-style: none;
-      margin-left: 0;
+    .tab-btn:hover {
+      color: #fff;
+      background-color: rgba(255,255,255,0.05);
     }
 
-    .toc a {
+    .tab-btn.active {
+      color: #fff;
+      background: var(--accent);
+      color: #000;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
       display: block;
-      padding: 5px 0;
-      color: #555;
+      animation: fadeIn 0.3s ease;
     }
 
-    .toc a:hover {
-      color: #007bff;
-      text-decoration: none;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 3px;
+    /* Code and Pre blocks */
+    code {
+      font-family: 'JetBrains Mono', monospace;
       font-size: 0.85em;
-      font-weight: 500;
+      background-color: var(--code-bg);
+      color: #22d3ee;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.04);
     }
 
-    .badge-success { background: #d4edda; color: #155724; }
-    .badge-warning { background: #fff3cd; color: #856404; }
-    .badge-info { background: #d1ecf1; color: #0c5460; }
-
-    .status {
-      padding: 10px 15px;
-      margin: 15px 0;
-      border-radius: 5px;
+    pre {
+      background-color: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.2rem;
+      overflow-x: auto;
+      margin: 1.2rem 0;
+      position: relative;
     }
-    .status-completed { background: #d4edda; color: #155724; }
-    .status-pending { background: #fff3cd; color: #856404; }
+
+    pre code {
+      background: none;
+      padding: 0;
+      color: #e4e4e7;
+      border: none;
+      font-size: 0.85rem;
+    }
+    
+    .copy-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .copy-btn:hover {
+      color: #fff;
+      border-color: var(--cyan);
+    }
+
+    /* Interactive visual workflow timelines */
+    .timeline {
+      position: relative;
+      padding-left: 2rem;
+      margin: 2rem 0;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background-color: var(--border-color);
+    }
+
+    .timeline-step {
+      position: relative;
+      margin-bottom: 2rem;
+    }
+
+    .timeline-step:last-child {
+      margin-bottom: 0;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: -2rem;
+      left: calc(-2rem - 6px);
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--bg-base);
+      border: 2px solid var(--cyan);
+      z-index: 2;
+    }
+    
+    .timeline-step:hover .timeline-dot {
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    .timeline-content {
+      background-color: rgba(9, 9, 11, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.2rem;
+    }
+
+    .timeline-content h4 {
+      font-size: 0.95rem;
+      margin-bottom: 0.4rem;
+      color: #fff;
+    }
+
+    /* Alerts */
+    .alert {
+      border-left: 4px solid var(--cyan);
+      background-color: rgba(6, 182, 212, 0.05);
+      border-radius: 0 8px 8px 0;
+      padding: 1.2rem 1.5rem;
+      margin: 1.5rem 0;
+    }
+
+    .alert-important {
+      border-left-color: #fb7185;
+      background-color: rgba(251, 113, 133, 0.05);
+    }
+    
+    .alert-important h4 {
+      color: #fb7185;
+    }
+
+    .alert h4 {
+      font-size: 0.95rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Floating navigation toggle button for mobile screens */
+    .menu-toggle {
+      display: none;
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      color: #000;
+      z-index: 1000;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(6, 182, 212, 0.4);
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.5rem;
+    }
+
+    /* Keyframe Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Responsive Queries */
+    @media (max-width: 1024px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .main-content {
+        margin-left: 0;
+        padding: 2rem;
+      }
+
+      .menu-toggle {
+        display: flex;
+      }
+      
+      .hero-title {
+        font-size: 2.2rem;
+      }
+    }
 
     @media (max-width: 768px) {
-      body { padding: 10px; }
-      .container { padding: 20px; }
-      h1 { font-size: 1.5rem; }
-      h2 { font-size: 1.2rem; }
+      .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 1.5rem;
+      }
+
+      .main-content {
+        padding: 1.5rem 1rem;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>BoostBuddy MVP - Developer Guide</h1>
-    <p class="meta">
-      <strong>Last Updated:</strong> August 25, 2026 &nbsp;|&nbsp;
-      <strong>Version:</strong> 1.0.0 &nbsp;|&nbsp;
-      <strong>Status:</strong> <span class="badge badge-success">Production Live</span>
-    </p>
 
-    <div class="toc">
-      <h3>Table of Contents</h3>
-      <ul>
-        <li><a href="#1-project-overview">1. Project Overview</a></li>
-        <li><a href="#2-tech-stack">2. Tech Stack</a></li>
-        <li><a href="#3-architecture">3. Architecture</a></li>
-        <li><a href="#4-development-setup">4. Development Setup</a></li>
-        <li><a href="#5-code-structure">5. Code Structure</a></li>
-        <li><a href="#6-key-patterns--conventions">6. Key Patterns & Conventions</a></li>
-        <li><a href="#7-common-development-tasks">7. Common Development Tasks</a></li>
-        <li><a href="#8-database--schema">8. Database & Schema</a></li>
-        <li><a href="#9-authentication--authorization">9. Authentication & Authorization</a></li>
-        <li><a href="#10-known-issues--todos">10. Known Issues & TODOs</a></li>
-        <li><a href="#11-deployment">11. Deployment</a></li>
-        <li><a href="#12-troubleshooting">12. Troubleshooting</a></li>
-      </ul>
-    </div>
+  <!-- Floating Mobile Menu Button -->
+  <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">☰</button>
 
-    <h2 id="1-project-overview">1. Project Overview</h2>
-    <p>BoostBuddy MVP is a <strong>client account management platform</strong> that serves as both an admin panel and client portal for managing:</p>
-    <ul>
-      <li><strong>Browser profiles/accounts</strong> (via IXBrowser integration)</li>
-      <li><strong>Services & Billing</strong> (Stripe payments, invoices)</li>
-      <li><strong>Review Orders</strong> (Facebook reviews/reactions management)</li>
-      <li><strong>Notifications</strong> (Telegram integration)</li>
-      <li><strong>Employee Management</strong> (order assignment and completion tracking)</li>
-    </ul>
+  <div class="app-layout">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-logo">B</div>
+        <span class="brand-name">BoostBuddy V2</span>
+      </div>
+      
+      <nav>
+        <ul class="nav-list">
+          <li class="nav-item"><a href="#project-overview" class="nav-link active">1. Overview</a></li>
+          <li class="nav-item"><a href="#tech-stack" class="nav-link">2. Tech Stack</a></li>
+          <li class="nav-item"><a href="#database-schema" class="nav-link">3. Database Schema</a></li>
+          <li class="nav-item"><a href="#critical-workflows" class="nav-link">4. Critical Workflows</a></li>
+          <li class="nav-item"><a href="#route-navigation" class="nav-link">5. Sidebar / Route Map</a></li>
+          <li class="nav-item"><a href="#permissions-matrix" class="nav-link">6. Permissions Matrix</a></li>
+          <li class="nav-item"><a href="#credentials-security" class="nav-link">7. Credentials Security</a></li>
+          <li class="nav-item"><a href="#known-issues" class="nav-link">8. Known Issues & TODOs</a></li>
+          <li class="nav-item"><a href="#changelog" class="nav-link">9. Changelog V1 → V2</a></li>
+          <li class="nav-item"><a href="#architectural-inconsistencies" class="nav-link">10. Resolved Inconsistencies</a></li>
+          <li class="nav-item"><a href="#setup-run" class="nav-link">11. Setup & Runs</a></li>
+        </ul>
+      </nav>
+    </aside>
 
-    <h3>Key Features</h3>
-    <ul>
-      <li><strong>Three Access Levels</strong>: Admin, Employee, Client</li>
-      <li><strong>Multi-language Support</strong>: English, Italian (i18next)</li>
-      <li><strong>Dark/Light Theme</strong>: User-selectable via next-themes</li>
-      <li><strong>Real-time Updates</strong>: WebSocket support for notifications</li>
-      <li><strong>Stripe Integration</strong>: EUR currency checkout sessions</li>
-      <li><strong>Telegram Bot</strong>: Automated notifications and order alerts</li>
-    </ul>
+    <!-- Main Content -->
+    <main class="main-content">
+      
+      <!-- Hero Header -->
+      <header class="hero">
+        <h1 class="hero-title">BoostBuddy V2<br><span class="hero-gradient">Developer Reference Guide</span></h1>
+        <p class="hero-subtitle">The canonical engineering manual for codebase structures, databases, and critical operations.</p>
+        
+        <div class="hero-meta">
+          <span><strong>Last Updated:</strong> August 26, 2026</span>
+          <span><strong>Version:</strong> 2.0.0</span>
+          <span class="badge badge-live">Production Live</span>
+        </div>
+      </header>
 
-    <h2 id="2-tech-stack">2. Tech Stack</h2>
+      <!-- 1. Overview -->
+      <section id="project-overview" class="card">
+        <h2 class="card-title">1. Project & Functional Overview</h2>
+        <p>BoostBuddy is a unified client management portal engineered to automate browser profiles (boxes) and social media tasks. It maps interfaces for Admins, Clients, and Employees to streamline services.</p>
+        
+        <div class="grid-2" style="margin-top: 1.5rem;">
+          <div class="module-item">
+            <h4>Boxes (Browser Profiles)</h4>
+            <p style="margin-bottom: 0; font-size: 0.85rem;">Admins define browser credentials manually in the database. Clients purchase these profiles as virtual "Boxes". Status tags track lifecycle stages from AVAILABLE to ACTIVE and EXPIRED.</p>
+          </div>
+          <div class="module-item">
+            <h4>Reviews System (Multi-URL)</h4>
+            <p style="margin-bottom: 0; font-size: 0.85rem;">Clients submit campaigns with up to 10 target Facebook URLs. The backend generates child tasks which are auto-balanced to active Employees using active workload queues.</p>
+          </div>
+          <div class="module-item">
+            <h4>Wallet & Credits</h4>
+            <p style="margin-bottom: 0; font-size: 0.85rem;">Credits purchased via Stripe packages are stored on client profiles and consumed during campaign orders, using optimistic locks to prevent double-spending.</p>
+          </div>
+          <div class="module-item">
+            <h4>Telegram Notification Bot</h4>
+            <p style="margin-bottom: 0; font-size: 0.85rem;">Dispatches localized alerts directly to users or routes notifications to configured channel groups (e.g. employee tasks queue and admin alert feeds).</p>
+          </div>
+        </div>
+      </section>
 
-    <h3>Frontend</h3>
-    <ul>
-      <li><strong>Framework</strong>: Next.js 16 (App Router)</li>
-      <li><strong>Language</strong>: TypeScript</li>
-      <li><strong>Styling</strong>: Tailwind CSS 4</li>
-      <li><strong>UI Components</strong>: Base UI + Custom shadcn-like components in <code>/components/ui</code></li>
-      <li><strong>Icons</strong>: Lucide React</li>
-      <li><strong>State Management</strong>: React Context (AuthContext, ToastContext)</li>
-      <li><strong>Forms</strong>: Client-side with validation</li>
-      <li><strong>i18n</strong>: react-i18next with browser language detection</li>
-    </ul>
+      <!-- 2. Tech Stack -->
+      <section id="tech-stack" class="card">
+        <h2 class="card-title">2. Tech Stack & Architecture</h2>
+        <p>BoostBuddy is built with high-performance frameworks leveraging server actions for all backend endpoints.</p>
+        
+        <div class="grid-3" style="margin-top: 1.5rem; margin-bottom: 2rem;">
+          <div class="module-item" style="border-top: 3px solid var(--cyan);">
+            <strong style="display:block; margin-bottom:0.5rem; font-size: 0.95rem;">Frontend Stack</strong>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">
+              • Next.js 15.1.9 (App Router)<br>
+              • TypeScript & Tailwind CSS 4<br>
+              • i18next Translations (EN/IT)<br>
+              • SWR Cache Engine
+            </span>
+          </div>
+          <div class="module-item" style="border-top: 3px solid var(--teal);">
+            <strong style="display:block; margin-bottom:0.5rem; font-size: 0.95rem;">Database & ORM</strong>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">
+              • Supabase PostgreSQL<br>
+              • Prisma 7.8.0 (Schema tool)<br>
+              • @supabase/supabase-js<br>
+              • Supabase Realtime Channels
+            </span>
+          </div>
+          <div class="module-item" style="border-top: 3px solid #fb7185;">
+            <strong style="display:block; margin-bottom:0.5rem; font-size: 0.95rem;">Integrations</strong>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">
+              • Stripe Checkout API (EUR)<br>
+              • Telegram Bot API<br>
+              • IXBrowser profiles (Manual)
+            </span>
+          </div>
+        </div>
 
-    <h3>Backend</h3>
-    <ul>
-      <li><strong>Runtime</strong>: Node.js (via Next.js Server Actions)</li>
-      <li><strong>API Pattern</strong>: Server Actions (not API routes) for all backend operations</li>
-      <li><strong>Database</strong>: Supabase PostgreSQL</li>
-      <li><strong>ORM</strong>: Prisma for schema management and type-safe queries</li>
-      <li><strong>Auth</strong>: Supabase Auth + custom user profile layer</li>
-    </ul>
+        <h3 style="margin-bottom: 1rem; font-size: 1.15rem;">Code Directory Structure</h3>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>boostbuddy-mvp/
+├── app/                    # Next.js App Router (Next 15)
+│   ├── actions/            # Server Actions (All DB transactions via PostgREST)
+│   ├── a/                  # Admin endpoints (/a/*)
+│   ├── c/                  # Client endpoints (/c/*)
+│   ├── e/                  # Employee dashboard (/e/*)
+│   ├── api/                # Stripe webhooks & crons
+│   └── page.tsx            # Signin landing page
+├── components/             # Reusable UI assets & providers
+├── locales/                # JSON translation maps (en/it)
+├── prisma/                 # schema.prisma & SQL migrations
+└── lib/                    # Auth server wrapper & client configurations</code></pre>
+      </section>
 
-    <h3>Payment & Integration</h3>
-    <ul>
-      <li><strong>Payments</strong>: Stripe (EUR currency, checkout sessions)</li>
-      <li><strong>External</strong>: IXBrowser (manual - no API integration yet)</li>
-      <li><strong>Notifications</strong>: Telegram Bot API</li>
-    </ul>
+      <!-- 3. Database Schema -->
+      <section id="database-schema" class="card">
+        <h2 class="card-title">3. Database Schema (Complete)</h2>
+        <p>The PostgreSQL layout defines 21 tables managed through Prisma. The following schema represents all database tables, statuses, and indices in current production use:</p>
+        
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Model / Table</th>
+                <th>Primary Columns & Enums</th>
+                <th>Relationships / Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>User</strong></td>
+                <td>`id` (UUID), `email` (Unique), `role` (ADMIN, CLIENT, EMPLOYEE), `status` (PENDING, ACTIVE, DEACTIVATED), `creditsBalance` (Int)</td>
+                <td>Stores credentials linked to Supabase Auth. Has relationships with BillingInfo, ProfileAccount, Order, ReviewOrder, EmployeeStats.</td>
+              </tr>
+              <tr>
+                <td><strong>BillingInfo</strong></td>
+                <td>`id` (UUID), `userId` (FK), `billingType` (INDIVIDUAL, COMPANY), `country`, `vatNumber`, `fiscalCode`, `sdiCode`</td>
+                <td>Stores billing address profiles, supporting Italy's SDI requirements. Linked to User (onDelete: Cascade).</td>
+              </tr>
+              <tr>
+                <td><strong>Service</strong></td>
+                <td>`id` (UUID), `name`, `price` (Float), `durationDays` (Int), `isActive` (Boolean), `requiresManualAssignment` (Boolean)</td>
+                <td>Defines browser Box configurations and subscription periods. Linked to Orders.</td>
+              </tr>
+              <tr>
+                <td><strong>ProfileAccount</strong></td>
+                <td>`id` (UUID), `profileName`, `accountEmail`, `accountPassword`, `twoFactorSecret`, `status` (AVAILABLE, ASSIGNED, ACTIVE, EXPIRED, BANNED, CANCELLED, REQUEST_CHANGE)</td>
+                <td>Represents Boxes. Holds plain-text passwords and 2FA secrets. Linked to User (assigned client) and Service.</td>
+              </tr>
+              <tr>
+                <td><strong>Order</strong></td>
+                <td>`id` (UUID), `userId` (FK), `serviceId` (FK), `stripeSessionId` (Unique), `amount`, `status` (PENDING, PAID, FAILED), `type` (PURCHASE, RENEWAL, CREDITS_PURCHASE)</td>
+                <td>Logs payment requests processed via Stripe. Linked to ProfileAccount (for renewals).</td>
+              </tr>
+              <tr>
+                <td><strong>Invoice</strong></td>
+                <td>`id` (UUID), `userId` (FK), `orderId` (FK), `pdfPath`, `fileName`, `fileSize`, `uploadedAt`</td>
+                <td>Admin-uploaded PDFs corresponding to completed payments. Accessible by assigned clients.</td>
+              </tr>
+              <tr>
+                <td><strong>CreditPackage</strong></td>
+                <td>`id` (UUID), `name`, `creditsAmount` (Int), `price` (Float), `isActive` (Boolean)</td>
+                <td>Predefined package items available to clients purchasing wallet balance.</td>
+              </tr>
+              <tr>
+                <td><strong>CreditTransaction</strong></td>
+                <td>`id` (UUID), `userId` (FK), `amount` (Int), `balanceAfter` (Int), `type` (PURCHASE, SPEND, REFUND, ADMIN_ADJUST)</td>
+                <td>Audit logs tracking client credit wallet balances.</td>
+              </tr>
+              <tr>
+                <td><strong>ReviewOrder</strong></td>
+                <td>`id` (UUID), `userId` (FK), `orderType` (REVIEW, COMMENT, COMMENT_WITH_PHOTO), `status` (PENDING, IN_PROGRESS, COMPLETED, CANCELLED), `creditsConsumed`</td>
+                <td>Parent campaign tracking total reviews, targeted business name, and assigned employee. Linked to child ReviewUrls.</td>
+              </tr>
+              <tr>
+                <td><strong>ReviewUrl</strong></td>
+                <td>`id` (UUID), `reviewOrderId` (FK), `url`, `quantity`, `reviewContent` (JSON), `status` (PENDING, ASSIGNED, COMPLETED), `proofOfCompletion`</td>
+                <td>Child tasks indicating specific URLs, custom comments and screenshot proofs. Linked to Employee (assigned task).</td>
+              </tr>
+              <tr>
+                <td><strong>EmployeeEarnings</strong></td>
+                <td>`id` (UUID), `userId` (FK), `balance` (Decimal), `status` (ACTIVE, FROZEN, BANNED), `payoutMethod`</td>
+                <td><span class="badge badge-pending">Pending Code</span> Employee wallet balances. Currently not modified by code actions.</td>
+              </tr>
+              <tr>
+                <td><strong>EmployeeEarningTransaction</strong></td>
+                <td>`id` (UUID), `employeeEarningsId` (FK), `type` (EARN, PAYOUT, ADJUSTMENT, BONUS), `amount`, `balanceAfter`</td>
+                <td><span class="badge badge-pending">Pending Code</span> Ledgers logging payouts and earned tasks compensation.</td>
+              </tr>
+              <tr>
+                <td><strong>EmployeeEarningRule</strong></td>
+                <td>`id` (UUID), `orderType`, `paymentAmount` (Decimal), `isActive`, `priority`</td>
+                <td><span class="badge badge-pending">Pending Code</span> Configuration rules detailing employee payouts per task type.</td>
+              </tr>
+              <tr>
+                <td><strong>EmployeePayoutRequest</strong></td>
+                <td>`id` (UUID), `employeeEarningsId` (FK), `amount`, `status` (PENDING, PROCESSING, COMPLETED, REJECTED)</td>
+                <td><span class="badge badge-pending">Pending Code</span> Logs withdrawal requests submitted by workers.</td>
+              </tr>
+              <tr>
+                <td><strong>EmployeeStats</strong></td>
+                <td>`id` (UUID), `userId` (FK), `isAvailable` (Boolean), `acceptingTasks` (Boolean), `ordersCompleted` (Int), `creditsCompleted` (Int)</td>
+                <td>Monitors active workload profiles to feed the auto-assignment balancing logic.</td>
+              </tr>
+              <tr>
+                <td><strong>NotificationLog</strong></td>
+                <td>`id` (UUID), `recipient`, `subject`, `channel` (EMAIL, TELEGRAM), `status` (SENT), `priority` (HIGH, MEDIUM, LOW)</td>
+                <td>Audit trails detailing notification attempts dispatched by bot or server scripts.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-    <h2 id="3-architecture">3. Architecture</h2>
+      <!-- 4. Critical Workflows -->
+      <section id="critical-workflows" class="card">
+        <h2 class="card-title">4. Critical Workflows</h2>
+        <p>A step-by-step trace of core execution pathways within the application.</p>
 
-    <h3>Directory Structure</h3>
-    <pre><code>boostbuddy-mvp/
-├── app/                    # Next.js App Router (16)
-│   ├── layout.tsx          # Root layout with providers
-│   ├── page.tsx            # Home/Landing page
-│   ├── actions/            # Server Actions (not routes!)
-│   ├── admin/              # Admin panel routes (/a/*)
-│   ├── dashboard/          # Client routes (/c/*)
-│   ├── employee/           # Employee routes (/e/*)
-│   ├── auth/               # Auth callbacks
-│   ├── api/                # API routes (webhooks, etc.)
-│   ├── checkout/           # Stripe checkout page
-│   └── notifications/      # Notification settings
-├── components/             # React components
-│   ├── providers/          # Context providers
-│   ├── ui/                 # Base UI components
-│   ├── admin/              # Admin-specific components
-│   └── [other].tsx         # Shared components
-├── context/                # React Context definitions
-├── lib/                    # Utility libraries
-│   ├── auth/               # Authentication utilities
-│   ├── supabase/           # Supabase clients
-│   ├── stripe/             # Stripe client
-│   ├── cache/              # Caching utilities
-│   └── [other].ts          # Other utilities
-├── prisma/                 # Database schema & migrations
-│   ├── schema.prisma       # Data model definition
-│   └── migrations/         # Database migrations
-├── locales/                # Translation files (JSON)
-│   ├── en.json             # English translations
-│   └── it.json             # Italian translations
-└── public/                 # Static assets</code></pre>
+        <!-- Workflow Tab Selectors -->
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchWorkflow(this, 'flow-box')">Box Purchase & Renewal</button>
+          <button class="tab-btn" onclick="switchWorkflow(this, 'flow-credits')">Credits & Wallets</button>
+          <button class="tab-btn" onclick="switchWorkflow(this, 'flow-reviews')">Review Orders Creation & Completion</button>
+        </div>
 
-    <h3>Route Structure by Role</h3>
-    <table>
-      <tr>
-        <th>Role</th>
-        <th>Path Pattern</th>
-        <th>Purpose</th>
-      </tr>
-      <tr>
-        <td>Admin</td>
-        <td><code>/a/*</code></td>
-        <td>Admin panel - manages all entities</td>
-      </tr>
-      <tr>
-        <td>Client</td>
-        <td><code>/c/*</code></td>
-        <td>Client portal - orders, profiles, billing</td>
-      </tr>
-      <tr>
-        <td>Employee</td>
-        <td><code>/e/*</code></td>
-        <td>Employee dashboard - task completion</td>
-      </tr>
-    </table>
+        <!-- Workflow Box Content -->
+        <div id="flow-box" class="tab-content active">
+          <div class="timeline">
+            <div class="timeline-step">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <h4>Step 1: Client Checkout Launch</h4>
+                <p style="margin-bottom:0; font-size:0.85rem;">Client initiates checkout via `createCheckoutSessionAction`. For Box purchases, prices are queried securely from the database to prevent pricing manipulations. For renewals or upgrades, `calculateUpgradePriceAction` computes standard remaining day values and subtracts the proration credit.</p>
+              </div>
+            </div>
+            <div class="timeline-step">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <h4>Step 2: Stripe Transaction</h4>
+                <p style="margin-bottom:0; font-size:0.85rem;">Stripe handles checkout using secure checkout cards in EUR currency. A callback metadata payload links user ID, profile ID, service ID, and order details.</p>
+              </div>
+            </div>
+            <div class="timeline-step">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <h4>Step 3: Webhook Fulfillment Processing</h4>
+                <p style="margin-bottom:0; font-size:0.85rem;">The webhook at `/api/webhooks/stripe` catches the transaction event and forwards payload variables to `fulfillOrder`. The database saves a PAID Order record (deduplicated by Stripe session ID for idempotency). For renewals/upgrades, `ProfileAccount` resets status to ACTIVE and extends or shifts the expiration date accordingly.</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
-    <h2 id="4-development-setup">4. Development Setup</h2>
+        <!-- Workflow Credits Content -->
+        <div id="flow-credits" class="tab-content">
+          <div class="timeline">
+            <div class="timeline-step">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <h4>Step 1: Select Wallet Package</h4>
+                <p style="margin-bottom:0; font-size:0.85rem;">Client chooses a package and creates a checkout session with metadata type set to `CREDITS_PURCHASE`.</p>
+              </div>
+            </div>
+            <div class="timeline-step">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <h4>Step 2: Webhook Capture</h4>
+                <p style="margin-bottom:0; font-size:0.85rem;">Stripe webhook captures the payment event and directs execution to the `fulfillCreditsPurchase` action.</p>
+              </div>
+            </div>
+            <div class="timeline-step">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <h4>Step 3: Optimistic Concurrency Modification</h4>
+                <p style="margin-bottom:0; font-size:0.85rem;">To secure user wallet modifications, `updateCreditBalanceWithRetry` runs inside `@/lib/credit-update`. It performs optimistic checks by updating database values only if current database balances match previously read ones, preventing concurrency race condition issues. If a collision occurs, it retries up to 5 times.</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
-    <h3>Prerequisites</h3>
-    <ul>
-      <li>Node.js 18+</li>
-      <li>npm or yarn</li>
-      <li>Supabase account (for database and auth)</li>
-      <li>Stripe account (for payments, test mode for development)</li>
-    </ul>
+        <!-- Workflow Reviews Content -->
+        <div id="flow-reviews" class="tab-content">
+          <div class="timeline">
+            <div class="timeline-step">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <h4>Step 1: Campaign Creation & Balance Check</h4>
+                <p style="margin-bottom:0; font-size:0.85rem;">Client fills out the multi-URL form (up to 10 URLs). `createMultiUrlReviewOrderAction` calculates credits needed against active pricing variables. It deducts the required credits using optimistic updates on `User` table, inserting a parent `ReviewOrder` and mapping the distinct target entries to `ReviewUrl` child tasks.</p>
+              </div>
+            </div>
+            <div class="timeline-step">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <h4>Step 2: Load Balancing Auto-Assignment</h4>
+                <p style="margin-bottom:0; font-size:0.85rem;">The server scans for available active employees (role `EMPLOYEE`, status `ACTIVE`, `acceptingOrders` `true`). It counts their active `IN_PROGRESS` tasks, selects the employee with the lowest workload, and assigns the parent order. An alert is sent to the employee on Telegram.</p>
+              </div>
+            </div>
+            <div class="timeline-step">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <h4>Step 3: Task Execution & Proof Verification</h4>
+                <p style="margin-bottom:0; font-size:0.85rem;">Employees claim specific URLs (`acceptUrlTaskAction`), changing the task status to `ASSIGNED`. After completing the task, the employee uploads a screenshot URL proof via `submitUrlTaskCompletionAction`. When all sibling URL tasks are completed, the parent order is marked `COMPLETED` and auto-approved.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    <h3>Installation</h3>
-    <pre><code># Install dependencies
+      <!-- 5. Route Map -->
+      <section id="route-navigation" class="card">
+        <h2 class="card-title">5. Route & Sidebar Map</h2>
+        <p>BoostBuddy isolates layouts and components into role-restricted directory structures.</p>
+        
+        <div class="grid-3" style="margin-top: 1.5rem;">
+          <div>
+            <h4 style="color: var(--cyan); margin-bottom: 0.8rem;">Admin Portal (`/a/*`)</h4>
+            <ul style="list-style: none; margin-left: 0; font-size: 0.85rem; color: var(--text-muted);">
+              <li style="margin-bottom:0.4rem;">📁 `/a/dashboard` - Stats & Expiring Boxes</li>
+              <li style="margin-bottom:0.4rem;">📁 `/a/clients` - Active Client Profiles</li>
+              <li style="margin-bottom:0.4rem;">📁 `/a/employees` - Direct employee setup</li>
+              <li style="margin-bottom:0.4rem;">📁 `/a/profiles` - Browser accounts & 2FA</li>
+              <li style="margin-bottom:0.4rem;">📁 `/a/reviews` - Global campaign list</li>
+              <li style="margin-bottom:0.4rem;">📁 `/a/invoices` - Manual invoice upload</li>
+              <li style="margin-bottom:0.4rem;">📁 `/a/notifications` - Bot configs & Logs</li>
+            </ul>
+          </div>
+          <div>
+            <h4 style="color: var(--teal); margin-bottom: 0.8rem;">Client Portal (`/c/*`)</h4>
+            <ul style="list-style: none; margin-left: 0; font-size: 0.85rem; color: var(--text-muted);">
+              <li style="margin-bottom:0.4rem;">📁 `/c/dashboard` - Active box widgets</li>
+              <li style="margin-bottom:0.4rem;">📁 `/c/boxes` - Assigned boxes credentials</li>
+              <li style="margin-bottom:0.4rem;">📁 `/c/services` - Purchase new boxes</li>
+              <li style="margin-bottom:0.4rem;">📁 `/c/services/reviews` - Place campaigns</li>
+              <li style="margin-bottom:0.4rem;">📁 `/c/wallet` - Buy credits packages</li>
+              <li style="margin-bottom:0.4rem;">📁 `/c/billing` - Italian SDI billing info</li>
+              <li style="margin-bottom:0.4rem;">📁 `/c/invoices` - Download invoice PDFs</li>
+            </ul>
+          </div>
+          <div>
+            <h4 style="color: #fb7185; margin-bottom: 0.8rem;">Employee Portal (`/e/*`)</h4>
+            <ul style="list-style: none; margin-left: 0; font-size: 0.85rem; color: var(--text-muted);">
+              <li style="margin-bottom:0.4rem;">📁 `/e/dashboard` - Toggle availability & lists</li>
+              <li style="margin-bottom:0.4rem;">📁 `/e/orders` - Task lists & Proof submissions</li>
+              <li style="margin-bottom:0.4rem;">📁 `/e/notifications` - Bot personal settings</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. Permissions Matrix -->
+      <section id="permissions-matrix" class="card">
+        <h2 class="card-title">6. Permissions Matrix</h2>
+        <p>Authorized access scopes mapped by role. Click a role to filter the matrix:</p>
+        
+        <div class="tabs" style="margin-bottom: 1rem;">
+          <button class="tab-btn active" onclick="filterMatrix(this, 'all')">Show All</button>
+          <button class="tab-btn" onclick="filterMatrix(this, 'ADMIN')">Admin Only</button>
+          <button class="tab-btn" onclick="filterMatrix(this, 'CLIENT')">Client Only</button>
+          <button class="tab-btn" onclick="filterMatrix(this, 'EMPLOYEE')">Employee Only</button>
+        </div>
+
+        <div class="table-container">
+          <table id="matrixTable">
+            <thead>
+              <tr>
+                <th>System Feature / Action</th>
+                <th style="text-align: center;">Admin</th>
+                <th style="text-align: center;">Client</th>
+                <th style="text-align: center;">Employee</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-roles="ADMIN">
+                <td>Configure Services & pricing values</td>
+                <td style="text-align: center; color: var(--teal); font-weight: bold;">✓ Full</td>
+                <td style="text-align: center; color: #fb7185;">✗ No</td>
+                <td style="text-align: center; color: #fb7185;">✗ No</td>
+              </tr>
+              <tr data-roles="ADMIN">
+                <td>Create Admin or Employee accounts</td>
+                <td style="text-align: center; color: var(--teal); font-weight: bold;">✓ Full</td>
+                <td style="text-align: center; color: #fb7185;">✗ No</td>
+                <td style="text-align: center; color: #fb7185;">✗ No</td>
+              </tr>
+              <tr data-roles="ADMIN">
+                <td>Create/Assign virtual Box profiles</td>
+                <td style="text-align: center; color: var(--teal); font-weight: bold;">✓ Full</td>
+                <td style="text-align: center; color: #fb7185;">✗ No</td>
+                <td style="text-align: center; color: #fb7185;">✗ No</td>
+              </tr>
+              <tr data-roles="ADMIN CLIENT">
+                <td>View virtual Box credentials / passwords</td>
+                <td style="text-align: center; color: var(--teal); font-weight: bold;">✓ Full</td>
+                <td style="text-align: center; color: var(--cyan);">✓ Assigned Only</td>
+                <td style="text-align: center; color: #fb7185;">✗ No</td>
+              </tr>
+              <tr data-roles="ADMIN CLIENT">
+                <td>Order reviews and manage wallet credits</td>
+                <td style="text-align: center; color: var(--cyan);">✓ Read Only</td>
+                <td style="text-align: center; color: var(--teal); font-weight: bold;">✓ Full</td>
+                <td style="text-align: center; color: #fb7185;">✗ No</td>
+              </tr>
+              <tr data-roles="EMPLOYEE">
+                <td>Accept and complete assigned review tasks</td>
+                <td style="text-align: center; color: #fb7185;">✗ No</td>
+                <td style="text-align: center; color: #fb7185;">✗ No</td>
+                <td style="text-align: center; color: var(--teal); font-weight: bold;">✓ Assigned Only</td>
+              </tr>
+              <tr data-roles="ADMIN">
+                <td>Upload invoice PDFs to orders</td>
+                <td style="text-align: center; color: var(--teal); font-weight: bold;">✓ Full</td>
+                <td style="text-align: center; color: #fb7185;">✗ No</td>
+                <td style="text-align: center; color: #fb7185;">✗ No</td>
+              </tr>
+              <tr data-roles="ADMIN CLIENT">
+                <td>Download invoice documents</td>
+                <td style="text-align: center; color: var(--cyan);">✓ Read All</td>
+                <td style="text-align: center; color: var(--cyan);">✓ Own Only</td>
+                <td style="text-align: center; color: #fb7185;">✗ No</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 7. Credentials Security -->
+      <section id="credentials-security" class="card">
+        <h2 class="card-title">7. Security of Sensitive Credentials</h2>
+        <div class="alert alert-important">
+          <h4>⚠️ Plain-Text Security Warning</h4>
+          <p style="margin-bottom:0; color: #fff;">Virtual profile credentials (browser passwords, email passwords, and 2FA secrets) are stored in **plain text** inside the database (`profile_accounts` table). Access control relies entirely on role checking inside server endpoints.</p>
+        </div>
+        <p>To avoid security vulnerabilities, developers must strictly adhere to the following routing rules when exposing profile structures:</p>
+        <ul style="margin-left: 1.5rem; margin-bottom: 1.5rem; font-size: 0.9rem; color: var(--text-muted);">
+          <li style="margin-bottom: 0.5rem;"><strong>Admin Scope:</strong> Complete access is authorized for administrators via `getProfilesAction`.</li>
+          <li style="margin-bottom: 0.5rem;"><strong>Client Scope:</strong> Clients fetch credentials **only** for boxes assigned to them (`assigned_client_id = user.id` and status matches `"ACTIVE"` or `"EXPIRED"`). This filter must always be enforced at the server query level.</li>
+          <li style="margin-bottom: 0.5rem;"><strong>Employee Scope:</strong> Employees have no access. Under no circumstances should endpoints or components query or expose `profile_accounts` fields to employees.</li>
+        </ul>
+      </section>
+
+      <!-- 8. Known Issues -->
+      <section id="known-issues" class="card">
+        <h2 class="card-title">8. Known Issues & Technical TODOs</h2>
+        <p>A list of pending inconsistencies and backlog tasks in the codebase:</p>
+        
+        <div class="module-item" style="margin-bottom: 1rem; border-left: 3px solid #fb7185;">
+          <h4 style="color:#fff;">1. Missing skipped_reviews Table Definition</h4>
+          <p style="font-size: 0.85rem; margin-bottom: 0; margin-top: 0.2rem;">The server file `app/actions/employee.ts` executes database selections on the `skipped_reviews` table. However, **`skipped_reviews` is not declared in `schema.prisma`**. This creates compile/runtime issues if the migration is missing from target PostgreSQL databases.</p>
+        </div>
+
+        <div class="module-item" style="margin-bottom: 1rem; border-left: 3px solid #fb7185;">
+          <h4 style="color:#fff;">2. Unimplemented Employee Earning Actions</h4>
+          <p style="font-size: 0.85rem; margin-bottom: 0; margin-top: 0.2rem;">Database models for employee accounting (e.g. `EmployeeEarnings`, `EmployeeEarningTransaction`) are defined in the schema, but **no server actions exist to run earning adjustments or execute payments**. Accounting and payouts are currently handled manually.</p>
+        </div>
+
+        <div class="module-item" style="margin-bottom: 1rem; border-left: 3px solid #fb7185;">
+          <h4 style="color:#fff;">3. Stubbed Cron Retry Notifications</h4>
+          <p style="font-size: 0.85rem; margin-bottom: 0; margin-top: 0.2rem;">The cron endpoint `/app/api/cron/retry-failed-notifications/route.ts` lacks functional implementation of its retry routine, containing only a `TODO` stub.</p>
+        </div>
+        
+        <div class="module-item" style="border-left: 3px solid #fb7185;">
+          <h4 style="color:#fff;">4. Telegram Component Compilation Errors</h4>
+          <p style="font-size: 0.85rem; margin-bottom: 0; margin-top: 0.2rem;">TypeScript warnings exist in `TelegramBotConfig.tsx` and `TelegramGroupManager.tsx`. Avoid modifying these components outside scheduled maintenance windows.</p>
+        </div>
+      </section>
+
+      <!-- 9. Changelog -->
+      <section id="changelog" class="card">
+        <h2 class="card-title">9. Changelog V1 → V2</h2>
+        <p>A summary of features introduced to transition from the initial MWP to version V2:</p>
+        
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>V1 (Original MWP)</th>
+                <th>V2 (Current Version)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Review Ordering</strong></td>
+                <td>Single URL per task, manual employee pickup queues.</td>
+                <td>Multi-URL orders (campaign logic), automatic load balancer routing.</td>
+              </tr>
+              <tr>
+                <td><strong>Billing System</strong></td>
+                <td>Plain inputs, manual payments outside the platform.</td>
+                <td>Stripe EUR checkout sessions, dynamic proration credits, corporate profile setups.</td>
+              </tr>
+              <tr>
+                <td><strong>Translations</strong></td>
+                <td>Hardcoded English interface strings.</td>
+                <td>Multilingual context loader (EN/IT locale JSON configurations).</td>
+              </tr>
+              <tr>
+                <td><strong>Sidebar/Theme</strong></td>
+                <td>Simple layout design, no night theme.</td>
+                <td>Responsive sidebar drawer, selector theme toggles (`next-themes`).</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 10. Resolved Inconsistencies -->
+      <section id="architectural-inconsistencies" class="card">
+        <h2 class="card-title">10. Resolved Architectural Inconsistencies</h2>
+        <p>A list of codebase patterns and variables corrected to align developer expectations:</p>
+        
+        <div class="grid-2" style="margin-top: 1.5rem;">
+          <div class="module-item">
+            <strong style="display:block; margin-bottom:0.4rem; color:#fff;">Prisma vs Native Supabase Client</strong>
+            <p style="font-size: 0.85rem; margin-bottom: 0;">Prisma is used **only** for schema architecture designs and generating SQL migrations. The application query layer uses `@supabase/supabase-js` to call PostgREST directly. Prisma Client is not imported for runtime transactions.</p>
+          </div>
+          <div class="module-item">
+            <strong style="display:block; margin-bottom:0.4rem; color:#fff;">Realtime/WebSocket Listeners</strong>
+            <p style="font-size: 0.85rem; margin-bottom: 0;">PostgreSQL replication listens to updates on the `notification_logs` table. WebSockets refresh the SWR cache upon `INSERT` events, filtered only to `priority=eq.HIGH` elements. If the connection fails, a 30s polling fallback activates.</p>
+          </div>
+          <div class="module-item">
+            <strong style="display:block; margin-bottom:0.4rem; color:#fff;">Development Port</strong>
+            <p style="font-size: 0.85rem; margin-bottom: 0;">The application runtime port is hardcoded in the `package.json` dev script as `-p 3400`. The server runs at `http://localhost:3400` in development.</p>
+          </div>
+          <div class="module-item">
+            <strong style="display:block; margin-bottom:0.4rem; color:#fff;">Migration Flow</strong>
+            <p style="font-size: 0.85rem; margin-bottom: 0;">Run database alterations via `npx prisma migrate dev` in development. Apply production updates with `npx prisma migrate deploy`. Native database hooks (like replication) require manual SQL scripts.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 11. Setup & Runs -->
+      <section id="setup-run" class="card">
+        <h2 class="card-title">11. Development Setup & Run Commands</h2>
+        <p>Standard setup commands for local execution:</p>
+        
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code># 1. Install dependencies
 npm install
 
-# Setup environment variables
+# 2. Duplicate environment template
 cp .env.example .env.local
-# Edit .env.local with your credentials</code></pre>
 
-    <h3>Required Environment Variables</h3>
-    <pre><code># Supabase
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-DATABASE_URL=your_postgres_connection_string
-
-# Stripe
-STRIPE_SECRET_KEY=sk_test_...     # For server-side
-NEXT_PUBLIC_STRIPE_KEY=pk_test_... # For client-side
-STRIPE_WEBHOOK_SECRET=whsec_...    # For webhook verification
-
-# App
-NEXT_PUBLIC_APP_URL=http://localhost:3400</code></pre>
-
-    <h3>Database Setup</h3>
-    <pre><code># Generate Prisma client
+# 3. Synchronize database schema and generate Prisma mapping
 npx prisma generate
-
-# Push schema to database (development)
 npx prisma db push
 
-# Or create a migration (production)
-npx prisma migrate dev --name description</code></pre>
+# 4. Start local development runtime
+npm run dev</code></pre>
 
-    <h3>Running the App</h3>
-    <pre><code># Development server
-npm run dev
+        <h3 style="margin-top: 2rem; margin-bottom: 1rem; font-size: 1.15rem;">Required Environment Variables</h3>
+        <p>Define these parameters in your `.env.local` file:</p>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code># Supabase API Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR...
+DATABASE_URL=postgresql://postgres:password@db.your-project.supabase.co:5432/postgres
 
-# Production build
-npm run build
+# Stripe Webhook and Secrets
+STRIPE_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_STRIPE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 
-# Start production server
-npm start
+# System parameters
+NEXT_PUBLIC_SITE_URL=http://localhost:3400
+TELEGRAM_BOT_TOKEN=123456789:ABCdefGhIJKlmNoPQRsT</code></pre>
+      </section>
 
-# Lint code
-npm run lint</code></pre>
-    <p><strong>Dev Server</strong>: http://localhost:3400</p>
-
-    <h2 id="5-code-structure">5. Code Structure</h2>
-
-    <h3>Server Actions Organization</h3>
-    <table>
-      <tr>
-        <th>Action File</th>
-        <th>Purpose</th>
-        <th>Role Required</th>
-      </tr>
-      <tr>
-        <td><code>orders.ts</code></td>
-        <td>Core order management</td>
-        <td>CLIENT/ADMIN</td>
-      </tr>
-      <tr>
-        <td><code>profiles.ts</code></td>
-        <td>Browser profile CRUD</td>
-        <td>ADMIN</td>
-      </tr>
-      <tr>
-        <td><code>services.ts</code></td>
-        <td>Service package management</td>
-        <td>ADMIN</td>
-      </tr>
-      <tr>
-        <td><code>clients.ts</code></td>
-        <td>Client user management</td>
-        <td>ADMIN</td>
-      </tr>
-      <tr>
-        <td><code>invoices.ts</code></td>
-        <td>Invoice operations</td>
-        <td>ADMIN/CLIENT</td>
-      </tr>
-      <tr>
-        <td><code>billing.ts</code></td>
-        <td>Billing info management</td>
-        <td>CLIENT</td>
-      </tr>
-      <tr>
-        <td><code>notifications.ts</code></td>
-        <td>Notification preferences</td>
-        <td>ALL</td>
-      </tr>
-      <tr>
-        <td><code>telegram.ts</code></td>
-        <td>Telegram integration</td>
-        <td>SERVER</td>
-      </tr>
-      <tr>
-        <td><code>reviews.ts</code></td>
-        <td>Review order CRUD</td>
-        <td>CLIENT</td>
-      </tr>
-      <tr>
-        <td><code>reviews-multiurl.ts</code></td>
-        <td>Multi-URL order creation</td>
-        <td>CLIENT</td>
-      </tr>
-      <tr>
-        <td><code>employee-dashboard.ts</code></td>
-        <td>Employee stats</td>
-        <td>EMPLOYEE</td>
-      </tr>
-      <tr>
-        <td><code>employee.ts</code></td>
-        <td>Employee order operations</td>
-        <td>EMPLOYEE</td>
-      </tr>
-      <tr>
-        <td><code>admin-reviews.ts</code></td>
-        <td>Admin review management</td>
-        <td>ADMIN</td>
-      </tr>
-      <tr>
-        <td><code>stripe.ts</code></td>
-        <td>Stripe session creation</td>
-        <td>CLIENT</td>
-      </tr>
-      <tr>
-        <td><code>credits.ts</code></td>
-        <td>Credit package management</td>
-        <td>ADMIN</td>
-      </tr>
-    </table>
-
-    <h2 id="6-key-patterns--conventions">6. Key Patterns & Conventions</h2>
-
-    <h3>Server Actions Pattern</h3>
-    <pre><code>"use server";
-
-import { requireAuth } from "@/lib/auth/server-auth";
-import { createClient } from "@/lib/supabase/server";
-
-export async function someAction(params: any) {
-  // 1. Check authentication
-  const auth = await requireAuth({ role: 'ADMIN' });
-  if (!auth.success) return auth;
-
-  // 2. Execute business logic
-  const supabase = await createClient();
-  // ... perform operations
-
-  // 3. Return structured response
-  return { success: true, data: result };
-}</code></pre>
-
-    <p><strong>Response Format</strong>:</p>
-    <pre><code>// Success
-{ success: true, data: any }
-
-// Failure
-{ success: false, error: string }</code></pre>
-
-    <h3>Database Naming Conventions</h3>
-    <ul>
-      <li><strong>Tables</strong>: <code>snake_case</code> (e.g., <code>review_orders</code>, <code>credit_packages</code>)</li>
-      <li><strong>Columns</strong>: <code>snake_case</code> (e.g., <code>user_id</code>, <code>created_at</code>)</li>
-      <li><strong>JavaScript/TypeScript</strong>: <code>camelCase</code> (e.g., <code>userId</code>, <code>createdAt</code>)</li>
-    </ul>
-
-    <h3>Status Values</h3>
-    <p>All status enums use <code>UPPER_SNAKE_CASE</code>:</p>
-    <table>
-      <tr>
-        <th>Context</th>
-        <th>Statuses</th>
-      </tr>
-      <tr>
-        <td>Orders</td>
-        <td><code>PENDING</code>, <code>IN_PROGRESS</code>, <code>COMPLETED</code>, <code>CANCELLED</code></td>
-      </tr>
-      <tr>
-        <td>Users</td>
-        <td><code>PENDING</code>, <code>ACTIVE</code>, <code>DEACTIVATED</code></td>
-      </tr>
-      <tr>
-        <td>Profiles</td>
-        <td><code>AVAILABLE</code>, <code>ASSIGNED</code>, <code>ACTIVE</code>, <code>EXPIRED</code>, <code>BANNED</code></td>
-      </tr>
-    </table>
-
-    <h2 id="7-common-development-tasks">7. Common Development Tasks</h2>
-
-    <h3>Adding a New Server Action</h3>
-    <ol>
-      <li>Create file in <code>/app/actions/{feature}.ts</code></li>
-      <li>Add <code>"use server"</code> directive</li>
-      <li>Import required utilities</li>
-      <li>Implement with proper auth check</li>
-      <li>Return <code>{ success, data? }</code> or <code>{ success, error }</code></li>
-    </ol>
-
-    <h3>Adding a New Page</h3>
-    <ol>
-      <li>Create directory under appropriate role path (<code>/a/</code>, <code>/c/</code>, <code>/e/</code>)</li>
-      <li>Add <code>page.tsx</code> (server component) or <code>{name}-client.tsx</code> (client component)</li>
-      <li>Export metadata for page title</li>
-      <li>Use proper auth checks</li>
-    </ol>
-
-    <h3>Adding Database Fields</h3>
-    <ol>
-      <li>Update <code>prisma/schema.prisma</code></li>
-      <li>Create migration: <code>npx prisma migrate dev --name add_field</code></li>
-      <li>Update related TypeScript interfaces</li>
-      <li>Update SELECT queries to include new field</li>
-      <li>Normalize field name if needed (snake_case → camelCase)</li>
-    </ol>
-
-    <h2 id="8-database--schema">8. Database & Schema</h2>
-
-    <h3>Core Models</h3>
-    <h4>User (with Supabase Auth)</h4>
-    <pre><code>model User {
-  id              String   @id @default(uuid())
-  email           String   @unique
-  name            String?
-  role            String   @default("CLIENT")  // ADMIN, CLIENT, EMPLOYEE
-  status          String   @default("PENDING")  // PENDING, ACTIVE, DEACTIVATED
-  creditsBalance  Int      @default(0) @map("credits_balance")
-  // ... relations and timestamps
-}</code></pre>
-
-    <h4>ProfileAccount (Browser Profiles)</h4>
-    <pre><code>model ProfileAccount {
-  id                String   @id @default(uuid())
-  clientId          String   @map("client_id")
-  client            User     @relation(fields: [clientId], references: [id])
-  profileName       String   @map("profile_name")
-  accountEmail      String   @map("account_email")
-  // ... IXBrowser credentials, expiration, status
-}</code></pre>
-
-    <h4>ReviewOrder (Facebook Reviews)</h4>
-    <pre><code>model ReviewOrder {
-  id                    String   @id @default(uuid())
-  userId                String   @map("user_id")
-  businessName          String   @map("business_name")
-  orderType             String   @map("order_type")  // REVIEW, COMMENT, COMMENT_WITH_PHOTO
-  gender                String?  @map("gender")       // MALE, FEMALE, or null
-  quantity              Int
-  creditsConsumed       Int      @map("credits_consumed")
-  status                String   // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
-  // ... employee assignments, URLs, timestamps
-}</code></pre>
-
-    <h2 id="9-authentication--authorization">9. Authentication & Authorization</h2>
-
-    <h3>Role-Based Access Control</h3>
-    <p><strong>Three Roles</strong>:</p>
-    <ul>
-      <li><strong>ADMIN</strong>: Full access to all features</li>
-      <li><strong>CLIENT</strong>: Can place orders, view assigned profiles, manage billing</li>
-      <li><strong>EMPLOYEE</strong>: Can complete assigned review orders</li>
-    </ul>
-
-    <h3>Auth Checks in Server Actions</h3>
-    <pre><code>// Any authenticated user
-const auth = await requireAuth();
-
-// Specific role required
-const auth = await requireAuth({ role: 'ADMIN' });
-
-// Multiple roles allowed
-const auth = await requireAuth({ role: ['ADMIN', 'EMPLOYEE'] });</code></pre>
-
-    <h2 id="10-known-issues--todos">10. Known Issues & TODOs</h2>
-
-    <div class="status status-pending">
-      <strong>TypeScript Errors (11 remaining - August 2026)</strong>
-      <p>Telegram Components (not fixed due to production risk):</p>
-      <ul>
-        <li><code>components/admin/TelegramBotConfig.tsx</code> - Type definition mismatches</li>
-        <li><code>components/TelegramGroupManager.tsx</code> - Property access issues</li>
-      </ul>
-      <p><em>Fix when: During maintenance window with full Telegram testing</em></p>
-    </div>
-
-    <h3>Pending Implementation</h3>
-    <p><strong>File</strong>: <code>app/api/cron/retry-failed-notifications/route.ts:257</code></p>
-    <pre><code>// TODO: Implement actual retry logic with Telegram API</code></pre>
-
-    <h2 id="11-deployment">11. Deployment</h2>
-
-    <h3>Build Process</h3>
-    <pre><code># 1. Build for production
-npm run build
-
-# 2. Start production server
-npm start
-
-# Or use PM2 (recommended)
-pm2 start npm --name "boostbuddy" -- start</code></pre>
-
-    <h3>Environment Checklist</h3>
-    <p>Before deploying to production:</p>
-    <ul>
-      <li>☐ Set production <code>DATABASE_URL</code></li>
-      <li>☐ Set production Supabase credentials</li>
-      <li>☐ Set production Stripe keys (live mode)</li>
-      <li>☐ Set <code>NEXT_PUBLIC_APP_URL</code> to production domain</li>
-      <li>☐ Run database migrations: <code>npx prisma migrate deploy</code></li>
-      <li>☐ Test Stripe webhook endpoint</li>
-      <li>☐ Verify Telegram bot connection</li>
-      <li>☐ Test all user roles (Admin, Client, Employee)</li>
-    </ul>
-
-    <h2 id="12-troubleshooting">12. Troubleshooting</h2>
-
-    <h3>Common Issues</h3>
-
-    <p><strong>Issue</strong>: "useApp is not defined" error<br>
-    <strong>Solution</strong>: This was fixed by changing <code>useApp()</code> to <code>useAuth()</code> in:
-    <ul>
-      <li><code>/app/e/orders/[id]/page.tsx</code></li>
-      <li><code>/app/c/services/reviews/orders/[id]/page.tsx</code></li>
-    </ul>
-
-    <p><strong>Issue</strong>: TypeScript compilation errors<br>
-    <strong>Solution</strong>: Run <code>npx tsc --noEmit</code> to see all errors. Check:
-    <ul>
-      <li>Missing imports</li>
-      <li>Type mismatches</li>
-      <li>Property access errors</li>
-    </ul>
-
-    <p><strong>Issue</strong>: Database connection fails<br>
-    <strong>Solution</strong>: Verify:
-    <ul>
-      <li><code>DATABASE_URL</code> is correct</li>
-      <li>Supabase project is active</li>
-      <li>Network allows connection</li>
-    </ul>
-
-    <h3>Getting Help</h3>
-    <ul>
-      <li>Check existing issues: <code>./prisma/migrations/</code></li>
-      <li>Review Server Actions: <code>./app/actions/*.ts</code></li>
-      <li>Check Auth patterns: <code>./lib/auth/</code></li>
-      <li>Review similar working code for patterns</li>
-    </ul>
-
-    <hr style="margin-top: 40px; border: none; border-top: 1px solid #ddd;">
-
-    <h3>Additional Resources</h3>
-    <p><strong>Key Files to Understand</strong></p>
-    <ul>
-      <li><strong>Auth Flow</strong>: <code>context/AuthContext.tsx</code>, <code>lib/auth/server-auth.ts</code></li>
-      <li><strong>Server Actions Pattern</strong>: Any file in <code>/app/actions/</code></li>
-      <li><strong>Database Schema</strong>: <code>prisma/schema.prisma</code></li>
-      <li><strong>UI Patterns</strong>: <code>components/orders/OrdersList.tsx</code></li>
-    </ul>
-
-    <h3>Version History</h3>
-    <table>
-      <tr>
-        <th>Version</th>
-        <th>Date</th>
-        <th>Changes</th>
-      </tr>
-      <tr>
-        <td>1.0.0</td>
-        <td>Aug 25, 2026</td>
-        <td>Initial developer guide</td>
-      </tr>
-      <tr>
-        <td>0.9.5</td>
-        <td>Aug 25, 2026</td>
-        <td>Added Gender field to Review Orders</td>
-      </tr>
-      <tr>
-        <td>0.9.0</td>
-        <td>Aug 2026</td>
-        <td>Fixed useApp/useAuth bug, reduced TS errors</td>
-      </tr>
-    </table>
-
-    <p style="margin-top: 30px; color: #666; font-size: 0.9em;">
-      <strong>End of Developer Guide</strong><br>
-      For questions or clarifications, refer to the code comments or existing working patterns in the codebase.
-    </p>
+    </main>
   </div>
+
+  <!-- JavaScript for interactive components -->
+  <script>
+    // Copy Code Button Helper
+    function copyCode(btn) {
+      const pre = btn.parentElement;
+      const code = pre.querySelector('code');
+      navigator.clipboard.writeText(code.textContent.trim()).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+        }, 2000);
+      });
+    }
+
+    // Toggle Mobile Sidebar Drawer
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    menuToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      menuToggle.textContent = sidebar.classList.contains('open') ? '✕' : '☰';
+    });
+
+    // Close menu when clicking links on mobile
+    const links = document.querySelectorAll('.nav-link');
+    links.forEach(link => {
+      link.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        menuToggle.textContent = '☰';
+        
+        // Highlight active link
+        links.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+      });
+    });
+
+    // Switch Active Workflow Timeline
+    function switchWorkflow(btn, flowId) {
+      // Hide all contents
+      const contents = document.querySelectorAll('#critical-workflows .tab-content');
+      contents.forEach(content => content.classList.remove('active'));
+      
+      // Update buttons active class
+      const buttons = document.querySelectorAll('#critical-workflows .tab-btn');
+      buttons.forEach(b => b.classList.remove('active'));
+
+      // Show selected content
+      document.getElementById(flowId).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    // Filter Permissions Matrix Table Rows
+    function filterMatrix(btn, role) {
+      // Update buttons active class
+      const buttons = document.querySelectorAll('#permissions-matrix .tab-btn');
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const rows = document.querySelectorAll('#matrixTable tbody tr');
+      rows.forEach(row => {
+        const roles = row.getAttribute('data-roles');
+        if (role === 'all' || roles.includes(role)) {
+          row.style.display = 'table-row';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    // Scroll active link highlight detection
+    window.addEventListener('scroll', () => {
+      const sections = document.querySelectorAll('section');
+      const navLinks = document.querySelectorAll('.nav-link');
+      
+      let currentSectionId = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 150;
+        if (pageYOffset >= sectionTop) {
+          currentSectionId = section.getAttribute('id');
+        }
+      });
+
+      if (currentSectionId) {
+        navLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.getAttribute('href') === '#' + currentSectionId) {
+            link.classList.add('active');
+          }
+        });
+      }
+    });
+  </script>
 </body>
 </html>
