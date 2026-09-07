@@ -2,6 +2,7 @@
 
 import { requireAuth } from '@/lib/auth/server-auth';
 import { createClient } from '@/lib/supabase/server';
+import { EMPLOYEE_CREDITS_PER_ORDER } from '@/lib/constants';
 
 /**
  * Type exports for client components
@@ -12,6 +13,7 @@ export interface UrlTask {
   reviewIndex: number;
   url: string;
   quantity: number;
+  credits: number;
   reviewContent: string | null;
   status: string;
   orderType: string;
@@ -60,8 +62,11 @@ export async function getEmployeeDashboardDataAction(): Promise<{ success: true;
 
     console.log("👤 [DASHBOARD-BATCH] Fetching data for employee:", employeeId);
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     // OPTIMIZED QUERIES for URL tasks
-    const [statsResult, availableResult, assignmentsResult, employeeStatsResult] = await Promise.all([
+    const [statsResult, availableResult, assignmentsResult, employeeStatsResult, todayOrdersResult] = await Promise.all([
       // Employee stats - include accepting_tasks for task distribution control
       supabase
         .from("employee_stats")
@@ -128,6 +133,14 @@ export async function getEmployeeDashboardDataAction(): Promise<{ success: true;
         .select("credits_completed, orders_completed")
         .eq("user_id", employeeId)
         .maybeSingle(),
+
+      // Today completed orders count
+      supabase
+        .from("review_orders")
+        .select("id")
+        .eq("completed_by_employee_id", employeeId)
+        .eq("status", "COMPLETED")
+        .gte("completed_at", today.toISOString()),
     ]);
 
     const elapsed = Date.now() - startTime;
@@ -155,6 +168,7 @@ export async function getEmployeeDashboardDataAction(): Promise<{ success: true;
       reviewIndex: ru.review_index,
       url: ru.url,
       quantity: ru.quantity,
+      credits: EMPLOYEE_CREDITS_PER_ORDER,
       reviewContent: ru.review_content,
       status: ru.status,
       photos: ru.photos,
@@ -167,15 +181,18 @@ export async function getEmployeeDashboardDataAction(): Promise<{ success: true;
       reviewInstructions: ru.review_orders?.review_instructions
     });
 
+    const totalOrders = employeeStatsResult.data?.orders_completed || 0;
+    const todayOrders = todayOrdersResult.data?.length || 0;
+
     const plainData: DashboardData = {
       stats: camelStats,
       availableTasks: (availableResult.data || []).map(toUrlTask),
       currentAssignments: (assignmentsResult.data || []).map(toUrlTask),
       employeeStats: {
-        totalCreditsCompleted: employeeStatsResult.data?.credits_completed || 0,
-        totalOrdersCompleted: employeeStatsResult.data?.orders_completed || 0,
-        todayCreditsCompleted: 0, // Could be calculated if needed
-        todayOrdersCompleted: 0 // Could be calculated if needed
+        totalCreditsCompleted: totalOrders * EMPLOYEE_CREDITS_PER_ORDER,
+        totalOrdersCompleted: totalOrders,
+        todayCreditsCompleted: todayOrders * EMPLOYEE_CREDITS_PER_ORDER,
+        todayOrdersCompleted: todayOrders
       }
     };
 

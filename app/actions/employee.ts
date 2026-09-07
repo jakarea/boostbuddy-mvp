@@ -6,9 +6,10 @@ import { requireAuth } from "@/lib/auth/server-auth";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { getSiteUrl } from "@/lib/site-url";
+import { EMPLOYEE_CREDITS_PER_ORDER } from "@/lib/constants";
 
 // ============================================
-// TYPES
+// TYPES & CONSTANTS
 // ============================================
 
 export type EmployeeStats = {
@@ -296,7 +297,7 @@ export async function getAvailableOrdersAction() {
         reviewType: order.review_type,
         reviewContent: order.review_content,
         reviewInstructions: order.review_instructions,
-        creditsConsumed: order.credits_consumed,
+        creditsConsumed: EMPLOYEE_CREDITS_PER_ORDER,
         createdAt: order.created_at,
         adminVerificationStatus: order.admin_verification_status || null,
         skippedByCurrentUser: !!skipInfo,
@@ -340,7 +341,7 @@ export async function getCurrentAssignmentsAction() {
       reviewType: order.review_type,
       reviewContent: order.review_content,
       reviewInstructions: order.review_instructions,
-      creditsConsumed: order.credits_consumed,
+      creditsConsumed: EMPLOYEE_CREDITS_PER_ORDER,
       status: order.status,
       assignedAt: order.assigned_at,
       createdAt: order.created_at
@@ -836,7 +837,7 @@ export async function getEmployeeOrderHistoryAction(limit: number = 50) {
       reviewContent: order.review_content,
       reviewInstructions: order.review_instructions,
       quantity: order.quantity,
-      creditsConsumed: order.credits_consumed,
+      creditsConsumed: EMPLOYEE_CREDITS_PER_ORDER,
       status: order.status,
       assignedEmployeeId: order.assigned_employee_id,
       assignedAt: order.assigned_at,
@@ -893,7 +894,7 @@ export async function getEmployeeReviewOrdersAction() {
       reviewContent: order.review_content,
       reviewInstructions: order.review_instructions,
       quantity: order.quantity,
-      creditsConsumed: order.credits_consumed,
+      creditsConsumed: EMPLOYEE_CREDITS_PER_ORDER,
       status: order.status,
       createdAt: order.created_at,
       updatedAt: order.updated_at,
@@ -1082,7 +1083,7 @@ export async function completeReviewOrderAction(orderId: string) {
       .from("employee_stats")
       .update({
         orders_completed: (currentStats?.orders_completed || 0) + 1,
-        credits_completed: (currentStats?.credits_completed || 0) + (order.credits_consumed || 0),
+        credits_completed: (currentStats?.credits_completed || 0) + EMPLOYEE_CREDITS_PER_ORDER,
         last_active_at: now
       })
       .eq("user_id", auth.user.id);
@@ -1265,7 +1266,7 @@ export async function getReviewOrderByIdAction(orderId: string) {
       reviewContent: data.review_content,
       reviewInstructions: data.review_instructions,
       quantity: data.quantity,
-      creditsConsumed: data.credits_consumed,
+      creditsConsumed: auth.user.role === 'EMPLOYEE' ? EMPLOYEE_CREDITS_PER_ORDER : data.credits_consumed,
       gender: data.gender,  // Gender field (MALE/FEMALE)
       status: data.status,
       assignedEmployeeId: data.assigned_employee_id,
@@ -1344,7 +1345,7 @@ export async function getEmployeeCompletedReviewsAction() {
       reviewType: order.review_type,
       reviewContent: order.review_content,
       reviewInstructions: order.review_instructions,
-      creditsConsumed: order.credits_consumed,
+      creditsConsumed: EMPLOYEE_CREDITS_PER_ORDER,
       status: order.status,
       assignedAt: order.assigned_at,
       completedAt: order.completed_at,
@@ -1533,17 +1534,18 @@ export async function getMyEmployeeStatsAction() {
       .eq("status", "COMPLETED")
       .gte("completed_at", today.toISOString());
 
-    if (todayError) throw todayError;
-
-    const todayCredits = todayOrders?.reduce((sum, order) => sum + (order.credits_consumed || 0), 0) || 0;
+    const todayOrdersCount = todayOrders?.length || 0;
+    const todayCredits = todayOrdersCount * EMPLOYEE_CREDITS_PER_ORDER;
+    const totalOrders = stats?.orders_completed || 0;
+    const totalCredits = totalOrders * EMPLOYEE_CREDITS_PER_ORDER;
 
     return {
       success: true,
       data: {
-        totalCreditsCompleted: stats?.credits_completed || 0,
-        totalOrdersCompleted: stats?.orders_completed || 0,
+        totalCreditsCompleted: totalCredits,
+        totalOrdersCompleted: totalOrders,
         todayCreditsCompleted: todayCredits,
-        todayOrdersCompleted: todayOrders?.length || 0,
+        todayOrdersCompleted: todayOrdersCount,
         lastActiveAt: stats?.last_active_at
       }
     };
@@ -1595,16 +1597,19 @@ export async function getAllEmployeesStatsAction() {
           .eq("status", "COMPLETED")
           .gte("completed_at", today.toISOString());
 
-        const todayCredits = todayOrders?.reduce((sum, order) => sum + (order.credits_consumed || 0), 0) || 0;
+        const todayOrdersCount = todayOrders?.length || 0;
+        const todayCredits = todayOrdersCount * EMPLOYEE_CREDITS_PER_ORDER;
+        const totalOrders = stats?.orders_completed || 0;
+        const totalCredits = totalOrders * EMPLOYEE_CREDITS_PER_ORDER;
 
         return {
           id: employee.id,
           name: employee.name,
           email: employee.email,
-          totalCreditsCompleted: stats?.credits_completed || 0,
-          totalOrdersCompleted: stats?.orders_completed || 0,
+          totalCreditsCompleted: totalCredits,
+          totalOrdersCompleted: totalOrders,
           todayCreditsCompleted: todayCredits,
-          todayOrdersCompleted: todayOrders?.length || 0,
+          todayOrdersCompleted: todayOrdersCount,
           lastActiveAt: stats?.last_active_at,
           isAvailable: stats?.is_available ?? false
         };

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth/server-auth";
+import { EMPLOYEE_CREDITS_PER_ORDER } from "@/lib/constants";
 
 /**
  * Get employee leaderboard stats filtered by date range (Admin only)
@@ -42,7 +43,7 @@ export async function getEmployeeLeaderboardAction(range: {
           .lte("completed_at", range.endDate);
 
         const ordersCompleted = orders?.length || 0;
-        const creditsCompleted = orders?.reduce((sum, order) => sum + (order.credits_consumed || 0), 0) || 0;
+        const creditsCompleted = ordersCompleted * EMPLOYEE_CREDITS_PER_ORDER;
 
         return {
           id: employee.id,
@@ -102,7 +103,7 @@ export async function getMyEmployeeStatsByRangeAction(range: {
     }
 
     const ordersCompleted = orders?.length || 0;
-    const creditsCompleted = orders?.reduce((sum, order) => sum + (order.credits_consumed || 0), 0) || 0;
+    const creditsCompleted = ordersCompleted * EMPLOYEE_CREDITS_PER_ORDER;
 
     // Calculate today's stats
     const today = new Date();
@@ -116,7 +117,7 @@ export async function getMyEmployeeStatsByRangeAction(range: {
     }) || [];
 
     const todayOrdersCompleted = todayOrders.length;
-    const todayCreditsCompleted = todayOrders.reduce((sum, order) => sum + (order.credits_consumed || 0), 0);
+    const todayCreditsCompleted = todayOrdersCompleted * EMPLOYEE_CREDITS_PER_ORDER;
 
     return {
       success: true,
@@ -172,7 +173,7 @@ export async function getAllEmployeesStatsByRangeAction(range: {
           .lte("completed_at", range.endDate);
 
         const ordersCompleted = orders?.length || 0;
-        const creditsCompleted = orders?.reduce((sum, order) => sum + (order.credits_consumed || 0), 0) || 0;
+        const creditsCompleted = ordersCompleted * EMPLOYEE_CREDITS_PER_ORDER;
 
         return {
           id: employee.id,

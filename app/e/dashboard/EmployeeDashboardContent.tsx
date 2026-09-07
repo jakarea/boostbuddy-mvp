@@ -117,9 +117,14 @@ export function EmployeeDashboardContent({
       <div className="flex justify-between items-start">
         <div className="flex-1 min-w-0">
           <h4 className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{task.businessName}</h4>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            {getOrderTypeLabel(task.orderType)} • URL {task.reviewIndex + 1}
-          </p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-sm text-zinc-500 dark:text-zinc-400">
+              {getOrderTypeLabel(task.orderType)} • URL {task.reviewIndex + 1}
+            </span>
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+              {task.credits ?? 2} {t("credits", "Credits")}
+            </span>
+          </div>
           <p className="text-xs text-zinc-400 dark:text-zinc-500">
             {t("orders.created", "Created")}: {formatDateTime(task.createdAt)}
           </p>

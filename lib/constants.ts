@@ -330,3 +330,11 @@ export const DELAYS = {
   /** Dropdown open (100ms) */
   dropdownOpen: 100,
 } as const;
+
+// ============================================
+// EMPLOYEE REWARDS / CREDITS
+// ============================================
+
+/** Fixed credits earned by an employee per completed order/task */
+export const EMPLOYEE_CREDITS_PER_ORDER = 2;
+

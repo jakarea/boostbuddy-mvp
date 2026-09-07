@@ -214,12 +214,17 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
                     </div>
 
                     <div>
+                      <span className="text-zinc-500">{t("employee.credits", "Credits")}:</span>
+                      <span className="ml-1 font-medium text-emerald-600">{order.creditsConsumed ?? 2}</span>
+                    </div>
+
+                    <div>
                       <span className="text-zinc-500">{t("employee.created", "Created")}:</span>
                       <span className="ml-1">{formatDateShort(order.createdAt)}</span>
                     </div>
 
                     {order.completedAt && (
-                      <div className="col-span-2">
+                      <div>
                         <span className="text-zinc-500">{t("employee.completed", "Completed")}:</span>
                         <span className="ml-1 text-green-600">{formatDateShort(order.completedAt)}</span>
                       </div>

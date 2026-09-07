@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import OrdersList from "@/components/orders/OrdersList";
 import { getEmployeeOrderHistoryAction, getEmployeeReviewOrdersAction } from "@/app/actions/employee";
+import { EMPLOYEE_CREDITS_PER_ORDER } from "@/lib/constants";
 
 export const metadata = {
   title: "Order History - Employee Portal",
@@ -37,7 +38,7 @@ export default async function EmployeeOrderHistoryPage() {
   );
 
   const totalCount = assignedOrders.length + availableOrders.length;
-  const totalRevenue = allOrders.reduce((sum, o) => sum + (o.creditsConsumed || 0), 0);
+  const totalRevenue = allOrders.reduce((sum, o) => sum + (o.creditsConsumed || EMPLOYEE_CREDITS_PER_ORDER), 0);
 
   return (
     <Suspense fallback={<LoadingScreen />}>
