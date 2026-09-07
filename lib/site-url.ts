@@ -37,16 +37,17 @@ export async function getSiteUrl(): Promise<string> {
     // 1. Origin header (sent by browsers on POST / server actions)
     const origin = headersList.get("origin");
     if (origin && !isApexMarketingSite(origin)) {
-      return origin.replace(/\/$/, "");
+      return origin.replace(/\/$/, "").replace(/^https?:\/\/www\.app\./, "https://app.");
     }
 
     // 2. Host / X-Forwarded-Host header
     const host = headersList.get("x-forwarded-host") || headersList.get("host");
     if (host && !isApexMarketingSite(host)) {
+      const normalizedHost = host.replace(/^www\.app\./, "app.");
       const proto =
         headersList.get("x-forwarded-proto") ||
         (host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https");
-      return `${proto}://${host}`.replace(/\/$/, "");
+      return `${proto}://${normalizedHost}`.replace(/\/$/, "");
     }
   } catch {
     // headers() may throw outside request scope

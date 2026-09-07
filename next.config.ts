@@ -91,6 +91,17 @@ const nextConfig: NextConfig = {
         destination: 'https://app.boostbuddy.it/:path*',
         permanent: true,
       },
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'www.app.boostbuddy.it',
+          },
+        ],
+        destination: 'https://app.boostbuddy.it/:path*',
+        permanent: true,
+      },
     ];
   },
 };
