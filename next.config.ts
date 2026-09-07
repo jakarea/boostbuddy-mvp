@@ -65,6 +65,34 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  // Redirect any incoming traffic on marketing domains directly to app.boostbuddy.it
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'boostbuddy.it',
+          },
+        ],
+        destination: 'https://app.boostbuddy.it/:path*',
+        permanent: true,
+      },
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'www.boostbuddy.it',
+          },
+        ],
+        destination: 'https://app.boostbuddy.it/:path*',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
