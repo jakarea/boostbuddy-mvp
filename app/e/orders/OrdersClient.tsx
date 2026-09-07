@@ -22,6 +22,7 @@ interface Order {
   businessName: string;
   reviewType: string;
   status: string;
+  quantity?: number;
   creditsConsumed: number;
   createdAt: string;
   completedAt?: string;
@@ -215,7 +216,7 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
 
                     <div>
                       <span className="text-zinc-500">{t("employee.credits", "Credits")}:</span>
-                      <span className="ml-1 font-medium text-emerald-600">{order.creditsConsumed ?? 2}</span>
+                      <span className="ml-1 font-medium text-emerald-600">{order.creditsConsumed ?? ((order.quantity || 1) * 2)}</span>
                     </div>
 
                     <div>

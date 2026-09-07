@@ -438,7 +438,7 @@ export default function EmployeeOrderDetailPage({ params }: { params: Promise<{ 
               <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">
                 {t("orders.table_credits", "Credits")}
               </p>
-              <p className="text-sm font-bold text-[#168BB0]">{order.creditsConsumed ?? 2}</p>
+              <p className="text-sm font-bold text-[#168BB0]">{order.creditsConsumed ?? (((order as any).quantity || 1) * 2)}</p>
             </div>
             <div className="flex-1 min-w-[120px]">
               <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">

@@ -339,7 +339,7 @@ export default function OrdersList({
                 </div>
                 <div>
                   <p className="text-xs text-zinc-500">{t("orders.creditsEarned", "Credits Earned")}</p>
-                  <p className="text-2xl font-bold">{filteredOrders.reduce((sum, o) => sum + (o.creditsConsumed || 2), 0)} <span className="text-sm font-normal text-zinc-500">{t("common.credits_label", "credits")}</span></p>
+                  <p className="text-2xl font-bold">{filteredOrders.reduce((sum, o) => sum + (o.creditsConsumed ?? (((o as any).quantity || 1) * 2)), 0)} <span className="text-sm font-normal text-zinc-500">{t("common.credits_label", "credits")}</span></p>
                 </div>
               </div>
             </Card>

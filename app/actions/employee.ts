@@ -268,7 +268,7 @@ export async function getAvailableOrdersAction() {
     // OPTIMIZED: Select only needed fields, reduced limit for performance
     const { data: orders, error } = await supabase
       .from("review_orders")
-      .select("id, business_name, review_type, review_content, review_instructions, credits_consumed, created_at, admin_verification_status")
+      .select("id, business_name, review_type, review_content, review_instructions, quantity, credits_consumed, created_at, admin_verification_status")
       .eq("status", "PENDING")
       .order("created_at", { ascending: true })
       .limit(10);  // Reduced from 20 to 10 for better performance
@@ -291,13 +291,15 @@ export async function getAvailableOrdersAction() {
     // Normalize field names to camelCase for frontend
     const normalizedData = orders?.map(order => {
       const skipInfo = skipMap.get(order.id);
+      const qty = order.quantity || 1;
       return {
         id: order.id,
         businessName: order.business_name,
         reviewType: order.review_type,
         reviewContent: order.review_content,
         reviewInstructions: order.review_instructions,
-        creditsConsumed: EMPLOYEE_CREDITS_PER_ORDER,
+        quantity: qty,
+        creditsConsumed: qty * EMPLOYEE_CREDITS_PER_ORDER,
         createdAt: order.created_at,
         adminVerificationStatus: order.admin_verification_status || null,
         skippedByCurrentUser: !!skipInfo,
@@ -327,7 +329,7 @@ export async function getCurrentAssignmentsAction() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("review_orders")
-      .select("id, business_name, review_type, review_content, review_instructions, credits_consumed, status, assigned_at, created_at")
+      .select("id, business_name, review_type, review_content, review_instructions, quantity, credits_consumed, status, assigned_at, created_at")
       .eq("assigned_employee_id", auth.user.id)
       .eq("status", "IN_PROGRESS")
       .order("assigned_at", { ascending: true });
@@ -335,17 +337,21 @@ export async function getCurrentAssignmentsAction() {
     if (error) throw error;
 
     // Normalize field names to camelCase for frontend
-    const normalizedData = data?.map(order => ({
-      id: order.id,
-      businessName: order.business_name,
-      reviewType: order.review_type,
-      reviewContent: order.review_content,
-      reviewInstructions: order.review_instructions,
-      creditsConsumed: EMPLOYEE_CREDITS_PER_ORDER,
-      status: order.status,
-      assignedAt: order.assigned_at,
-      createdAt: order.created_at
-    })) || [];
+    const normalizedData = data?.map(order => {
+      const qty = order.quantity || 1;
+      return {
+        id: order.id,
+        businessName: order.business_name,
+        reviewType: order.review_type,
+        reviewContent: order.review_content,
+        reviewInstructions: order.review_instructions,
+        quantity: qty,
+        creditsConsumed: qty * EMPLOYEE_CREDITS_PER_ORDER,
+        status: order.status,
+        assignedAt: order.assigned_at,
+        createdAt: order.created_at
+      };
+    }) || [];
 
     return { success: true, data: normalizedData };
   } catch (error: any) {
@@ -837,7 +843,7 @@ export async function getEmployeeOrderHistoryAction(limit: number = 50) {
       reviewContent: order.review_content,
       reviewInstructions: order.review_instructions,
       quantity: order.quantity,
-      creditsConsumed: EMPLOYEE_CREDITS_PER_ORDER,
+      creditsConsumed: (order.quantity || 1) * EMPLOYEE_CREDITS_PER_ORDER,
       status: order.status,
       assignedEmployeeId: order.assigned_employee_id,
       assignedAt: order.assigned_at,
@@ -894,7 +900,7 @@ export async function getEmployeeReviewOrdersAction() {
       reviewContent: order.review_content,
       reviewInstructions: order.review_instructions,
       quantity: order.quantity,
-      creditsConsumed: EMPLOYEE_CREDITS_PER_ORDER,
+      creditsConsumed: (order.quantity || 1) * EMPLOYEE_CREDITS_PER_ORDER,
       status: order.status,
       createdAt: order.created_at,
       updatedAt: order.updated_at,
@@ -1014,7 +1020,7 @@ export async function completeReviewOrderAction(orderId: string) {
     // Get order details including client, business name, and credits
     const { data: order, error: fetchError } = await supabaseAdmin
       .from("review_orders")
-      .select("id, status, credits_consumed, completed_by_employee_id, user_id, business_name, order_type")
+      .select("id, status, quantity, credits_consumed, completed_by_employee_id, user_id, business_name, order_type")
       .eq("id", orderId)
       .single();
 
@@ -1079,11 +1085,13 @@ export async function completeReviewOrderAction(orderId: string) {
       .eq("user_id", auth.user.id)
       .single();
 
+    const earnedCredits = (order.quantity || 1) * EMPLOYEE_CREDITS_PER_ORDER;
+
     const { error: statsError } = await supabaseAdmin
       .from("employee_stats")
       .update({
         orders_completed: (currentStats?.orders_completed || 0) + 1,
-        credits_completed: (currentStats?.credits_completed || 0) + EMPLOYEE_CREDITS_PER_ORDER,
+        credits_completed: (currentStats?.credits_completed || 0) + earnedCredits,
         last_active_at: now
       })
       .eq("user_id", auth.user.id);
@@ -1266,7 +1274,7 @@ export async function getReviewOrderByIdAction(orderId: string) {
       reviewContent: data.review_content,
       reviewInstructions: data.review_instructions,
       quantity: data.quantity,
-      creditsConsumed: auth.user.role === 'EMPLOYEE' ? EMPLOYEE_CREDITS_PER_ORDER : data.credits_consumed,
+      creditsConsumed: auth.user.role === 'EMPLOYEE' ? ((data.quantity || 1) * EMPLOYEE_CREDITS_PER_ORDER) : data.credits_consumed,
       gender: data.gender,  // Gender field (MALE/FEMALE)
       status: data.status,
       assignedEmployeeId: data.assigned_employee_id,
@@ -1330,7 +1338,7 @@ export async function getEmployeeCompletedReviewsAction() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("review_orders")
-      .select("id, business_name, facebook_url, review_type, review_content, review_instructions, credits_consumed, status, assigned_at, completed_at, proof_of_completion, admin_verification_status, admin_verified_at, created_at")
+      .select("id, business_name, facebook_url, review_type, review_content, review_instructions, quantity, credits_consumed, status, assigned_at, completed_at, proof_of_completion, admin_verification_status, admin_verified_at, created_at")
       .eq("assigned_employee_id", auth.user.id)
       .eq("status", "COMPLETED")
       .order("completed_at", { ascending: false });
@@ -1338,22 +1346,26 @@ export async function getEmployeeCompletedReviewsAction() {
     if (error) throw error;
 
     // Normalize field names to camelCase for frontend
-    const normalizedData = data?.map(order => ({
-      id: order.id,
-      businessName: order.business_name,
-      businessUrl: order.facebook_url || null,
-      reviewType: order.review_type,
-      reviewContent: order.review_content,
-      reviewInstructions: order.review_instructions,
-      creditsConsumed: EMPLOYEE_CREDITS_PER_ORDER,
-      status: order.status,
-      assignedAt: order.assigned_at,
-      completedAt: order.completed_at,
-      proofOfCompletion: order.proof_of_completion,
-      adminVerificationStatus: order.admin_verification_status,
-      adminVerifiedAt: order.admin_verified_at,
-      createdAt: order.created_at
-    })) || [];
+    const normalizedData = data?.map(order => {
+      const qty = order.quantity || 1;
+      return {
+        id: order.id,
+        businessName: order.business_name,
+        businessUrl: order.facebook_url || null,
+        reviewType: order.review_type,
+        reviewContent: order.review_content,
+        reviewInstructions: order.review_instructions,
+        quantity: qty,
+        creditsConsumed: qty * EMPLOYEE_CREDITS_PER_ORDER,
+        status: order.status,
+        assignedAt: order.assigned_at,
+        completedAt: order.completed_at,
+        proofOfCompletion: order.proof_of_completion,
+        adminVerificationStatus: order.admin_verification_status,
+        adminVerifiedAt: order.admin_verified_at,
+        createdAt: order.created_at
+      };
+    }) || [];
 
     return { success: true, data: normalizedData };
   } catch (error: any) {
@@ -1523,21 +1535,37 @@ export async function getMyEmployeeStatsAction() {
 
     if (statsError) throw statsError;
 
+    // Get all completed orders for this employee
+    const { data: allCompletedOrders } = await supabase
+      .from("review_orders")
+      .select("quantity")
+      .eq("completed_by_employee_id", auth.user.id)
+      .eq("status", "COMPLETED");
+
+    const totalOrders = allCompletedOrders?.length ?? (stats?.orders_completed || 0);
+    const totalCredits = (allCompletedOrders || []).reduce(
+      (sum, o) => sum + ((o.quantity || 1) * EMPLOYEE_CREDITS_PER_ORDER),
+      0
+    );
+
     // Get today's completed orders
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const { data: todayOrders, error: todayError } = await supabase
       .from("review_orders")
-      .select("credits_consumed")
+      .select("quantity")
       .eq("completed_by_employee_id", auth.user.id)
       .eq("status", "COMPLETED")
       .gte("completed_at", today.toISOString());
 
+    if (todayError) throw todayError;
+
     const todayOrdersCount = todayOrders?.length || 0;
-    const todayCredits = todayOrdersCount * EMPLOYEE_CREDITS_PER_ORDER;
-    const totalOrders = stats?.orders_completed || 0;
-    const totalCredits = totalOrders * EMPLOYEE_CREDITS_PER_ORDER;
+    const todayCredits = (todayOrders || []).reduce(
+      (sum, o) => sum + ((o.quantity || 1) * EMPLOYEE_CREDITS_PER_ORDER),
+      0
+    );
 
     return {
       success: true,
@@ -1586,21 +1614,35 @@ export async function getAllEmployeesStatsAction() {
           .eq("user_id", employee.id)
           .maybeSingle();
 
+        // Get all completed orders
+        const { data: allOrders } = await supabase
+          .from("review_orders")
+          .select("quantity")
+          .eq("completed_by_employee_id", employee.id)
+          .eq("status", "COMPLETED");
+
+        const totalOrders = allOrders?.length ?? (stats?.orders_completed || 0);
+        const totalCredits = (allOrders || []).reduce(
+          (sum, o) => sum + ((o.quantity || 1) * EMPLOYEE_CREDITS_PER_ORDER),
+          0
+        );
+
         // Get today's completed orders
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         const { data: todayOrders } = await supabase
           .from("review_orders")
-          .select("credits_consumed")
+          .select("quantity")
           .eq("completed_by_employee_id", employee.id)
           .eq("status", "COMPLETED")
           .gte("completed_at", today.toISOString());
 
         const todayOrdersCount = todayOrders?.length || 0;
-        const todayCredits = todayOrdersCount * EMPLOYEE_CREDITS_PER_ORDER;
-        const totalOrders = stats?.orders_completed || 0;
-        const totalCredits = totalOrders * EMPLOYEE_CREDITS_PER_ORDER;
+        const todayCredits = (todayOrders || []).reduce(
+          (sum, o) => sum + ((o.quantity || 1) * EMPLOYEE_CREDITS_PER_ORDER),
+          0
+        );
 
         return {
           id: employee.id,

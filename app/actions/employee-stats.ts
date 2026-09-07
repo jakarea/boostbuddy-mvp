@@ -21,6 +21,7 @@ export async function getEmployeeLeaderboardAction(range: {
     }
 
     const supabase = await createClient();
+    const adminClient = await createAdminClient();
 
     // Get all employees
     const { data: employees, error: employeesError } = await supabase
@@ -34,16 +35,19 @@ export async function getEmployeeLeaderboardAction(range: {
     const employeesWithStats = await Promise.all(
       (employees || []).map(async (employee) => {
         // Get completed orders within date range
-        const { data: orders } = await (await createAdminClient())
+        const { data: orders } = await adminClient
           .from("review_orders")
-          .select("credits_consumed, completed_at")
+          .select("quantity")
           .eq("completed_by_employee_id", employee.id)
           .eq("status", "COMPLETED")
           .gte("completed_at", range.startDate)
           .lte("completed_at", range.endDate);
 
         const ordersCompleted = orders?.length || 0;
-        const creditsCompleted = ordersCompleted * EMPLOYEE_CREDITS_PER_ORDER;
+        const creditsCompleted = (orders || []).reduce(
+          (sum, o) => sum + ((o.quantity || 1) * EMPLOYEE_CREDITS_PER_ORDER),
+          0
+        );
 
         return {
           id: employee.id,
@@ -91,7 +95,7 @@ export async function getMyEmployeeStatsByRangeAction(range: {
     // Get completed orders within date range for current employee
     const { data: orders, error } = await adminClient
       .from("review_orders")
-      .select("credits_consumed, completed_at")
+      .select("quantity, completed_at")
       .eq("completed_by_employee_id", auth.user.id)
       .eq("status", "COMPLETED")
       .gte("completed_at", range.startDate)
@@ -103,7 +107,10 @@ export async function getMyEmployeeStatsByRangeAction(range: {
     }
 
     const ordersCompleted = orders?.length || 0;
-    const creditsCompleted = ordersCompleted * EMPLOYEE_CREDITS_PER_ORDER;
+    const creditsCompleted = (orders || []).reduce(
+      (sum, o) => sum + ((o.quantity || 1) * EMPLOYEE_CREDITS_PER_ORDER),
+      0
+    );
 
     // Calculate today's stats
     const today = new Date();
@@ -117,7 +124,10 @@ export async function getMyEmployeeStatsByRangeAction(range: {
     }) || [];
 
     const todayOrdersCompleted = todayOrders.length;
-    const todayCreditsCompleted = todayOrdersCompleted * EMPLOYEE_CREDITS_PER_ORDER;
+    const todayCreditsCompleted = todayOrders.reduce(
+      (sum, o) => sum + ((o.quantity || 1) * EMPLOYEE_CREDITS_PER_ORDER),
+      0
+    );
 
     return {
       success: true,
@@ -151,6 +161,7 @@ export async function getAllEmployeesStatsByRangeAction(range: {
     }
 
     const supabase = await createClient();
+    const adminClient = await createAdminClient();
 
     // Get all employees
     const { data: employees, error: employeesError } = await supabase
@@ -164,16 +175,19 @@ export async function getAllEmployeesStatsByRangeAction(range: {
     const employeesWithStats = await Promise.all(
       (employees || []).map(async (employee) => {
         // Get completed orders within date range
-        const { data: orders } = await (await createAdminClient())
+        const { data: orders } = await adminClient
           .from("review_orders")
-          .select("credits_consumed, completed_at")
+          .select("quantity, completed_at")
           .eq("completed_by_employee_id", employee.id)
           .eq("status", "COMPLETED")
           .gte("completed_at", range.startDate)
           .lte("completed_at", range.endDate);
 
         const ordersCompleted = orders?.length || 0;
-        const creditsCompleted = ordersCompleted * EMPLOYEE_CREDITS_PER_ORDER;
+        const creditsCompleted = (orders || []).reduce(
+          (sum, o) => sum + ((o.quantity || 1) * EMPLOYEE_CREDITS_PER_ORDER),
+          0
+        );
 
         return {
           id: employee.id,

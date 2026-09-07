@@ -122,7 +122,7 @@ export function EmployeeDashboardContent({
               {getOrderTypeLabel(task.orderType)} • URL {task.reviewIndex + 1}
             </span>
             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
-              {task.credits ?? 2} {t("credits", "Credits")}
+              {task.credits ?? ((task.quantity || 1) * 2)} {t("credits", "Credits")}
             </span>
           </div>
           <p className="text-xs text-zinc-400 dark:text-zinc-500">

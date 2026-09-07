@@ -65,8 +65,7 @@ export async function getEmployeeDashboardDataAction(): Promise<{ success: true;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // OPTIMIZED QUERIES for URL tasks
-    const [statsResult, availableResult, assignmentsResult, employeeStatsResult, todayOrdersResult] = await Promise.all([
+    const [statsResult, availableResult, assignmentsResult, allCompletedResult, todayOrdersResult] = await Promise.all([
       // Employee stats - include accepting_tasks for task distribution control
       supabase
         .from("employee_stats")
@@ -127,17 +126,17 @@ export async function getEmployeeDashboardDataAction(): Promise<{ success: true;
         .order("assigned_at", { ascending: false })
         .limit(20),
 
-      // Employee stats for dashboard
-      supabase
-        .from("employee_stats")
-        .select("credits_completed, orders_completed")
-        .eq("user_id", employeeId)
-        .maybeSingle(),
-
-      // Today completed orders count
+      // All completed orders for this employee
       supabase
         .from("review_orders")
-        .select("id")
+        .select("quantity")
+        .eq("completed_by_employee_id", employeeId)
+        .eq("status", "COMPLETED"),
+
+      // Today completed orders
+      supabase
+        .from("review_orders")
+        .select("quantity")
         .eq("completed_by_employee_id", employeeId)
         .eq("status", "COMPLETED")
         .gte("completed_at", today.toISOString()),
@@ -162,36 +161,51 @@ export async function getEmployeeDashboardDataAction(): Promise<{ success: true;
     };
 
     // Helper to convert ReviewUrl + ReviewOrder to flat task object
-    const toUrlTask = (ru: any): UrlTask => ({
-      id: ru.id,
-      reviewOrderId: ru.review_order_id,
-      reviewIndex: ru.review_index,
-      url: ru.url,
-      quantity: ru.quantity,
-      credits: EMPLOYEE_CREDITS_PER_ORDER,
-      reviewContent: ru.review_content,
-      status: ru.status,
-      photos: ru.photos,
-      reactionType: ru.reaction_type,
-      createdAt: ru.created_at,
-      assignedAt: ru.assigned_at,
-      // Flatten review_orders data
-      orderType: ru.review_orders?.order_type || "REVIEW",
-      businessName: ru.review_orders?.business_name || "Unknown Business",
-      reviewInstructions: ru.review_orders?.review_instructions
-    });
+    const toUrlTask = (ru: any): UrlTask => {
+      const qty = ru.quantity || 1;
+      return {
+        id: ru.id,
+        reviewOrderId: ru.review_order_id,
+        reviewIndex: ru.review_index,
+        url: ru.url,
+        quantity: qty,
+        credits: qty * EMPLOYEE_CREDITS_PER_ORDER,
+        reviewContent: ru.review_content,
+        status: ru.status,
+        photos: ru.photos,
+        reactionType: ru.reaction_type,
+        createdAt: ru.created_at,
+        assignedAt: ru.assigned_at,
+        // Flatten review_orders data
+        orderType: ru.review_orders?.order_type || "REVIEW",
+        businessName: ru.review_orders?.business_name || "Unknown Business",
+        reviewInstructions: ru.review_orders?.review_instructions
+      };
+    };
 
-    const totalOrders = employeeStatsResult.data?.orders_completed || 0;
-    const todayOrders = todayOrdersResult.data?.length || 0;
+    const allCompleted = allCompletedResult.data || [];
+    const todayCompleted = todayOrdersResult.data || [];
+
+    const totalOrders = allCompleted.length || (statsResult.data?.orders_completed || 0);
+    const totalCredits = allCompleted.reduce(
+      (sum, o) => sum + ((o.quantity || 1) * EMPLOYEE_CREDITS_PER_ORDER),
+      0
+    );
+
+    const todayOrders = todayCompleted.length;
+    const todayCredits = todayCompleted.reduce(
+      (sum, o) => sum + ((o.quantity || 1) * EMPLOYEE_CREDITS_PER_ORDER),
+      0
+    );
 
     const plainData: DashboardData = {
       stats: camelStats,
       availableTasks: (availableResult.data || []).map(toUrlTask),
       currentAssignments: (assignmentsResult.data || []).map(toUrlTask),
       employeeStats: {
-        totalCreditsCompleted: totalOrders * EMPLOYEE_CREDITS_PER_ORDER,
+        totalCreditsCompleted: totalCredits,
         totalOrdersCompleted: totalOrders,
-        todayCreditsCompleted: todayOrders * EMPLOYEE_CREDITS_PER_ORDER,
+        todayCreditsCompleted: todayCredits,
         todayOrdersCompleted: todayOrders
       }
     };
