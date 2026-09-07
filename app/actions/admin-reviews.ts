@@ -1146,6 +1146,7 @@ export async function getReviewOrderByIdAction(orderId: string) {
             : null),
       reviewUrls: reviewUrlsData,
       quantity: order.quantity,
+      gender: order.gender || null,
       createdAt: order.created_at,
       updatedAt: order.updated_at
     };

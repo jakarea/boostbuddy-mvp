@@ -39,6 +39,7 @@ interface ReviewOrder {
   quantity: number;
   creditsConsumed: number;
   reactionType?: string;
+  gender?: string | null;
   status: string;
   assignedEmployeeId?: string;
   assignedAt?: string;
@@ -296,6 +297,16 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 {t("orders.credits", "Credits")}
               </p>
               <p className="text-sm font-bold text-[#168BB0]">{order.creditsConsumed}</p>
+            </div>
+            <div className="flex-1 min-w-[110px]">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">
+                {t("gender.label", "Gender")}
+              </p>
+              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                {order.gender === "MALE" ? `👨 ${t("gender.male", "Male")}` :
+                 order.gender === "FEMALE" ? `👩 ${t("gender.female", "Female")}` :
+                 `⚧ ${t("gender.any", "Any")}`}
+              </p>
             </div>
             <div className="flex-1 min-w-[120px]">
               <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">

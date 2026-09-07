@@ -53,6 +53,7 @@ interface ReviewOrder {
   reviewInstructions?: string;
   quantity: number;
   creditsConsumed: number;
+  gender?: string | null;
   status: string;
   assignedEmployeeId?: string;
   assignedAt?: string;
@@ -539,12 +540,27 @@ export default function OrdersClient({ initialOrders, initialTotalCount }: Order
 
                   {/* Type */}
                   <div className="col-span-2">
-                    <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                      {order.orderType === "COMMENT" ? t("orders.type_reactions", "Reactions") :
-                       order.orderType === "REVIEW" ? t("orders.type_reviews", "Reviews") :
-                       order.orderType === "COMMENT_WITH_PHOTO" ? t("orders.type_photo_reviews", "Photo + Reviews") :
-                       order.orderType?.replace(/_/g, ' ')}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                        {order.orderType === "COMMENT" ? t("orders.type_reactions", "Reactions") :
+                         order.orderType === "REVIEW" ? t("orders.type_reviews", "Reviews") :
+                         order.orderType === "COMMENT_WITH_PHOTO" ? t("orders.type_photo_reviews", "Photo + Reviews") :
+                         order.orderType?.replace(/_/g, ' ')}
+                      </span>
+                      {order.gender === "MALE" ? (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                          👨 Male
+                        </span>
+                      ) : order.gender === "FEMALE" ? (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300">
+                          👩 Female
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                          ⚧ Any
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Quantity */}

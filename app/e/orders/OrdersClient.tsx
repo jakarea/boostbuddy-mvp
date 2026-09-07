@@ -24,6 +24,7 @@ interface Order {
   status: string;
   quantity?: number;
   creditsConsumed: number;
+  gender?: string | null;
   createdAt: string;
   completedAt?: string;
   proofOfCompletion?: string;
@@ -212,6 +213,15 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
                     <div>
                       <span className="text-zinc-500">{t("employee.platform", "Platform")}:</span>
                       <span className="ml-1">{order.reviewType}</span>
+                    </div>
+
+                    <div>
+                      <span className="text-zinc-500">{t("gender.label", "Gender")}:</span>
+                      <span className="ml-1 font-medium">
+                        {order.gender === "MALE" ? `👨 ${t("gender.male", "Male")}` :
+                         order.gender === "FEMALE" ? `👩 ${t("gender.female", "Female")}` :
+                         `⚧ ${t("gender.any", "Any")}`}
+                      </span>
                     </div>
 
                     <div>

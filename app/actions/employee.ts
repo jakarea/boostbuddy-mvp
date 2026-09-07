@@ -268,7 +268,7 @@ export async function getAvailableOrdersAction() {
     // OPTIMIZED: Select only needed fields, reduced limit for performance
     const { data: orders, error } = await supabase
       .from("review_orders")
-      .select("id, business_name, review_type, review_content, review_instructions, quantity, credits_consumed, created_at, admin_verification_status")
+      .select("id, business_name, review_type, review_content, review_instructions, quantity, gender, credits_consumed, created_at, admin_verification_status")
       .eq("status", "PENDING")
       .order("created_at", { ascending: true })
       .limit(10);  // Reduced from 20 to 10 for better performance
@@ -299,6 +299,7 @@ export async function getAvailableOrdersAction() {
         reviewContent: order.review_content,
         reviewInstructions: order.review_instructions,
         quantity: qty,
+        gender: order.gender || null,
         creditsConsumed: qty * EMPLOYEE_CREDITS_PER_ORDER,
         createdAt: order.created_at,
         adminVerificationStatus: order.admin_verification_status || null,
@@ -329,7 +330,7 @@ export async function getCurrentAssignmentsAction() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("review_orders")
-      .select("id, business_name, review_type, review_content, review_instructions, quantity, credits_consumed, status, assigned_at, created_at")
+      .select("id, business_name, review_type, review_content, review_instructions, quantity, gender, credits_consumed, status, assigned_at, created_at")
       .eq("assigned_employee_id", auth.user.id)
       .eq("status", "IN_PROGRESS")
       .order("assigned_at", { ascending: true });
@@ -346,6 +347,7 @@ export async function getCurrentAssignmentsAction() {
         reviewContent: order.review_content,
         reviewInstructions: order.review_instructions,
         quantity: qty,
+        gender: order.gender || null,
         creditsConsumed: qty * EMPLOYEE_CREDITS_PER_ORDER,
         status: order.status,
         assignedAt: order.assigned_at,
@@ -812,6 +814,7 @@ export async function getEmployeeOrderHistoryAction(limit: number = 50) {
         review_content,
         review_instructions,
         quantity,
+        gender,
         credits_consumed,
         status,
         assigned_employee_id,
@@ -843,6 +846,7 @@ export async function getEmployeeOrderHistoryAction(limit: number = 50) {
       reviewContent: order.review_content,
       reviewInstructions: order.review_instructions,
       quantity: order.quantity,
+      gender: order.gender || null,
       creditsConsumed: (order.quantity || 1) * EMPLOYEE_CREDITS_PER_ORDER,
       status: order.status,
       assignedEmployeeId: order.assigned_employee_id,
@@ -882,7 +886,7 @@ export async function getEmployeeReviewOrdersAction() {
     // Fetch PENDING orders (available to all employees)
     const { data: pendingOrders, error: pendingError } = await supabase
       .from("review_orders")
-      .select("id, user_id, business_name, facebook_url, order_type, review_type, review_content, review_instructions, quantity, credits_consumed, status, created_at, updated_at, users:user_id(name, email)")
+      .select("id, user_id, business_name, facebook_url, order_type, review_type, review_content, review_instructions, quantity, gender, credits_consumed, status, created_at, updated_at, users:user_id(name, email)")
       .eq("status", "PENDING")
       .is("assigned_employee_id", null)
       .order("created_at", { ascending: false });
@@ -900,6 +904,7 @@ export async function getEmployeeReviewOrdersAction() {
       reviewContent: order.review_content,
       reviewInstructions: order.review_instructions,
       quantity: order.quantity,
+      gender: order.gender || null,
       creditsConsumed: (order.quantity || 1) * EMPLOYEE_CREDITS_PER_ORDER,
       status: order.status,
       createdAt: order.created_at,
@@ -1338,7 +1343,7 @@ export async function getEmployeeCompletedReviewsAction() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("review_orders")
-      .select("id, business_name, facebook_url, review_type, review_content, review_instructions, quantity, credits_consumed, status, assigned_at, completed_at, proof_of_completion, admin_verification_status, admin_verified_at, created_at")
+      .select("id, business_name, facebook_url, review_type, review_content, review_instructions, quantity, gender, credits_consumed, status, assigned_at, completed_at, proof_of_completion, admin_verification_status, admin_verified_at, created_at")
       .eq("assigned_employee_id", auth.user.id)
       .eq("status", "COMPLETED")
       .order("completed_at", { ascending: false });
@@ -1356,6 +1361,7 @@ export async function getEmployeeCompletedReviewsAction() {
         reviewContent: order.review_content,
         reviewInstructions: order.review_instructions,
         quantity: qty,
+        gender: order.gender || null,
         creditsConsumed: qty * EMPLOYEE_CREDITS_PER_ORDER,
         status: order.status,
         assignedAt: order.assigned_at,

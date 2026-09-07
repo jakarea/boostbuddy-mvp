@@ -546,7 +546,7 @@ export default function OrdersList({
                     <span className="text-sm text-zinc-600 dark:text-zinc-400">
                       {order.gender === 'MALE' ? t('gender.male', 'Male') :
                        order.gender === 'FEMALE' ? t('gender.female', 'Female') :
-                       '—'}
+                       t('gender.any', 'Any')}
                     </span>
                   </div>
 
@@ -619,7 +619,7 @@ export default function OrdersList({
                       <span className="text-zinc-700 dark:text-zinc-300 font-medium">
                         {order.gender === 'MALE' ? t('gender.male', 'Male') :
                          order.gender === 'FEMALE' ? t('gender.female', 'Female') :
-                         t('gender.not_specified', 'Not specified')}
+                         t('gender.any', 'Any')}
                       </span>
                     </div>
 

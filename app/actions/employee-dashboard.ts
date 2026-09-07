@@ -19,6 +19,7 @@ export interface UrlTask {
   orderType: string;
   businessName: string;
   reviewInstructions: string | null;
+  gender: string | null;
   photos: string[] | null;
   reactionType: string | null;
   createdAt: string;
@@ -92,6 +93,7 @@ export async function getEmployeeDashboardDataAction(): Promise<{ success: true;
             order_type,
             business_name,
             review_instructions,
+            gender,
             user_id
           )
         `)
@@ -118,7 +120,8 @@ export async function getEmployeeDashboardDataAction(): Promise<{ success: true;
             id,
             order_type,
             business_name,
-            review_instructions
+            review_instructions,
+            gender
           )
         `)
         .eq("assigned_employee_id", employeeId)
@@ -179,7 +182,8 @@ export async function getEmployeeDashboardDataAction(): Promise<{ success: true;
         // Flatten review_orders data
         orderType: ru.review_orders?.order_type || "REVIEW",
         businessName: ru.review_orders?.business_name || "Unknown Business",
-        reviewInstructions: ru.review_orders?.review_instructions
+        reviewInstructions: ru.review_orders?.review_instructions,
+        gender: ru.review_orders?.gender || null
       };
     };
 

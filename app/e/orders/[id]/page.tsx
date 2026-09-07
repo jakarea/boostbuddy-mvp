@@ -38,6 +38,7 @@ interface ReviewOrder {
   quantity: number;
   creditsConsumed: number;
   reactionType?: string;
+  gender?: string | null;
   status: string;
   assignedEmployeeId?: string;
   assignedAt?: string;
@@ -439,6 +440,26 @@ export default function EmployeeOrderDetailPage({ params }: { params: Promise<{ 
                 {t("orders.table_credits", "Credits")}
               </p>
               <p className="text-sm font-bold text-[#168BB0]">{order.creditsConsumed ?? (((order as any).quantity || 1) * 2)}</p>
+            </div>
+            <div className="flex-1 min-w-[110px]">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">
+                {t("gender.label", "Gender")}
+              </p>
+              <div>
+                {order.gender === "MALE" ? (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800 font-medium">
+                    👨 {t("gender.male", "Male")}
+                  </Badge>
+                ) : order.gender === "FEMALE" ? (
+                  <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800 font-medium">
+                    👩 {t("gender.female", "Female")}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 font-medium">
+                    ⚧ {t("gender.any", "Any")}
+                  </Badge>
+                )}
+              </div>
             </div>
             <div className="flex-1 min-w-[120px]">
               <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">

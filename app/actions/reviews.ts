@@ -62,6 +62,7 @@ export type ReviewOrderData = {
   comments?: string[]; // Multiple comments for COMMENT types (1-50)
   photoUrls?: string[]; // For COMMENT_WITH_PHOTO (legacy)
   photoReviews?: Array<{ text: string; photos: string[] }>; // Multiple (text + photos) pairs for COMMENT_WITH_PHOTO
+  gender?: "MALE" | "FEMALE" | "ANY" | string | null;
 };
 
 export type ReviewOrderFilter = {
@@ -458,6 +459,7 @@ export async function createReviewOrderAction(orderData: ReviewOrderData) {
       photo_urls: finalPhotoUrls, // JSON array of photo arrays (for Photo + Reviews)
       credits_consumed: requiredCredits,
       number_of_reviews: orderData.quantity,
+      gender: orderData.gender || null,
       status: "PENDING"
     };
 
@@ -575,7 +577,7 @@ export async function getClientReviewOrdersAction(filters?: ReviewOrderFilter) {
     const supabase = await createClient();
     let query = supabase
       .from("review_orders")
-      .select("id, user_id, status, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at")
+      .select("id, user_id, status, facebook_url, business_name, order_type, review_type, review_content, review_instructions, proof_of_completion, credits_consumed, assigned_employee_id, assigned_at, completed_at, admin_verification_status, admin_verified_at, client_feedback, content, comment_text, comment_count, completed_comments, photo_urls, created_at, updated_at, gender")
       .eq("user_id", auth.user.id)
       .order("created_at", { ascending: false });
 

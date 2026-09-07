@@ -1058,6 +1058,13 @@
     "search_placeholder": "Cerca per nome o descrizione..."
   },
   "common": {
+    "gender": {
+      "label": "Genere",
+      "male": "Maschio",
+      "female": "Femmina",
+      "any": "Qualsiasi",
+      "not_specified": "Non specificato"
+    },
     "is_loading": "in caricamento...",
     "cancel": "Annulla",
     "submitting": "Invio in corso...",
@@ -1616,6 +1623,13 @@
     "skipped": "Saltati",
     "currentAssignments": "Assegnazioni Correnti",
     "availableOrders": "Ordini Disponibili",
+    "gender": {
+      "label": "Genere",
+      "male": "Maschio",
+      "female": "Femmina",
+      "any": "Qualsiasi",
+      "not_specified": "Non specificato"
+    },
     "inProgress": "In Corso",
     "assigned": "Assegnato",
     "reviewContent": "Contenuto Recensione",

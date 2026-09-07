@@ -1058,6 +1058,13 @@
     "search_placeholder": "Search by name or description..."
   },
   "common": {
+    "gender": {
+      "label": "Gender",
+      "male": "Male",
+      "female": "Female",
+      "any": "Any",
+      "not_specified": "Not specified"
+    },
     "is_loading": "is loading...",
     "cancel": "Cancel",
     "submitting": "Submitting...",
@@ -1488,6 +1495,13 @@
     "skipped": "Skipped",
     "currentAssignments": "Current Assignments",
     "availableOrders": "Available Orders",
+    "gender": {
+      "label": "Gender",
+      "male": "Male",
+      "female": "Female",
+      "any": "Any",
+      "not_specified": "Not specified"
+    },
     "inProgress": "In Progress",
     "assigned": "Assigned",
     "reviewContent": "Review Content",

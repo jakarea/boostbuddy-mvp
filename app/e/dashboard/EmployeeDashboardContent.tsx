@@ -124,6 +124,19 @@ export function EmployeeDashboardContent({
             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
               {task.credits ?? ((task.quantity || 1) * 2)} {t("credits", "Credits")}
             </span>
+            {task.gender === "MALE" ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                👨 {t("gender.male", "Male")}
+              </span>
+            ) : task.gender === "FEMALE" ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
+                👩 {t("gender.female", "Female")}
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                ⚧ {t("gender.any", "Any")}
+              </span>
+            )}
           </div>
           <p className="text-xs text-zinc-400 dark:text-zinc-500">
             {t("orders.created", "Created")}: {formatDateTime(task.createdAt)}
