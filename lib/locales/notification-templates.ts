@@ -12,22 +12,24 @@ export interface NotificationTemplates {
   [key: string]: NotificationTemplate;
 }
 
+import { getDefaultAppUrl } from "@/lib/site-url";
+
 // English notification templates
 export const enTemplates: NotificationTemplates = {
   // Account Management
   ACCOUNT_READY: {
     subject: "🎉 Your BoostBuddy Account is Ready!",
-    body: (params) => `Hello ${params.name},\n\nYour ${params.role.toLowerCase()} account has been created and is ready to use!\n\nYou can log in immediately at: https://boostbuddy.it${params.dashboardUrl}\n\nYour credentials:\n📧 Email: ${params.email}\n🔑 Password: [The password you set]\n\nWelcome to BoostBuddy!`
+    body: (params) => `Hello ${params.name},\n\nYour ${params.role.toLowerCase()} account has been created and is ready to use!\n\nYou can log in immediately at: ${getDefaultAppUrl()}${params.dashboardUrl}\n\nYour credentials:\n📧 Email: ${params.email}\n🔑 Password: [The password you set]\n\nWelcome to BoostBuddy!`
   },
 
   ACCOUNT_APPROVED: {
     subject: "🎉 Account Approved!",
-    body: (params) => `Hello ${params.name || "Client"},\n\nYour BoostBuddy account registration has been approved by the administrator!\n\nYou can now log into your account at https://boostbuddy.it`
+    body: (params) => `Hello ${params.name || "Client"},\n\nYour BoostBuddy account registration has been approved by the administrator!\n\nYou can now log into your account at ${getDefaultAppUrl()}`
   },
 
   ACCOUNT_APPROVED_VERIFIED: {
     subject: "🎉 Account Approved & Email Verified!",
-    body: (params) => `Hello ${params.name || "Client"},\n\nYour BoostBuddy account registration has been approved by the administrator and your email is verified!\n\nYou can now log into your account at https://boostbuddy.it`
+    body: (params) => `Hello ${params.name || "Client"},\n\nYour BoostBuddy account registration has been approved by the administrator and your email is verified!\n\nYou can now log into your account at ${getDefaultAppUrl()}`
   },
 
   NEW_USER_REGISTRATION: {
@@ -145,17 +147,17 @@ export const itTemplates: NotificationTemplates = {
   // Account Management
   ACCOUNT_READY: {
     subject: "🎉 Il tuo account BoostBuddy è pronto!",
-    body: (params) => `Ciao ${params.name},\n\nIl tuo account ${params.role.toLowerCase()} è stato creato ed è pronto per l'uso!\n\nPuoi accedere immediatamente all'indirizzo: https://boostbuddy.it${params.dashboardUrl}\n\nLe tue credenziali:\n📧 Email: ${params.email}\n🔑 Password: [La password impostata]\n\nBenvenuto su BoostBuddy!`
+    body: (params) => `Ciao ${params.name},\n\nIl tuo account ${params.role.toLowerCase()} è stato creato ed è pronto per l'uso!\n\nPuoi accedere immediatamente all'indirizzo: ${getDefaultAppUrl()}${params.dashboardUrl}\n\nLe tue credenziali:\n📧 Email: ${params.email}\n🔑 Password: [La password impostata]\n\nBenvenuto su BoostBuddy!`
   },
 
   ACCOUNT_APPROVED: {
     subject: "🎉 Account Approvato!",
-    body: (params) => `Ciao ${params.name || "Cliente"},\n\nLa tua registrazione su BoostBuddy è stata approvata dall'amministratore!\n\nOra puoi accedere al tuo account all'indirizzo https://boostbuddy.it`
+    body: (params) => `Ciao ${params.name || "Cliente"},\n\nLa tua registrazione su BoostBuddy è stata approvata dall'amministratore!\n\nOra puoi accedere al tuo account all'indirizzo ${getDefaultAppUrl()}`
   },
 
   ACCOUNT_APPROVED_VERIFIED: {
     subject: "🎉 Account Approvato e Email Verificata!",
-    body: (params) => `Ciao ${params.name || "Cliente"},\n\nLa tua registrazione su BoostBuddy è stata approvata dall'amministratore e la tua email è stata verificata!\n\nOra puoi accedere al tuo account all'indirizzo https://boostbuddy.it`
+    body: (params) => `Ciao ${params.name || "Cliente"},\n\nLa tua registrazione su BoostBuddy è stata approvata dall'amministratore e la tua email è stata verificata!\n\nOra puoi accedere al tuo account all'indirizzo ${getDefaultAppUrl()}`
   },
 
   NEW_USER_REGISTRATION: {

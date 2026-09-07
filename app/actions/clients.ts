@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from '@/lib/auth/server-auth';
 import { validateUserCreationInput } from "@/lib/utils/userUtils";
 import { revalidatePath } from "next/cache";
+import { getSiteUrl } from "@/lib/site-url";
 
 export type InviteUserState = {
   success: boolean;
@@ -154,11 +155,12 @@ export async function createClientAction(data: CreateClientData) {
       // Send notification to the new user that their account is ready
       try {
         const { sendNotificationAction } = await import("./notifications");
+        const siteUrl = await getSiteUrl();
         const dashboardUrl = role === "EMPLOYEE" ? "/e/dashboard" : "/c/dashboard";
         await sendNotificationAction(
           data.email,
           "🎉 Your BoostBuddy Account is Ready!",
-          `Hello ${data.name},\n\nYour ${role.toLowerCase()} account has been created and is ready to use!\n\nYou can log in immediately at: https://boostbuddy.it${dashboardUrl}\n\nYour credentials:\n📧 Email: ${data.email}\n🔑 Password: [The password you set]\n\nWelcome to BoostBuddy!`,
+          `Hello ${data.name},\n\nYour ${role.toLowerCase()} account has been created and is ready to use!\n\nYou can log in immediately at: ${siteUrl}${dashboardUrl}\n\nYour credentials:\n📧 Email: ${data.email}\n🔑 Password: [The password you set]\n\nWelcome to BoostBuddy!`,
           "TELEGRAM",
           "SYSTEM",
           "HIGH"
@@ -426,10 +428,11 @@ export async function updateClientStatusAction(userId: string, status: string) {
     if (status === "ACTIVE" && clientUser?.email) {
       try {
         const { sendNotificationAction } = await import("@/app/actions/notifications");
+        const siteUrl = await getSiteUrl();
         await sendNotificationAction(
           clientUser.email,
           "🎉 Account Approved!",
-          `Hello ${clientUser.name || "Client"},\n\nYour BoostBuddy account registration has been approved by the administrator!\n\nYou can now log into your account at https://boostbuddy.it`,
+          `Hello ${clientUser.name || "Client"},\n\nYour BoostBuddy account registration has been approved by the administrator!\n\nYou can now log into your account at ${siteUrl}`,
           "TELEGRAM",
           "SYSTEM",
           "HIGH"
@@ -491,10 +494,11 @@ export async function approveClientAndVerifyEmailAction(userId: string) {
     if (clientUser?.email) {
       try {
         const { sendNotificationAction } = await import("@/app/actions/notifications");
+        const siteUrl = await getSiteUrl();
         await sendNotificationAction(
           clientUser.email,
           "🎉 Account Approved & Email Verified!",
-          `Hello ${clientUser.name || "Client"},\n\nYour BoostBuddy account registration has been approved by the administrator and your email is verified!\n\nYou can now log into your account at https://boostbuddy.it`,
+          `Hello ${clientUser.name || "Client"},\n\nYour BoostBuddy account registration has been approved by the administrator and your email is verified!\n\nYou can now log into your account at ${siteUrl}`,
           "TELEGRAM",
           "SYSTEM",
           "HIGH"

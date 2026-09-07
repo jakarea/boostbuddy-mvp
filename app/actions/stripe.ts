@@ -5,6 +5,7 @@ import { requireAuth } from '@/lib/auth/server-auth';
 import { stripe } from "@/lib/stripe/stripe";
 import { checkRateLimit, RateLimitPresets, getClientIp } from "@/lib/rate-limit";
 import { headers } from "next/headers";
+import { getSiteUrl } from "@/lib/site-url";
 
 // Helper function to calculate proration credit and dynamic upgrade prices on the server
 async function calculateUpgradePriceInternal(
@@ -146,7 +147,7 @@ export async function createCheckoutSessionAction(
       checkoutItemName = service.name || itemName;
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3400";
+    const siteUrl = await getSiteUrl();
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],

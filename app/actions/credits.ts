@@ -9,6 +9,7 @@ import { stripe } from "@/lib/stripe/stripe";
 import { randomUUID } from "crypto";
 import { checkRateLimit, RateLimitPresets, getClientIp } from "@/lib/rate-limit";
 import { headers } from "next/headers";
+import { getSiteUrl } from "@/lib/site-url";
 
 // ============================================
 // TYPES
@@ -289,7 +290,7 @@ export async function purchaseCreditsAction(packageId: string) {
       price: typeof package_.price === 'string' ? parseFloat(package_.price) : package_.price
     };
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3400";
+    const siteUrl = await getSiteUrl();
 
     console.log("Creating Stripe session for package:", normalizedPackage.name, "price:", normalizedPackage.price);
 

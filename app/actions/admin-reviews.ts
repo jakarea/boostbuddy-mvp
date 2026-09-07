@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth/server-auth";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
+import { getSiteUrl } from "@/lib/site-url";
 
 // ============================================
 // TYPES
@@ -795,7 +796,7 @@ export async function inviteEmployeeAction(
     }
 
     // 2. Invite user via Supabase Auth Admin API
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3400";
+    const siteUrl = await getSiteUrl();
     const redirectTo = `${siteUrl}/dashboard`;
 
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {

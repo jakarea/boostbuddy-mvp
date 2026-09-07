@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth/server-auth";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
+import { getSiteUrl } from "@/lib/site-url";
 
 // ============================================
 // TYPES
@@ -201,10 +202,11 @@ export async function createEmployeeAction(data: CreateEmployeeData) {
       // Send notification to the new employee
       try {
         const { sendNotificationAction } = await import("./notifications");
+        const siteUrl = await getSiteUrl();
         await sendNotificationAction(
           data.email,
           "🎉 Your BoostBuddy Employee Account is Ready!",
-          `Hello ${data.name},\n\nYour employee account has been created and is ready to use!\n\nYou can log in immediately at: https://boostbuddy.it/e/dashboard\n\nYour credentials:\n📧 Email: ${data.email}\n🔑 Password: [The password you set]\n\nWelcome to the team!`,
+          `Hello ${data.name},\n\nYour employee account has been created and is ready to use!\n\nYou can log in immediately at: ${siteUrl}/e/dashboard\n\nYour credentials:\n📧 Email: ${data.email}\n🔑 Password: [The password you set]\n\nWelcome to the team!`,
           "TELEGRAM",
           "SYSTEM"
         );
