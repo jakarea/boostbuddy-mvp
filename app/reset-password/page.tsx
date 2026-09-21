@@ -29,12 +29,17 @@ export default function ResetPasswordPage() {
       if (state.success) {
         setSuccessMsg(t("success_redirect"));
         setErrorMsg("");
+        // Redirect to login after a short delay so the user sees the success message
+        const timer = setTimeout(() => {
+          router.push("/?reset=success");
+        }, 2000);
+        return () => clearTimeout(timer);
       } else {
         setErrorMsg(state.error || t("failed_reset"));
         setSuccessMsg("");
       }
     }
-  }, [state, t]);
+  }, [state, t, router]);
 
   return (
     <div className="flex-grow grid lg:grid-cols-2 min-h-0 bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50">

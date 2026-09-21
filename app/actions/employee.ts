@@ -1675,3 +1675,77 @@ export async function getAllEmployeesStatsAction() {
     return { success: false, error: error.message };
   }
 }
+
+// ============================================
+// ADMIN SET PASSWORD ACTION
+// ============================================
+
+/**
+ * Directly set a user's password from the admin panel.
+ * Uses Supabase Admin REST API (service role) — no email sent.
+ * SECURITY: Admin-only. Runs server-side only. Service key never exposed to client.
+ */
+export async function adminSetPasswordAction(
+  userId: string,
+  newPassword: string
+): Promise<{ success: boolean; error?: string }> {
+  const LOG = "[ADMIN-SET-PASSWORD]";
+
+  try {
+    // ── 1. Auth guard ──────────────────────────────────────────────
+    const auth = await requireAuth();
+    if (!auth.success) {
+      console.warn(`${LOG} Auth failed`);
+      return { success: false, error: "Unauthorized" };
+    }
+    if (auth.user.role !== "ADMIN") {
+      console.warn(`${LOG} Non-admin attempted password set`, auth.user.id);
+      return { success: false, error: "Forbidden — Admin only" };
+    }
+
+    // ── 2. Input validation ────────────────────────────────────────
+    if (!userId?.trim()) {
+      return { success: false, error: "User ID is required." };
+    }
+    if (!newPassword || newPassword.length < 8) {
+      return { success: false, error: "Password must be at least 8 characters." };
+    }
+    if (newPassword.length > 128) {
+      return { success: false, error: "Password must not exceed 128 characters." };
+    }
+
+    // ── 3. Call Supabase Admin REST API ───────────────────────────
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+    if (!serviceRoleKey) {
+      console.error(`${LOG} SUPABASE_SERVICE_ROLE_KEY not set`);
+      return { success: false, error: "Server configuration error." };
+    }
+
+    console.log(`${LOG} Setting password for user: ${userId} (by admin: ${auth.user.id})`);
+
+    const response = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({ password: newPassword }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      const msg = errData?.message || errData?.error_description || `HTTP ${response.status}`;
+      console.error(`${LOG} API error:`, msg);
+      return { success: false, error: msg };
+    }
+
+    console.log(`${LOG} ✅ Password set successfully for user: ${userId}`);
+    return { success: true };
+  } catch (err: any) {
+    console.error(`${LOG} Unexpected error:`, err?.message || err);
+    return { success: false, error: err?.message || "Unexpected error occurred." };
+  }
+}

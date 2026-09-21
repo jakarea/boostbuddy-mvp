@@ -184,14 +184,16 @@ export function TelegramGroupManager() {
   const handleVerifyAll = async () => {
     setVerifying(true);
     const result = await verifyAllGroupsAction();
-    if (result.success && result.data) {
+    if (result.success && result.results) {
+      const total = result.results.length;
+      const active = result.results.filter((r) => r.accessible).length;
       showFeedback(
         t("telegram_groups.verified_summary", {
-          active: result.data.active,
-          total: result.data.total,
-          defaultValue: `Verified ${result.data.active}/${result.data.total} groups active`,
+          active,
+          total,
+          defaultValue: `Verified ${active}/${total} groups active`,
         }),
-        result.data.active > 0
+        active > 0
       );
       loadGroups();
     } else {

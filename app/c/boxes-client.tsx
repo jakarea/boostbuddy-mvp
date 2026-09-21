@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import {
   Key, Copy, RefreshCw, AlertTriangle, ExternalLink,
-  ShieldCheck, Mail, Server, MessageCircle, AlertCircle
+  ShieldCheck, Mail, Server, MessageCircle, AlertCircle, Eye, EyeOff
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/context/ToastContext";
@@ -133,6 +133,11 @@ export default function BoxesClient({ initialBoxes }: { initialBoxes: BoxAccount
   const [selectedServiceId, setSelectedServiceId] = useState<string>("");
   const [prorationDetails, setProrationDetails] = useState<{ credit: number; finalPrice: number; targetPrice: number } | null>(null);
   const [calculatingProration, setCalculatingProration] = useState(false);
+
+  // Per-card password visibility — keyed by profile id
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+  const togglePassword = (id: string) =>
+    setShowPasswords((prev) => ({ ...prev, [id]: !prev[id] }));
 
   // Fetch active services list
   useEffect(() => {
@@ -376,6 +381,33 @@ export default function BoxesClient({ initialBoxes }: { initialBoxes: BoxAccount
                         <Copy className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                       </Button>
                     </div>
+
+                    {/* Account Password */}
+                    {p.account_password && (
+                      <div className="flex items-center justify-between text-xs bg-zinc-50 dark:bg-zinc-950 p-2 sm:p-2.5 rounded-md border border-zinc-200 dark:border-zinc-800 gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Key className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-zinc-400 shrink-0" />
+                          <span className="font-mono font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                            {showPasswords[p.id] ? p.account_password : "••••••••"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            size="icon" variant="ghost"
+                            title={showPasswords[p.id] ? t("btn_hide", { defaultValue: "Hide" }) : t("btn_show", { defaultValue: "Show" })}
+                            className="h-6 w-6 sm:h-7 sm:w-7 text-zinc-500"
+                            onClick={() => togglePassword(p.id)}
+                          >
+                            {showPasswords[p.id]
+                              ? <EyeOff className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                              : <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+                          </Button>
+                          <Button size="icon" variant="ghost" title={t("btn_copy", { defaultValue: "Copy" })} className="h-6 w-6 sm:h-7 sm:w-7 text-zinc-500" onClick={() => copyText(p.account_password!, "Password")}>
+                            <Copy className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
 
                   </div>
 

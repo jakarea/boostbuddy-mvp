@@ -353,22 +353,10 @@ export async function updatePasswordAction(
     return { success: false, error: "Passwords do not match." };
   }
 
-  if (password.length < 12 || password.length > 128) {
+  if (password.length < 8 || password.length > 128) {
     console.log("❌ Password length invalid");
     console.groupEnd();
-    return { success: false, error: "Password must be 12-128 characters long." };
-  }
-
-  // Check password complexity
-  const hasUpperCase = /[A-Z]/.test(password);
-  const hasLowerCase = /[a-z]/.test(password);
-  const hasNumber = /[0-9]/.test(password);
-  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
-
-  if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecialChar) {
-    console.log("❌ Password complexity insufficient");
-    console.groupEnd();
-    return { success: false, error: "Password must contain uppercase, lowercase, number, and special character." };
+    return { success: false, error: "Password must be 8-128 characters long." };
   }
 
   console.log("Step 2: Updating password for user:", process.env.NODE_ENV === 'development' ? user.email : maskEmail(user.email || ''));
@@ -384,5 +372,5 @@ export async function updatePasswordAction(
 
   console.log("Step 3: ✅ Password updated successfully");
   console.groupEnd();
-  redirect("/?reset=success");
+  return { success: true, successMessage: "Password updated successfully. Redirecting to login..." };
 }

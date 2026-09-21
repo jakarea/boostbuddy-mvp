@@ -47,7 +47,7 @@ export default function TelegramBotConfig({ initialConfig, flat = false }: Teleg
   const [showGuide, setShowGuide] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const isConfigured = !!config?.is_active;
+  const isConfigured = !!(config?.bot_token && config?.chat_id);
 
   const showFeedback = (msg: string, ok: boolean) => {
     setFeedback({ msg, ok });
@@ -60,12 +60,12 @@ export default function TelegramBotConfig({ initialConfig, flat = false }: Teleg
       return;
     }
     startTransition(async () => {
-      const res = await saveTelegramConfigAction({
-        bot_token: botToken.trim(),
-        chat_id: chatId.trim(),
-      });
-      if (res.success && res.data) {
-        setConfig(res.data);
+      const fd = new FormData();
+      fd.set("bot_token", botToken.trim());
+      fd.set("chat_id", chatId.trim());
+      const res = await saveTelegramConfigAction(fd);
+      if (res.success) {
+        setConfig({ bot_token: botToken.trim(), chat_id: chatId.trim() });
         setPanelState("collapsed");
         showFeedback(t("telegram.save_success", "Telegram bot saved and connected!"), true);
       } else {
@@ -92,7 +92,8 @@ export default function TelegramBotConfig({ initialConfig, flat = false }: Teleg
 
   const handleTest = () => {
     startTransition(async () => {
-      const res = await sendTelegramTestAction();
+      if (!config) return;
+      const res = await sendTelegramTestAction(config);
       if (res.success) {
         showFeedback(t("telegram.test_success", "Test message sent! Check your Telegram chat."), true);
       } else {
